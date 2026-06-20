@@ -23,16 +23,10 @@
     edit: (s) => Icon([p('M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'), p('M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z')], s),
   };
 
-  // Status bar + phone shell
-  window.PhoneFrame = function PhoneFrame({ children, dark }) {
+  // Phone shell (sin status bar simulada — se usa en mobile real)
+  window.PhoneFrame = function PhoneFrame({ children }) {
     return React.createElement('div', {
       style: { width: 390, height: 844, background: 'var(--bg-page)', borderRadius: 0, overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-ui)' }
-    },
-      React.createElement('div', { style: { height: 44, flex: '0 0 44px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 22px', background: dark ? 'transparent' : 'var(--bg-page)', color: dark ? '#fff' : 'var(--ink-900)', fontWeight: 700, fontSize: 14, position: dark ? 'absolute' : 'relative', top: 0, left: 0, right: 0, zIndex: 5 } },
-        React.createElement('span', null, '9:41'),
-        React.createElement('span', { style: { display: 'flex', gap: 5, alignItems: 'center', fontSize: 12 } }, '5G  ▮▮▮▮  100%')
-      ),
-      children
-    );
+    }, children);
   };
 })();
