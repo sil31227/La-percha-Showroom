@@ -587,7 +587,7 @@ function WelcomeScreen({ onEnter, onRegister, onLogin }) {
           La Percha Showroom
         </div>
         <div style={{ fontFamily: 'var(--font-ui)', fontSize: 15, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
-          Tu espacio de moda circular en Bahía Blanca
+          Tu espacio de moda circular y accesorios en un solo lugar
         </div>
 
         {/* Ilustración / separador visual */}
