@@ -371,81 +371,144 @@ function ModeracionScreen({ queue, onQueueChange }) {
     </div>
   );
 
+  // Mobile: vista detalle separada
+  if (isMobile && showDetail && item) {
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--surface-card)', flexShrink: 0 }}>
+          <button onClick={() => setShowDetail(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-strong)', fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 600, padding: 0 }}>
+            {PI.x} Volver a la lista
+          </button>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 100px' }}>
+          {/* Foto principal */}
+          <div style={{ width: '100%', aspectRatio: '4/5', borderRadius: 'var(--radius-lg)', background: 'linear-gradient(135deg, var(--taupe-100), var(--taupe-300))', marginBottom: 10 }} />
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            {[0,1,2].map(i => <div key={i} style={{ width: 52, height: 52, borderRadius: 8, background: 'var(--taupe-200)', border: i===0 ? '2px solid var(--sage-600)' : '1px solid var(--border-default)' }} />)}
+          </div>
+
+          {/* Info */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+            <Badge tone="neutral">{item.cat}</Badge>
+            <Badge tone="mint">{item.photos} fotos</Badge>
+          </div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, color: 'var(--text-strong)', margin: '0 0 4px' }}>{item.title}</h2>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>por <b style={{ color: 'var(--text-link)' }}>{item.seller}</b> · {item.time}</div>
+          <div style={{ fontWeight: 800, fontSize: 24, color: 'var(--price)', marginBottom: 16 }}>{D.fmt(item.price)}</div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+            {[
+              { label: 'Comisión (20%)', value: D.fmt(Math.round(item.price * .2)) },
+              { label: 'Vendedora (80%)', value: D.fmt(Math.round(item.price * .8)) },
+              { label: 'Categoría', value: 'Sí · es ropa', ok: true },
+              { label: 'Talle / estado', value: 'M · Como nuevo' },
+            ].map(f => (
+              <div key={f.label} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '10px 12px' }}>
+                <div style={{ fontSize: 10, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-subtle)', fontWeight: 700 }}>{f.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: f.ok ? 'var(--success-600)' : 'var(--text-strong)', marginTop: 3 }}>{f.value}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', padding: '12px 14px', fontSize: 14, lineHeight: 1.6, color: 'var(--text-body)', marginBottom: 20 }}>
+            "Vestido usado una sola vez, impecable. Coordino envío por Correo Argentino o retiro en Palihue."
+          </div>
+
+          {done[sel] ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-muted)', fontSize: 14, marginBottom: 12 }}>
+              Resuelto: <StatusPill status={done[sel]} />
+              <button onClick={() => setDone(d => { const u = {...d}; delete u[sel]; return u; })} style={{ background: 'none', border: 'none', color: 'var(--text-link)', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>Deshacer</button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <Button variant="primary"  iconLeft={PI.check} full onClick={() => act('aprobada')}>Aprobar publicación</Button>
+              <Button variant="outline"  full onClick={() => act('cambios')}>Pedir cambios</Button>
+              <Button variant="danger"   iconLeft={PI.x} full onClick={() => act('rechazada')}>Rechazar</Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <window.TopBar title="Moderación de prendas" sub={`${pending} publicaciones esperando revisión`}
+      <window.TopBar title="Moderación" sub={`${pending} esperando revisión`}
         right={<Badge tone="warning">{pending} en cola</Badge>} />
       <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', overflow: 'hidden' }}>
 
         {/* Lista cola */}
-        <div style={{ width: isMobile ? '100%' : 320, flex: isMobile ? '0 0 auto' : '0 0 320px', borderRight: isMobile ? 'none' : '1px solid var(--border-subtle)', borderBottom: isMobile ? '1px solid var(--border-subtle)' : 'none', overflowY: 'auto', background: 'var(--surface-card)', maxHeight: isMobile ? 220 : 'none' }}>
+        <div style={{ width: isMobile ? '100%' : 320, flex: isMobile ? '1' : '0 0 320px', borderRight: isMobile ? 'none' : '1px solid var(--border-subtle)', overflowY: 'auto', background: 'var(--surface-card)' }}>
           {queue.map(q => {
             const on = q.id === sel;
             const resolved = done[q.id];
             return (
-              <button key={q.id} onClick={() => setSel(q.id)} style={{ width: '100%', display: 'flex', gap: 12, padding: '14px 16px', border: 'none', borderBottom: '1px solid var(--border-subtle)', borderLeft: `3px solid ${on ? 'var(--sage-600)' : 'transparent'}`, background: on ? 'var(--sage-50)' : 'transparent', cursor: 'pointer', textAlign: 'left', opacity: resolved ? .5 : 1 }}>
+              <button key={q.id} onClick={() => { setSel(q.id); if (isMobile) setShowDetail(true); }} style={{ width: '100%', display: 'flex', gap: 12, padding: '14px 16px', border: 'none', borderBottom: '1px solid var(--border-subtle)', borderLeft: `3px solid ${on && !isMobile ? 'var(--sage-600)' : 'transparent'}`, background: on && !isMobile ? 'var(--sage-50)' : 'transparent', cursor: 'pointer', textAlign: 'left', opacity: resolved ? .5 : 1 }}>
                 <div style={{ width: 46, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, var(--taupe-100), var(--taupe-300))', flex: '0 0 46px' }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-strong)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.title}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 6px' }}>{q.seller} · {q.time}</div>
                   <StatusPill status={resolved || 'revision'} />
                 </div>
+                {isMobile && <span style={{ color: 'var(--text-subtle)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>{PI.x && React.createElement('svg', { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }, React.createElement('path', { d: 'm9 6 6 6-6 6' }))}</span>}
               </button>
             );
           })}
         </div>
 
-        {/* Detalle */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 28, paddingBottom: isMobile ? 80 : 28 }}>
-          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 16 : 24, maxWidth: 700 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ width: 200, height: 250, borderRadius: 'var(--radius-lg)', background: 'linear-gradient(135deg, var(--taupe-100), var(--taupe-300))' }} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                {[0,1,2].map(i => <div key={i} style={{ width: 42, height: 42, borderRadius: 8, background: 'var(--taupe-200)', border: i===0 ? '2px solid var(--sage-600)' : '1px solid var(--border-default)' }} />)}
+        {/* Detalle — solo desktop */}
+        {!isMobile && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+            <div style={{ display: 'flex', gap: 24, maxWidth: 700 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ width: 200, height: 250, borderRadius: 'var(--radius-lg)', background: 'linear-gradient(135deg, var(--taupe-100), var(--taupe-300))' }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[0,1,2].map(i => <div key={i} style={{ width: 42, height: 42, borderRadius: 8, background: 'var(--taupe-200)', border: i===0 ? '2px solid var(--sage-600)' : '1px solid var(--border-default)' }} />)}
+                </div>
               </div>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                <Badge tone="neutral">{item.cat}</Badge>
-                <Badge tone="mint">{item.photos} fotos</Badge>
-              </div>
-              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 24, color: 'var(--text-strong)', margin: '0 0 6px' }}>{item.title}</h2>
-              <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 14 }}>Publicado por <b style={{ color: 'var(--text-link)' }}>{item.seller}</b> · {item.time}</div>
-              <div style={{ fontWeight: 800, fontSize: 22, color: 'var(--price)', marginBottom: 18 }}>{D.fmt(item.price)}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                  <Badge tone="neutral">{item.cat}</Badge>
+                  <Badge tone="mint">{item.photos} fotos</Badge>
+                </div>
+                <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 24, color: 'var(--text-strong)', margin: '0 0 6px' }}>{item.title}</h2>
+                <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 14 }}>Publicado por <b style={{ color: 'var(--text-link)' }}>{item.seller}</b> · {item.time}</div>
+                <div style={{ fontWeight: 800, fontSize: 22, color: 'var(--price)', marginBottom: 18 }}>{D.fmt(item.price)}</div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
-                {[
-                  { label: 'Comisión La Percha (20%)', value: D.fmt(Math.round(item.price * .2)) },
-                  { label: 'Recibe la vendedora (80%)', value: D.fmt(Math.round(item.price * .8)) },
-                  { label: 'Categoría permitida', value: 'Sí · es ropa', ok: true },
-                  { label: 'Talle / estado', value: 'M · Como nuevo' },
-                ].map(f => (
-                  <div key={f.label} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '10px 12px' }}>
-                    <div style={{ fontSize: 11, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-subtle)', fontWeight: 700 }}>{f.label}</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: f.ok ? 'var(--success-600)' : 'var(--text-strong)', marginTop: 3 }}>{f.value}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+                  {[
+                    { label: 'Comisión La Percha (20%)', value: D.fmt(Math.round(item.price * .2)) },
+                    { label: 'Recibe la vendedora (80%)', value: D.fmt(Math.round(item.price * .8)) },
+                    { label: 'Categoría permitida', value: 'Sí · es ropa', ok: true },
+                    { label: 'Talle / estado', value: 'M · Como nuevo' },
+                  ].map(f => (
+                    <div key={f.label} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '10px 12px' }}>
+                      <div style={{ fontSize: 11, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-subtle)', fontWeight: 700 }}>{f.label}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: f.ok ? 'var(--success-600)' : 'var(--text-strong)', marginTop: 3 }}>{f.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 14, lineHeight: 1.6, color: 'var(--text-body)', marginBottom: 20 }}>
+                  "Vestido usado una sola vez, impecable. Coordino envío por Correo Argentino o retiro en Palihue."
+                </div>
+
+                {done[sel] ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-muted)', fontSize: 14 }}>
+                    Resuelto: <StatusPill status={done[sel]} />
+                    <button onClick={() => setDone(d => { const u = {...d}; delete u[sel]; return u; })} style={{ background: 'none', border: 'none', color: 'var(--text-link)', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>Deshacer</button>
                   </div>
-                ))}
+                ) : (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <Button variant="primary"  iconLeft={PI.check} onClick={() => act('aprobada')}>Aprobar</Button>
+                    <Button variant="outline"                       onClick={() => act('cambios')}>Pedir cambios</Button>
+                    <Button variant="danger"   iconLeft={PI.x}     onClick={() => act('rechazada')}>Rechazar</Button>
+                  </div>
+                )}
               </div>
-
-              <div style={{ background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 14, lineHeight: 1.6, color: 'var(--text-body)', marginBottom: 20 }}>
-                "Vestido usado una sola vez, impecable. Coordino envío por Correo Argentino o retiro en Palihue."
-              </div>
-
-              {done[sel] ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-muted)', fontSize: 14 }}>
-                  Resuelto: <StatusPill status={done[sel]} />
-                  <button onClick={() => setDone(d => { const u = {...d}; delete u[sel]; return u; })} style={{ background: 'none', border: 'none', color: 'var(--text-link)', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>Deshacer</button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <Button variant="primary"  iconLeft={PI.check} onClick={() => act('aprobada')}>Aprobar</Button>
-                  <Button variant="outline"                       onClick={() => act('cambios')}>Pedir cambios</Button>
-                  <Button variant="danger"   iconLeft={PI.x}     onClick={() => act('rechazada')}>Rechazar</Button>
-                </div>
-              )}
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -534,19 +597,20 @@ function VendedoresScreen() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {solicitudes.map(s => (
-                <div key={s.id} style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 18 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--sage-100)', color: 'var(--sage-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 20, flex: '0 0 44px' }}>
-                    {s.name[0]}
+                <div key={s.id} style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', padding: '16px 18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 12 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--sage-100)', color: 'var(--sage-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 20, flex: '0 0 44px' }}>
+                      {s.name[0]}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-strong)' }}>{s.name} <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 400 }}>· {s.fecha}</span></div>
+                      <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{s.email} · {s.phone}</div>
+                      <div style={{ fontSize: 13, color: 'var(--text-body)', marginTop: 4 }}>Tienda: <b>{s.tienda}</b> · CVU: {s.cvu}</div>
+                    </div>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-strong)' }}>{s.name}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{s.email} · {s.phone}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-body)', marginTop: 4 }}>Tienda: <b>{s.tienda}</b> · CVU/alias: {s.cvu}</div>
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 12, whiteSpace: 'nowrap' }}>{s.fecha}</div>
-                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                    <Button variant="primary" onClick={() => autorizar(s.id)}>Autorizar</Button>
-                    <Button variant="danger"  onClick={() => setSolicitudes(ss => ss.filter(x => x.id !== s.id))}>Rechazar</Button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Button variant="primary" full onClick={() => autorizar(s.id)}>Autorizar</Button>
+                    <Button variant="danger"  full onClick={() => setSolicitudes(ss => ss.filter(x => x.id !== s.id))}>Rechazar</Button>
                   </div>
                 </div>
               ))}
