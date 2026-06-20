@@ -1,0 +1,99 @@
+/* La Percha Showroom — Color tokens
+ * Sampled from the brand badge: warm taupe/greige field, charcoal ink text,
+ * sage-green leaf (primary), powder mint ring (secondary), terracotta error.
+ * Warm, boutique, trustworthy. Never cold blue or purple gradients.
+ */
+:root {
+  /* ---- Sage (the leaf) — PRIMARY ---- */
+  --sage-50:  #f3f7ec;
+  --sage-100: #e3eed1;
+  --sage-200: #c9dcab;
+  --sage-300: #abc783;
+  --sage-400: #8db05e;
+  --sage-500: #739646;
+  --sage-600: #5c7c38; /* --brand */
+  --sage-700: #47602c;
+  --sage-800: #384b25;
+  --sage-900: #2c3b1f;
+
+  /* ---- Mint (the badge ring) — SECONDARY / accent ---- */
+  --mint-50:  #eff7f5;
+  --mint-100: #d9ece8;
+  --mint-200: #bfe0da;
+  --mint-300: #9bccc3;
+  --mint-400: #71b1a6;
+  --mint-500: #4f9489; /* --accent */
+  --mint-600: #3d7870;
+  --mint-700: #325f59;
+
+  /* ---- Taupe / greige — warm surfaces & borders ---- */
+  --taupe-50:  #faf7f2;
+  --taupe-100: #f3ede4;
+  --taupe-200: #e8ded0;
+  --taupe-300: #d8c9b4;
+  --taupe-400: #c2b099;
+  --taupe-500: #a8967c;
+  --taupe-600: #897866;
+  --taupe-700: #6b5d4b;
+  --taupe-800: #4d4337;
+  --taupe-900: #322c24;
+
+  /* ---- Ink — warm charcoal text neutrals ---- */
+  --ink-100: #ece8e3;
+  --ink-200: #ddd7cf;
+  --ink-300: #c8c0b4;
+  --ink-400: #a59c8e;
+  --ink-500: #837a6b;
+  --ink-600: #645c50;
+  --ink-700: #4a4339;
+  --ink-800: #38322b;
+  --ink-900: #2b2722;
+
+  /* ---- Semantic — warm-tuned ---- */
+  --success-50:  #eaf4ec;
+  --success-500: #3f8f4f;
+  --success-600: #347a42;
+  --warning-50:  #fbf0dd;
+  --warning-500: #d08a2c;
+  --warning-600: #b0701d;
+  --error-50:    #f8e7e2;
+  --error-500:   #c4492f; /* terracotta */
+  --error-600:   #a73a23;
+  --info-50:     #e7f1ef;
+  --info-500:    #3d7870;
+  --info-600:    #2f5f59;
+
+  --rating-star: #eaa92b; /* the one filled glyph — amber */
+
+  /* ================= Semantic aliases ================= */
+  --brand:        var(--sage-600);
+  --brand-hover:  var(--sage-700);
+  --accent:       var(--mint-500);
+
+  /* Backgrounds & surfaces */
+  --bg-page:        var(--taupe-50);
+  --bg-canvas:      #fffdf9;
+  --surface-card:   #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: var(--taupe-100);
+  --surface-inverse:var(--ink-900);
+
+  /* Text */
+  --text-strong:   var(--ink-900);
+  --text-body:     var(--ink-800);
+  --text-muted:    var(--ink-600);
+  --text-subtle:   var(--ink-500);
+  --text-on-brand: #ffffff;
+  --text-on-dark:  var(--taupe-50);
+  --text-link:     var(--sage-700);
+  --price:         var(--ink-900);
+
+  /* Borders */
+  --border-subtle:  var(--ink-200);
+  --border-default: var(--ink-300);
+  --border-strong:  var(--ink-400);
+  --border-focus:   var(--brand);
+
+  /* Focus ring */
+  --ring: 0 0 0 3px color-mix(in srgb, var(--sage-500) 32%, transparent);
+}

@@ -1,0 +1,28 @@
+/* La Percha Showroom — Radii, shadows & motion */
+:root {
+  /* Corner radii — soft, friendly boutique feel */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;  /* default control */
+  --radius-lg: 16px;  /* default card */
+  --radius-xl: 22px;  /* sheets / hero */
+  --radius-2xl: 28px;
+  --radius-pill: 999px;
+  --radius-circle: 50%;
+
+  /* Shadows — warm taupe-tinted, never pure black */
+  --shadow-xs: 0 1px 2px rgba(50, 44, 36, 0.06);
+  --shadow-sm: 0 1px 3px rgba(50, 44, 36, 0.08), 0 1px 2px rgba(50, 44, 36, 0.05);
+  --shadow-md: 0 4px 14px rgba(50, 44, 36, 0.10), 0 2px 5px rgba(50, 44, 36, 0.06);
+  --shadow-lg: 0 14px 32px rgba(50, 44, 36, 0.14), 0 4px 9px rgba(50, 44, 36, 0.07);
+  --shadow-xl: 0 28px 60px rgba(50, 44, 36, 0.22);
+  --shadow-brand: 0 6px 16px rgba(92, 124, 56, 0.30); /* sage-tinted — primary CTA */
+
+  /* Motion — quick & gentle. @kind other */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);       /* @kind other */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);    /* @kind other */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* @kind other */
+  --dur-fast: 140ms; /* @kind other */
+  --dur-base: 220ms; /* @kind other */
+  --dur-slow: 340ms; /* @kind other */
+}

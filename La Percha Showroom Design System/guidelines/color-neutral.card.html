@@ -1,0 +1,36 @@
+<!-- @dsCard group="Colors" viewport="700x180" name="Neutral — Taupe & Ink" subtitle="Warm greige surfaces + charcoal ink text" -->
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin:0; padding:22px; background:var(--bg-canvas); font-family:var(--font-ui); }
+  .scale { display:flex; gap:0; border-radius:12px; overflow:hidden; box-shadow:var(--shadow-sm); margin-bottom:10px; }
+  .sw { flex:1; height:64px; display:flex; flex-direction:column; justify-content:flex-end; padding:7px; }
+  .n { font-size:11px; font-weight:700; }
+  .v { font-size:9px; opacity:.85; font-family:var(--font-mono); }
+  .lbl { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-subtle); font-weight:700; margin:0 0 6px; }
+</style></head>
+<body>
+<p class="lbl">Taupe / greige — the badge field (surfaces, borders)</p>
+<div class="scale">
+  <div class="sw" style="background:var(--taupe-50)"><span class="n">50</span><span class="v">#faf7f2</span></div>
+  <div class="sw" style="background:var(--taupe-100)"><span class="n">100</span><span class="v">#f3ede4</span></div>
+  <div class="sw" style="background:var(--taupe-200)"><span class="n">200</span><span class="v">#e8ded0</span></div>
+  <div class="sw" style="background:var(--taupe-300)"><span class="n">300</span><span class="v">#d8c9b4</span></div>
+  <div class="sw" style="background:var(--taupe-400)"><span class="n">400</span><span class="v">#c2b099</span></div>
+  <div class="sw" style="background:var(--taupe-500)"><span class="n" style="color:#fff">500</span><span class="v" style="color:#fff">#a8967c</span></div>
+  <div class="sw" style="background:var(--taupe-700)"><span class="n" style="color:#fff">700</span><span class="v" style="color:#fff">#6b5d4b</span></div>
+  <div class="sw" style="background:var(--taupe-900)"><span class="n" style="color:#fff">900</span><span class="v" style="color:#fff">#322c24</span></div>
+</div>
+<p class="lbl">Ink — warm charcoal text (--text-strong = ink-900)</p>
+<div class="scale">
+  <div class="sw" style="background:var(--ink-100)"><span class="n">100</span></div>
+  <div class="sw" style="background:var(--ink-200)"><span class="n">200</span></div>
+  <div class="sw" style="background:var(--ink-300)"><span class="n">300</span></div>
+  <div class="sw" style="background:var(--ink-400)"><span class="n" style="color:#fff">400</span></div>
+  <div class="sw" style="background:var(--ink-500)"><span class="n" style="color:#fff">500</span></div>
+  <div class="sw" style="background:var(--ink-600)"><span class="n" style="color:#fff">600</span></div>
+  <div class="sw" style="background:var(--ink-800)"><span class="n" style="color:#fff">800</span></div>
+  <div class="sw" style="background:var(--ink-900)"><span class="n" style="color:#fff">900</span><span class="v" style="color:#fff">#2b2722</span></div>
+</div>
+</body></html>

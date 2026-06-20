@@ -1,0 +1,41 @@
+/* La Percha Showroom — Typography tokens */
+:root {
+  /* Families */
+  --font-display: "Marcellus", "Cormorant Garamond", Georgia, serif; /* @kind font */
+  --font-ui: "Mulish", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; /* @kind font */
+  --font-sans: var(--font-ui); /* @kind font */
+  --font-script: "Parisienne", "Brush Script MT", cursive; /* @kind font */ /* decorative only */
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace; /* @kind font */
+
+  /* Weights — @kind other (numeric font-weight keywords) */
+  --fw-light: 300;    /* @kind other */
+  --fw-regular: 400;  /* @kind other */
+  --fw-medium: 500;   /* @kind other */
+  --fw-semibold: 600; /* @kind other */
+  --fw-bold: 700;     /* @kind other */
+  --fw-extrabold: 800;/* @kind other */
+
+  /* Type scale — mobile-first (1rem = 16px) */
+  --text-2xs: 0.6875rem; /* 11 */
+  --text-xs:  0.75rem;   /* 12 */
+  --text-sm:  0.8125rem; /* 13 */
+  --text-base:0.9375rem; /* 15 — body default */
+  --text-md:  1rem;      /* 16 */
+  --text-lg:  1.125rem;  /* 18 */
+  --text-xl:  1.375rem;  /* 22 */
+  --text-2xl: 1.75rem;   /* 28 */
+  --text-3xl: 2.25rem;   /* 36 */
+  --text-4xl: 3rem;      /* 48 */
+
+  /* Line heights — @kind other (unitless) */
+  --lh-tight: 1.15;   /* @kind other */
+  --lh-snug: 1.3;     /* @kind other */
+  --lh-normal: 1.5;   /* @kind other */
+  --lh-relaxed: 1.65; /* @kind other */
+
+  /* Letter spacing — @kind other */
+  --ls-tight: -0.01em; /* @kind other */
+  --ls-normal: 0;      /* @kind other */
+  --ls-wide: 0.04em;   /* @kind other */
+  --ls-caps: 0.16em;   /* @kind other */ /* spaced eyebrow caps */
+}

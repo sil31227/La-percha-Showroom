@@ -1,0 +1,126 @@
+<!-- @dsCard group="Shopper App" viewport="390x844" name="Shopper App — mobile" subtitle="Home → producto → carrito → pago. Mobile-first marketplace." -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>La Percha Showroom — App</title>
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  html, body { margin: 0; height: 100%; }
+  html { overflow-x: auto; }
+  body { background: var(--taupe-200); display: flex; align-items: center; justify-content: center; min-height: 100vh; min-width: 460px; padding: 24px; box-sizing: border-box; }
+  .device { width: 390px; height: 844px; border-radius: 44px; background: #000; padding: 11px; box-shadow: var(--shadow-xl); position: relative; flex-shrink: 0; box-sizing: content-box; }
+  .screen { width: 100%; height: 100%; border-radius: 34px; overflow: hidden; background: var(--bg-page); display: flex; flex-direction: column; }
+  ::-webkit-scrollbar { display: none; }
+  .toast { position: absolute; left: 50%; bottom: 92px; transform: translateX(-50%); background: var(--ink-900); color: #fff; padding: 11px 18px; border-radius: var(--radius-pill); font-family: var(--font-ui); font-size: 13px; font-weight: 600; box-shadow: var(--shadow-lg); display: flex; gap: 8px; align-items: center; z-index: 40; animation: pop .3s var(--ease-spring); }
+  @keyframes pop { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+</style>
+</head>
+<body>
+<div class="device"><div class="screen" id="root"></div></div>
+
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="data.js"></script>
+<script type="text/babel" src="chrome.js"></script>
+<script type="text/babel" src="Home.jsx"></script>
+<script type="text/babel" src="Product.jsx"></script>
+<script type="text/babel" src="Cart.jsx"></script>
+<script type="text/babel" src="Extra.jsx"></script>
+<script type="text/babel" src="Screens.jsx"></script>
+<script type="text/babel">
+const DS = window.LaPerchaShowroomDesignSystem_72de99;
+const { BottomNav } = DS;
+const I = window.LPIcons;
+
+function App() {
+  const [tab, setTab] = React.useState('home');
+  const [route, setRoute] = React.useState({ name: 'home' });
+  const [cat, setCat] = React.useState('Todo');
+  const [favs, setFavs] = React.useState({ f1: true });
+  const [cart, setCart] = React.useState({});
+  const [toast, setToast] = React.useState(null);
+  // 'guest' = no registrado | 'registered' = registrado, no vendedor | 'seller' = vendedor autorizado
+  const [userState, setUserState] = React.useState('guest');
+
+  const toggleFav = (id) => setFavs(f => ({ ...f, [id]: !f[id] }));
+  const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
+  const showToast = (msg) => { setToast(msg); clearTimeout(window.__t); window.__t = setTimeout(() => setToast(null), 1600); };
+
+  const addToCart = (id, buyNow) => {
+    setCart(c => ({ ...c, [id]: (c[id] || 0) + 1 }));
+    if (buyNow) { setRoute({ name: 'cart' }); }
+    else { setRoute({ name: 'home' }); setTab('home'); showToast('Agregado al carrito'); }
+  };
+  const setQty = (id, n) => setCart(c => { const u = { ...c }; if (n <= 0) delete u[id]; else u[id] = n; return u; });
+
+  const openProduct = (id) => setRoute({ name: 'product', id });
+  const goHome = () => { setRoute({ name: 'home' }); setTab('home'); };
+  const goTab = (t) => {
+    setTab(t);
+    if (t === 'fav') setRoute({ name: 'fav' });
+    else if (t === 'profile') setRoute({ name: 'profile' });
+    else setRoute({ name: 'home' });
+  };
+  const goSell = () => {
+    if (userState === 'guest') setRoute({ name: 'register' });
+    else setRoute({ name: 'publish' });
+  };
+
+  let content;
+  if (route.name === 'product') {
+    content = <window.ProductScreen id={route.id} onBack={goHome} onAdd={addToCart} favs={favs} toggleFav={toggleFav} />;
+  } else if (route.name === 'cart') {
+    content = <window.CartScreen items={cart} setQty={setQty} onBack={goHome} onCheckout={() => setRoute({ name: 'confirm' })} onExplore={goHome} />;
+  } else if (route.name === 'confirm') {
+    content = <window.ConfirmScreen onDone={() => { setCart({}); goHome(); }} />;
+  } else if (route.name === 'search') {
+    content = <window.SearchScreen onBack={goHome} onOpen={openProduct} />;
+  } else if (route.name === 'profile') {
+    content = <window.ProfileScreen />;
+  } else if (route.name === 'register') {
+    content = <window.RegisterScreen onBack={goHome} onRegistered={() => { setUserState('registered'); goHome(); showToast('¡Bienvenida a La Percha!'); }} />;
+  } else if (route.name === 'seller-onboarding') {
+    content = <window.SellerOnboardingScreen onBack={goHome} onSubmitted={() => { setUserState('seller'); setRoute({ name: 'publish' }); }} />;
+  } else if (route.name === 'publish') {
+    content = <window.PublishScreen onBack={goHome} onPublished={() => { goHome(); showToast('Prenda enviada a revisión'); }} />;
+  } else if (tab === 'fav') {
+    content = <window.FavScreen favs={favs} toggleFav={toggleFav} onOpen={openProduct} onExplore={goHome} />;
+  } else {
+    content = <window.HomeScreen onOpen={openProduct} favs={favs} toggleFav={toggleFav} cat={cat} setCat={setCat} onSearch={() => setRoute({ name: 'search' })} />;
+  }
+
+  const fullScreen = ['product','cart','confirm','search','register','seller-onboarding','publish'].includes(route.name);
+
+  return (
+    <window.PhoneFrame>
+      {content}
+      {toast && <div className="toast">{I.check(16)} {toast}</div>}
+      {!fullScreen && (
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}>
+          <BottomNav active={route.name === 'cart' ? 'cart' : tab} onChange={(t) => {
+            if (t === 'sell') return goSell();
+            if (t === 'cart') return setRoute({ name: 'cart' });
+            goTab(t);
+          }} items={[
+            { key: 'home', label: 'Inicio', icon: I.home(22) },
+            { key: 'profile', label: 'Perfil', icon: I.user(22) },
+            { key: 'sell', label: 'Vender', icon: I.plus(24), accent: true },
+            { key: 'fav', label: 'Favoritos', icon: I.heart(22), badge: Object.values(favs).filter(Boolean).length || undefined },
+            { key: 'cart', label: 'Carrito', icon: I.bag(22), badge: cartCount || undefined },
+          ]} />
+        </div>
+      )}
+    </window.PhoneFrame>
+  );
+}
+
+// route cart from bottom nav
+const origRender = ReactDOM.createRoot(document.getElementById('root'));
+origRender.render(<App />);
+</script>
+</body>
+</html>

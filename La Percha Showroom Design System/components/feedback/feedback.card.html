@@ -1,0 +1,54 @@
+<!-- @dsCard group="Components" viewport="700x300" name="Badges, Chips, Status & Rating" subtitle="Labels, filters, order/moderation states, stars" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  body { margin: 0; padding: 24px; background: var(--bg-page); font-family: var(--font-ui); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .lbl { width: 100%; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--text-subtle); font-weight: 700; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel">
+const { Badge, FilterChip, StatusPill, Rating } = window.LaPerchaShowroomDesignSystem_72de99;
+function Demo() {
+  const [chip, setChip] = React.useState('Vestidos');
+  return (
+    <div>
+      <div className="row"><span className="lbl">Badges</span>
+        <Badge tone="brand" solid>Tienda Oficial</Badge>
+        <Badge tone="mint">Envío gratis</Badge>
+        <Badge tone="error" solid>-20%</Badge>
+        <Badge tone="warning">Últimas unidades</Badge>
+        <Badge tone="success">Nuevo</Badge>
+        <Badge tone="neutral">Importado</Badge>
+      </div>
+      <div className="row"><span className="lbl">Filter chips</span>
+        {['Vestidos','Jeans','Camperas','Calzado','Deportiva'].map(c =>
+          <FilterChip key={c} selected={chip===c} onClick={() => setChip(c)}>{c}</FilterChip>)}
+      </div>
+      <div className="row"><span className="lbl">Status — pedido & pago</span>
+        <StatusPill status="pendiente"/><StatusPill status="pagado"/><StatusPill status="preparando"/>
+        <StatusPill status="enviado"/><StatusPill status="entregado"/><StatusPill status="liberado"/>
+      </div>
+      <div className="row"><span className="lbl">Status — moderación</span>
+        <StatusPill status="revision"/><StatusPill status="aprobada"/><StatusPill status="rechazada"/><StatusPill status="cambios"/>
+      </div>
+      <div className="row"><span className="lbl">Rating</span>
+        <Rating value={5} count={8}/><Rating value={4.5} count={128} showValue/><Rating value={3} />
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body>
+</html>

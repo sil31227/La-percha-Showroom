@@ -1,0 +1,38 @@
+/* La Percha Showroom — Base element styles & brand helpers */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  line-height: var(--lh-normal);
+  color: var(--text-body);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  color: var(--text-strong);
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+}
+
+a { color: var(--text-link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button { font-family: inherit; }
+
+::selection { background: var(--sage-200); color: var(--ink-900); }
+:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--radius-sm); }
+
+/* Brand wordmark — Parisienne script flourish */
+.lp-wordmark { font-family: var(--font-script); font-weight: 400; line-height: 1; color: var(--ink-900); }
+
+/* Spaced-caps eyebrow / section kicker (echoes "SHOWROOM") */
+.lp-eyebrow {
+  font-family: var(--font-ui); font-weight: 600; font-size: var(--text-xs);
+  letter-spacing: var(--ls-caps); text-transform: uppercase; color: var(--text-muted);
+}

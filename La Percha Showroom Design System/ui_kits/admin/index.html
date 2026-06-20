@@ -1,0 +1,681 @@
+<!-- @dsCard group="Admin" viewport="1280x760" name="Admin — Panel completo" subtitle="Login + Dashboard + Tienda Oficial + Moderación + Vendedoras + Pedidos + Finanzas" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>La Percha — Administración</title>
+<link rel="stylesheet" href="../../styles.css" />
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg-page); }
+  #root { height: 100vh; display: flex; overflow: hidden; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-thumb { background: var(--ink-200); border-radius: 9px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="../../_ds_bundle.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../shopper-app/data.js"></script>
+<script type="text/babel" src="panel-chrome.js"></script>
+<script type="text/babel">
+const DS = window.LaPerchaShowroomDesignSystem_72de99;
+const { Button, Badge, StatusPill } = DS;
+const PI = window.PanelIcons;
+const D = window.LP_DATA;
+const fmt = (n) => '$' + Number(n).toLocaleString('es-AR');
+
+// ─── Datos de demo ────────────────────────────────────────────────────────────
+const QUEUE = [
+  { id: 'q1', title: 'Vestido de fiesta lentejuelas', price: 34000, seller: 'Glam BB', cat: 'Vestidos', time: 'hace 12 min', photos: 4 },
+  { id: 'q2', title: 'Zapatillas running talle 40', price: 28500, seller: 'RunBahía', cat: 'Calzado', time: 'hace 38 min', photos: 3 },
+  { id: 'q3', title: 'Conjunto deportivo dama', price: 19900, seller: 'Activa', cat: 'Deportiva', time: 'hace 1 h', photos: 5 },
+  { id: 'q4', title: 'Camisa de lino oversize', price: 16800, seller: 'Lino & Co', cat: 'Camperas', time: 'hace 2 h', photos: 2 },
+];
+
+const PEDIDOS = [
+  { id: '#LP-2841', buyer: 'Martina Yaquinta', items: 'Vestido lino + Campera jean', total: 45400, status: 'enviado',    date: '18 jun', origen: 'feria' },
+  { id: '#LP-2838', buyer: 'Laura Méndez',     items: 'Set de mates artesanales',    total: 12500, status: 'preparando', date: '17 jun', origen: 'oficial' },
+  { id: '#LP-2830', buyer: 'Sofía Romero',     items: 'Crema corporal karité x2',    total: 18400, status: 'pagado',     date: '16 jun', origen: 'oficial' },
+  { id: '#LP-2825', buyer: 'Camila Torres',    items: 'Jean mom fit talle M',         total: 24900, status: 'pendiente', date: '16 jun', origen: 'feria' },
+  { id: '#LP-2819', buyer: 'Valentina Pinto',  items: 'Vela aromática + difusor',    total: 15800, status: 'entregado', date: '14 jun', origen: 'oficial' },
+  { id: '#LP-2811', buyer: 'Ana García',       items: 'Vestido floral talle S',      total: 29500, status: 'entregado', date: '12 jun', origen: 'feria' },
+];
+
+const SOLICITUDES_INIT = [
+  { id: 'v1', name: 'Carolina Ibañez', email: 'caro@email.com', phone: '+54 291 444-2233', tienda: 'Caro Indumentaria', cvu: 'caro.mp', fecha: '19 jun' },
+  { id: 'v2', name: 'Jimena Russo',    email: 'jime@email.com', phone: '+54 291 555-8877', tienda: 'Jimena Moda',       cvu: 'jimena.russo.mp', fecha: '18 jun' },
+];
+
+const VENDEDORES_INIT = [
+  { id: 'va1', name: 'Glam BB',    seller: 'Brenda B.',   pubs: 8,  ventas: 142000, calif: 4.8 },
+  { id: 'va2', name: 'RunBahía',   seller: 'Lucas M.',    pubs: 12, ventas: 89500,  calif: 4.6 },
+  { id: 'va3', name: 'Activa',     seller: 'Rocío S.',    pubs: 5,  ventas: 67200,  calif: 4.9 },
+  { id: 'va4', name: 'Lino & Co',  seller: 'Fernanda L.', pubs: 3,  ventas: 41800,  calif: 4.5 },
+];
+
+const PRODUCTOS_INIT = [
+  { id: 'p1', name: 'Crema corporal karité',    cat: 'Cosmética',   price: 9200,  stock: 14, active: true },
+  { id: 'p2', name: 'Set de mates artesanales', cat: 'Bazar',       price: 12500, stock: 8,  active: true },
+  { id: 'p3', name: 'Vela aromática lavanda',   cat: 'Decoración',  price: 7800,  stock: 22, active: true },
+  { id: 'p4', name: 'Difusor de caña natural',  cat: 'Decoración',  price: 8100,  stock: 5,  active: true },
+  { id: 'p5', name: 'Colgante de macramé',      cat: 'Accesorios',  price: 6400,  stock: 11, active: true },
+  { id: 'p6', name: 'Jabón artesanal avena',    cat: 'Cosmética',   price: 3200,  stock: 0,  active: false },
+];
+
+const RETIROS_INIT = [
+  { id: 'r1', tienda: 'Caro Indumentaria', monto: 53760, fecha: '18 jun', done: false },
+  { id: 'r2', tienda: 'RunBahía',          monto: 37820, fecha: '17 jun', done: false },
+  { id: 'r3', tienda: 'Activa',            monto: 28940, fecha: '15 jun', done: true  },
+  { id: 'r4', tienda: 'Lino & Co',         monto: 19200, fecha: '14 jun', done: true  },
+];
+
+// ─── Login ────────────────────────────────────────────────────────────────────
+function LoginScreen({ onLogin }) {
+  const [email, setEmail] = React.useState('');
+  const [pass, setPass]   = React.useState('');
+  const [err, setErr]     = React.useState(false);
+
+  const submit = () => {
+    if (email === 'silvina@lapercha.com' && pass === 'admin123') { onLogin(); }
+    else { setErr(true); setTimeout(() => setErr(false), 2200); }
+  };
+  const onKey = (e) => { if (e.key === 'Enter') submit(); };
+
+  const inputStyle = (hasErr) => ({
+    width: '100%', height: 46, background: 'var(--surface-sunken)',
+    border: `1.5px solid ${hasErr ? 'var(--error-400)' : 'var(--border-default)'}`,
+    borderRadius: 'var(--radius-md)', padding: '0 14px',
+    fontFamily: 'var(--font-ui)', fontSize: 15, color: 'var(--text-body)',
+    outline: 'none', boxSizing: 'border-box', transition: 'border-color .15s',
+  });
+
+  return (
+    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(140deg, var(--ink-900) 0%, #1a2820 100%)' }}>
+      <div style={{ width: 420, background: 'var(--surface-card)', borderRadius: 'var(--radius-xl)', padding: '44px 40px', boxShadow: 'var(--shadow-xl)' }}>
+
+        {/* Logo + título */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 36 }}>
+          <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--sage-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--sage-700)', fontSize: 26, fontFamily: 'var(--font-display)' }}>L</div>
+          <div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, color: 'var(--text-strong)', lineHeight: 1 }}>La Percha</div>
+            <div style={{ fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'var(--text-muted)', marginTop: 4 }}>Panel de administración</div>
+          </div>
+        </div>
+
+        {/* Formulario */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>Email</label>
+            <input value={email} onChange={e => setEmail(e.target.value)} onKeyDown={onKey} type="email" placeholder="silvina@lapercha.com" style={inputStyle(err)} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>Contraseña</label>
+            <input value={pass} onChange={e => setPass(e.target.value)} onKeyDown={onKey} type="password" placeholder="••••••••" style={inputStyle(err)} />
+          </div>
+          {err && <div style={{ fontSize: 13, color: 'var(--error-500)', fontWeight: 600 }}>Email o contraseña incorrectos.</div>}
+          <div style={{ marginTop: 4 }}>
+            <Button variant="primary" full onClick={submit}>Ingresar al panel</Button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 24, padding: '11px 14px', background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+          <b style={{ color: 'var(--text-subtle)' }}>Demo</b> · silvina@lapercha.com / admin123
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+function DashboardScreen({ pendingMod, onNav }) {
+  const recent = PEDIDOS.slice(0, 4);
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <window.TopBar title="Dashboard" sub="Resumen de La Percha Showroom" />
+      <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+
+        {/* Stat cards */}
+        <div style={{ display: 'flex', gap: 16, marginBottom: 28 }}>
+          <window.StatCard icon={PI.money}  label="Ventas hoy"            value={fmt(148400)} delta="+12%"  tone="brand"   />
+          <window.StatCard icon={PI.truck}  label="Pedidos pendientes"    value="1"            delta="+0"    tone="warning" />
+          <window.StatCard icon={PI.tag}    label="En moderación"         value={String(pendingMod)} tone="neutral" />
+          <window.StatCard icon={PI.users}  label="Vendedoras activas"    value="4"            delta="+1"    tone="mint"    />
+        </div>
+
+        {/* Tabla reciente + actividad */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+
+          {/* Pedidos recientes */}
+          <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+              <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-strong)' }}>Pedidos recientes</span>
+              <button onClick={() => onNav('pedidos')} style={{ background: 'none', border: 'none', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 700, color: 'var(--text-link)', cursor: 'pointer' }}>Ver todos →</button>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ background: 'var(--surface-sunken)' }}>
+                  {['Pedido', 'Cliente', 'Total', 'Origen', 'Estado'].map(h => (
+                    <th key={h} style={{ padding: '9px 18px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-subtle)', borderBottom: '1px solid var(--border-subtle)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {recent.map((p, i) => (
+                  <tr key={p.id} style={{ borderBottom: i < recent.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                    <td style={{ padding: '11px 18px', fontWeight: 700, color: 'var(--text-strong)', fontSize: 13 }}>{p.id}</td>
+                    <td style={{ padding: '11px 18px', color: 'var(--text-body)' }}>{p.buyer.split(' ')[0]}</td>
+                    <td style={{ padding: '11px 18px', fontWeight: 700, color: 'var(--price)' }}>{fmt(p.total)}</td>
+                    <td style={{ padding: '11px 18px' }}><Badge tone={p.origen === 'oficial' ? 'brand' : 'mint'}>{p.origen === 'oficial' ? 'Tienda' : 'Feria'}</Badge></td>
+                    <td style={{ padding: '11px 18px' }}><StatusPill status={p.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Actividad */}
+          <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+            <div style={{ padding: '15px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+              <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-strong)' }}>Actividad reciente</span>
+            </div>
+            <div style={{ padding: '4px 0' }}>
+              {[
+                { icon: PI.check, text: 'Vestido lentejuelas aprobado', time: 'hace 5 min',  bg: 'var(--success-50)',  fg: 'var(--success-600)' },
+                { icon: PI.users, text: 'Carolina I. solicitó ser vendedora', time: 'hace 23 min', bg: 'var(--sage-100)', fg: 'var(--sage-700)' },
+                { icon: PI.truck, text: 'Pedido #LP-2838 pagado', time: 'hace 1 h',  bg: 'var(--mint-100)', fg: 'var(--mint-700)' },
+                { icon: PI.tag,   text: 'Jean mom fit enviado a revisión', time: 'hace 2 h',  bg: 'var(--ink-100)',  fg: 'var(--ink-700)'  },
+                { icon: PI.money, text: 'Retiro aprobado: Activa $53.760', time: 'hace 3 h',  bg: 'var(--warning-50)', fg: 'var(--warning-600)' },
+              ].map((a, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '11px 18px', borderBottom: i < 4 ? '1px solid var(--border-subtle)' : 'none' }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, background: a.bg, color: a.fg, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '0 0 30px' }}>{a.icon}</span>
+                  <div>
+                    <div style={{ fontSize: 13, color: 'var(--text-body)', fontWeight: 500, lineHeight: 1.3 }}>{a.text}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{a.time}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Tienda Oficial ───────────────────────────────────────────────────────────
+function TiendaOficialScreen() {
+  const [productos, setProductos] = React.useState(PRODUCTOS_INIT);
+  const [modal, setModal] = React.useState(false);
+  const activos = productos.filter(p => p.active).length;
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <window.TopBar title="Tienda Oficial" sub={`${activos} productos activos`}
+        right={<Button variant="primary" onClick={() => setModal(true)}>+ Agregar producto</Button>} />
+      <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+        <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+            <thead>
+              <tr style={{ background: 'var(--surface-sunken)' }}>
+                {['Producto', 'Categoría', 'Precio', 'Stock', 'Estado', 'Acciones'].map(h => (
+                  <th key={h} style={{ padding: '11px 20px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-subtle)', borderBottom: '1px solid var(--border-subtle)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {productos.map((p, i) => (
+                <tr key={p.id} style={{ borderBottom: i < productos.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                  <td style={{ padding: '12px 20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 38, height: 38, borderRadius: 8, background: 'linear-gradient(135deg, var(--taupe-100), var(--taupe-300))', flex: '0 0 38px' }} />
+                      <span style={{ fontWeight: 600, color: 'var(--text-strong)' }}>{p.name}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: '12px 20px', color: 'var(--text-muted)' }}>{p.cat}</td>
+                  <td style={{ padding: '12px 20px', fontWeight: 700, color: 'var(--price)' }}>{fmt(p.price)}</td>
+                  <td style={{ padding: '12px 20px' }}>
+                    <span style={{ fontWeight: p.stock < 6 ? 700 : 400, color: p.stock === 0 ? 'var(--error-500)' : p.stock < 6 ? 'var(--warning-600)' : 'var(--text-body)' }}>
+                      {p.stock === 0 ? 'Sin stock' : p.stock}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px 20px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: p.active ? 'var(--success-50)' : 'var(--ink-100)', color: p.active ? 'var(--success-700)' : 'var(--text-muted)', borderRadius: 99, fontSize: 12, fontWeight: 700, padding: '3px 10px' }}>
+                      {p.active ? '● Activo' : '○ Sin stock'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px 20px' }}>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button style={{ background: 'none', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-sm)', padding: '5px 12px', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600, color: 'var(--text-body)', cursor: 'pointer' }}>Editar</button>
+                      <button onClick={() => setProductos(ps => ps.filter(x => x.id !== p.id))} style={{ background: 'none', border: '1px solid var(--error-200)', borderRadius: 'var(--radius-sm)', padding: '5px 12px', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600, color: 'var(--error-500)', cursor: 'pointer' }}>Eliminar</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {modal && (
+        <AddProductModal
+          onClose={() => setModal(false)}
+          onAdd={(p) => { setProductos(ps => [...ps, { ...p, id: 'p' + Date.now(), active: true }]); setModal(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function AddProductModal({ onClose, onAdd }) {
+  const [name, setName]     = React.useState('');
+  const [cat, setCat]       = React.useState('');
+  const [subcat, setSubcat] = React.useState('');
+  const [price, setPrice]   = React.useState('');
+  const [stock, setStock]   = React.useState('');
+
+  const cats     = ['Ropa', 'Regalería', 'Bazar', 'Decoración', 'Cosmética', 'Accesorios', 'Importados'];
+  const ropaSubs = ['Vestidos', 'Remeras', 'Jeans', 'Camperas', 'Calzado', 'Deportiva', 'Infantil', 'Lencería'];
+
+  const selectCat = (c) => { setCat(c); setSubcat(''); };
+  const finalCat  = cat === 'Ropa' ? (subcat ? `Ropa · ${subcat}` : '') : cat;
+  const ok        = name && finalCat && price && stock;
+
+  const chipBtn = (label, selected, onClick) => (
+    <button key={label} onClick={onClick} style={{ padding: '6px 14px', borderRadius: 99, border: `1.5px solid ${selected ? 'var(--sage-600)' : 'var(--border-default)'}`, background: selected ? 'var(--sage-600)' : 'transparent', color: selected ? '#fff' : 'var(--text-body)', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{label}</button>
+  );
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+      <div style={{ width: 500, maxHeight: '90vh', overflowY: 'auto', background: 'var(--surface-card)', borderRadius: 'var(--radius-xl)', padding: 32, boxShadow: 'var(--shadow-xl)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, margin: 0, color: 'var(--text-strong)' }}>Agregar producto</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--text-muted)', lineHeight: 1, fontFamily: 'var(--font-ui)', padding: '0 4px' }}>×</button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {[
+            { label: 'Nombre', val: name, set: setName, ph: 'Ej: Crema hidratante argán', type: 'text' },
+            { label: 'Precio ($)', val: price, set: setPrice, ph: 'Ej: 9500', type: 'number' },
+            { label: 'Stock inicial', val: stock, set: setStock, ph: 'Ej: 10', type: 'number' },
+          ].map(f => (
+            <div key={f.label}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>{f.label}</label>
+              <input value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.ph} type={f.type}
+                style={{ width: '100%', height: 44, background: 'var(--surface-sunken)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', padding: '0 12px', fontFamily: 'var(--font-ui)', fontSize: 14, color: 'var(--text-body)', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+          ))}
+
+          {/* Categoría principal */}
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 8 }}>Categoría</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {cats.map(c => chipBtn(c, cat === c, () => selectCat(c)))}
+            </div>
+          </div>
+
+          {/* Subcategoría ropa — solo aparece si se elige Ropa */}
+          {cat === 'Ropa' && (
+            <div style={{ background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 10 }}>
+                Tipo de prenda <span style={{ color: 'var(--error-500)' }}>*</span>
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {ropaSubs.map(s => chipBtn(s, subcat === s, () => setSubcat(s)))}
+              </div>
+              {subcat && (
+                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>
+                  Categoría final: <b style={{ color: 'var(--text-body)' }}>Ropa · {subcat}</b>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+          <Button variant="outline" onClick={onClose} full>Cancelar</Button>
+          <Button variant="primary" full disabled={!ok} onClick={() => ok && onAdd({ name, cat: finalCat, price: Number(price), stock: Number(stock) })}>Guardar producto</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Moderación ───────────────────────────────────────────────────────────────
+function ModeracionScreen({ queue, onQueueChange }) {
+  const [sel, setSel]   = React.useState(queue[0]?.id);
+  const [done, setDone] = React.useState({});
+  const item = queue.find(q => q.id === sel) || queue[0];
+  const pending = queue.filter(q => !done[q.id]).length;
+  const act = (label) => setDone(d => ({ ...d, [sel]: label }));
+
+  React.useEffect(() => { onQueueChange(pending); }, [pending]);
+
+  if (!item) return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <window.TopBar title="Moderación de prendas" sub="Sin publicaciones en cola" />
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 15 }}>
+        No hay publicaciones pendientes de revisión.
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <window.TopBar title="Moderación de prendas" sub={`${pending} publicaciones esperando revisión`}
+        right={<Badge tone="warning">{pending} en cola</Badge>} />
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* Lista cola */}
+        <div style={{ width: 320, flex: '0 0 320px', borderRight: '1px solid var(--border-subtle)', overflowY: 'auto', background: 'var(--surface-card)' }}>
+          {queue.map(q => {
+            const on = q.id === sel;
+            const resolved = done[q.id];
+            return (
+              <button key={q.id} onClick={() => setSel(q.id)} style={{ width: '100%', display: 'flex', gap: 12, padding: '14px 16px', border: 'none', borderBottom: '1px solid var(--border-subtle)', borderLeft: `3px solid ${on ? 'var(--sage-600)' : 'transparent'}`, background: on ? 'var(--sage-50)' : 'transparent', cursor: 'pointer', textAlign: 'left', opacity: resolved ? .5 : 1 }}>
+                <div style={{ width: 46, height: 56, borderRadius: 8, background: 'linear-gradient(135deg, var(--taupe-100), var(--taupe-300))', flex: '0 0 46px' }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-strong)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '2px 0 6px' }}>{q.seller} · {q.time}</div>
+                  <StatusPill status={resolved || 'revision'} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Detalle */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+          <div style={{ display: 'flex', gap: 24, maxWidth: 700 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ width: 200, height: 250, borderRadius: 'var(--radius-lg)', background: 'linear-gradient(135deg, var(--taupe-100), var(--taupe-300))' }} />
+              <div style={{ display: 'flex', gap: 8 }}>
+                {[0,1,2].map(i => <div key={i} style={{ width: 42, height: 42, borderRadius: 8, background: 'var(--taupe-200)', border: i===0 ? '2px solid var(--sage-600)' : '1px solid var(--border-default)' }} />)}
+              </div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+                <Badge tone="neutral">{item.cat}</Badge>
+                <Badge tone="mint">{item.photos} fotos</Badge>
+              </div>
+              <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 24, color: 'var(--text-strong)', margin: '0 0 6px' }}>{item.title}</h2>
+              <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 14 }}>Publicado por <b style={{ color: 'var(--text-link)' }}>{item.seller}</b> · {item.time}</div>
+              <div style={{ fontWeight: 800, fontSize: 22, color: 'var(--price)', marginBottom: 18 }}>{D.fmt(item.price)}</div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+                {[
+                  { label: 'Comisión La Percha (20%)', value: D.fmt(Math.round(item.price * .2)) },
+                  { label: 'Recibe la vendedora (80%)', value: D.fmt(Math.round(item.price * .8)) },
+                  { label: 'Categoría permitida', value: 'Sí · es ropa', ok: true },
+                  { label: 'Talle / estado', value: 'M · Como nuevo' },
+                ].map(f => (
+                  <div key={f.label} style={{ border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: '10px 12px' }}>
+                    <div style={{ fontSize: 11, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-subtle)', fontWeight: 700 }}>{f.label}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: f.ok ? 'var(--success-600)' : 'var(--text-strong)', marginTop: 3 }}>{f.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', padding: '12px 16px', fontSize: 14, lineHeight: 1.6, color: 'var(--text-body)', marginBottom: 20 }}>
+                "Vestido usado una sola vez, impecable. Coordino envío por Correo Argentino o retiro en Palihue."
+              </div>
+
+              {done[sel] ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-muted)', fontSize: 14 }}>
+                  Resuelto: <StatusPill status={done[sel]} />
+                  <button onClick={() => setDone(d => { const u = {...d}; delete u[sel]; return u; })} style={{ background: 'none', border: 'none', color: 'var(--text-link)', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-ui)' }}>Deshacer</button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <Button variant="primary"  iconLeft={PI.check} onClick={() => act('aprobada')}>Aprobar</Button>
+                  <Button variant="outline"                       onClick={() => act('cambios')}>Pedir cambios</Button>
+                  <Button variant="danger"   iconLeft={PI.x}     onClick={() => act('rechazada')}>Rechazar</Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Pedidos ──────────────────────────────────────────────────────────────────
+function PedidosScreen() {
+  const [filtro, setFiltro] = React.useState('todos');
+  const statuses = ['todos', 'pendiente', 'pagado', 'preparando', 'enviado', 'entregado'];
+  const visible = filtro === 'todos' ? PEDIDOS : PEDIDOS.filter(p => p.status === filtro);
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <window.TopBar title="Pedidos" sub={`${PEDIDOS.length} órdenes en total`}
+        right={<Badge tone="warning">{PEDIDOS.filter(p => p.status === 'pendiente').length} pendiente</Badge>} />
+      <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+
+        {/* Filtro por estado */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+          {statuses.map(s => (
+            <button key={s} onClick={() => setFiltro(s)} style={{ padding: '7px 16px', borderRadius: 99, border: `1.5px solid ${filtro === s ? 'var(--sage-600)' : 'var(--border-default)'}`, background: filtro === s ? 'var(--sage-600)' : 'transparent', color: filtro === s ? '#fff' : 'var(--text-body)', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              {s === 'todos' ? 'Todos' : s[0].toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+            <thead>
+              <tr style={{ background: 'var(--surface-sunken)' }}>
+                {['Pedido', 'Fecha', 'Cliente', 'Productos', 'Total', 'Origen', 'Estado'].map(h => (
+                  <th key={h} style={{ padding: '11px 18px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-subtle)', borderBottom: '1px solid var(--border-subtle)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {visible.length === 0 && (
+                <tr><td colSpan={7} style={{ padding: '44px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 14 }}>No hay pedidos con este estado.</td></tr>
+              )}
+              {visible.map((p, i) => (
+                <tr key={p.id} style={{ borderBottom: i < visible.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                  <td style={{ padding: '12px 18px', fontWeight: 700, color: 'var(--text-strong)' }}>{p.id}</td>
+                  <td style={{ padding: '12px 18px', color: 'var(--text-muted)', fontSize: 12 }}>{p.date}</td>
+                  <td style={{ padding: '12px 18px', color: 'var(--text-body)' }}>{p.buyer}</td>
+                  <td style={{ padding: '12px 18px', color: 'var(--text-body)', maxWidth: 180 }}>
+                    <span style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.items}</span>
+                  </td>
+                  <td style={{ padding: '12px 18px', fontWeight: 700, color: 'var(--price)' }}>{fmt(p.total)}</td>
+                  <td style={{ padding: '12px 18px' }}><Badge tone={p.origen === 'oficial' ? 'brand' : 'mint'}>{p.origen === 'oficial' ? 'Tienda' : 'Feria'}</Badge></td>
+                  <td style={{ padding: '12px 18px' }}><StatusPill status={p.status} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Vendedoras ───────────────────────────────────────────────────────────────
+function VendedoresScreen() {
+  const [solicitudes, setSolicitudes] = React.useState(SOLICITUDES_INIT);
+  const [vendedores,  setVendedores]  = React.useState(VENDEDORES_INIT);
+
+  const autorizar = (id) => {
+    const s = solicitudes.find(x => x.id === id);
+    if (!s) return;
+    setVendedores(v => [...v, { id: s.id, name: s.tienda, seller: s.name.split(' ')[0] + ' ' + (s.name.split(' ')[1]?.[0] || '') + '.', pubs: 0, ventas: 0, calif: null }]);
+    setSolicitudes(ss => ss.filter(x => x.id !== id));
+  };
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <window.TopBar title="Vendedoras" sub="Solicitudes y vendedoras activas en la Feria"
+        right={solicitudes.length > 0 && <Badge tone="warning">{solicitudes.length} solicitudes</Badge>} />
+      <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+
+        {/* Solicitudes pendientes */}
+        {solicitudes.length > 0 && (
+          <div style={{ marginBottom: 36 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase', color: 'var(--text-subtle)', marginBottom: 14 }}>
+              Solicitudes pendientes · {solicitudes.length}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {solicitudes.map(s => (
+                <div key={s.id} style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 18 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--sage-100)', color: 'var(--sage-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 20, flex: '0 0 44px' }}>
+                    {s.name[0]}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-strong)' }}>{s.name}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{s.email} · {s.phone}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-body)', marginTop: 4 }}>Tienda: <b>{s.tienda}</b> · CVU/alias: {s.cvu}</div>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 12, whiteSpace: 'nowrap' }}>{s.fecha}</div>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    <Button variant="primary" onClick={() => autorizar(s.id)}>Autorizar</Button>
+                    <Button variant="danger"  onClick={() => setSolicitudes(ss => ss.filter(x => x.id !== s.id))}>Rechazar</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Vendedoras activas */}
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase', color: 'var(--text-subtle)', marginBottom: 14 }}>
+            Vendedoras activas · {vendedores.length}
+          </div>
+          <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+              <thead>
+                <tr style={{ background: 'var(--surface-sunken)' }}>
+                  {['Tienda', 'Vendedora', 'Prendas', 'Ventas del mes', 'Calificación', ''].map(h => (
+                    <th key={h} style={{ padding: '11px 18px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-subtle)', borderBottom: '1px solid var(--border-subtle)' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {vendedores.map((v, i) => (
+                  <tr key={v.id} style={{ borderBottom: i < vendedores.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                    <td style={{ padding: '12px 18px', fontWeight: 700, color: 'var(--text-strong)' }}>{v.name}</td>
+                    <td style={{ padding: '12px 18px', color: 'var(--text-body)' }}>{v.seller}</td>
+                    <td style={{ padding: '12px 18px', color: 'var(--text-body)' }}>{v.pubs}</td>
+                    <td style={{ padding: '12px 18px', fontWeight: 700, color: v.ventas > 0 ? 'var(--price)' : 'var(--text-muted)' }}>{v.ventas > 0 ? fmt(v.ventas) : '—'}</td>
+                    <td style={{ padding: '12px 18px' }}>
+                      {v.calif ? <span style={{ fontWeight: 700, color: 'var(--warning-600)' }}>★ {v.calif}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                    </td>
+                    <td style={{ padding: '12px 18px' }}>
+                      <button onClick={() => setVendedores(vs => vs.filter(x => x.id !== v.id))} style={{ background: 'none', border: '1px solid var(--error-200)', borderRadius: 'var(--radius-sm)', padding: '5px 12px', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600, color: 'var(--error-500)', cursor: 'pointer' }}>Revocar</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Finanzas ─────────────────────────────────────────────────────────────────
+function FinanzasScreen() {
+  const [retiros, setRetiros] = React.useState(RETIROS_INIT);
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <window.TopBar title="Finanzas" sub="Ingresos, comisiones y retiros del mes" />
+      <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+
+        {/* Stat cards */}
+        <div style={{ display: 'flex', gap: 16, marginBottom: 28 }}>
+          <window.StatCard icon={PI.money}  label="Ventas totales (junio)"      value={fmt(648400)} delta="+18%" tone="brand"   />
+          <window.StatCard icon={PI.chart}  label="Ingresos Tienda Oficial"     value={fmt(248900)}             tone="mint"    />
+          <window.StatCard icon={PI.wallet} label="Comisiones Feria (20%)"      value={fmt(79900)}              tone="neutral" />
+          <window.StatCard icon={PI.truck}  label="Retiros pendientes"          value={fmt(91580)}              tone="warning" />
+        </div>
+
+        {/* Tabla retiros */}
+        <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+            <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-strong)' }}>Solicitudes de retiro</span>
+            <Badge tone="warning">{retiros.filter(r => !r.done).length} pendientes</Badge>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+            <thead>
+              <tr style={{ background: 'var(--surface-sunken)' }}>
+                {['Vendedora', 'Monto', 'Solicitado', 'Estado', 'Acción'].map(h => (
+                  <th key={h} style={{ padding: '11px 20px', textAlign: 'left', fontSize: 11, fontWeight: 700, letterSpacing: '.07em', textTransform: 'uppercase', color: 'var(--text-subtle)', borderBottom: '1px solid var(--border-subtle)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {retiros.map((r, i) => (
+                <tr key={r.id} style={{ borderBottom: i < retiros.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
+                  <td style={{ padding: '12px 20px', fontWeight: 600, color: 'var(--text-strong)' }}>{r.tienda}</td>
+                  <td style={{ padding: '12px 20px', fontWeight: 700, color: 'var(--price)' }}>{fmt(r.monto)}</td>
+                  <td style={{ padding: '12px 20px', color: 'var(--text-muted)', fontSize: 13 }}>{r.fecha}</td>
+                  <td style={{ padding: '12px 20px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: r.done ? 'var(--success-50)' : 'var(--warning-50)', color: r.done ? 'var(--success-700)' : 'var(--warning-600)', borderRadius: 99, fontSize: 12, fontWeight: 700, padding: '3px 10px' }}>
+                      {r.done ? '✓ Completado' : '● Pendiente'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px 20px' }}>
+                    {!r.done && (
+                      <button onClick={() => setRetiros(rs => rs.map(x => x.id === r.id ? { ...x, done: true } : x))}
+                        style={{ background: 'var(--success-50)', border: '1px solid var(--success-200)', borderRadius: 'var(--radius-sm)', padding: '5px 14px', fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--success-700)', cursor: 'pointer' }}>
+                        Aprobar retiro
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── App principal ────────────────────────────────────────────────────────────
+function Admin() {
+  const [loggedIn,   setLoggedIn]   = React.useState(false);
+  const [nav,        setNav]        = React.useState('inicio');
+  const [pendingMod, setPendingMod] = React.useState(QUEUE.length);
+
+  if (!loggedIn) return <LoginScreen onLogin={() => setLoggedIn(true)} />;
+
+  const screens = {
+    inicio:      <DashboardScreen pendingMod={pendingMod} onNav={setNav} />,
+    oficial:     <TiendaOficialScreen />,
+    moderacion:  <ModeracionScreen queue={QUEUE} onQueueChange={setPendingMod} />,
+    vendedoras:  <VendedoresScreen />,
+    pedidos:     <PedidosScreen />,
+    finanzas:    <FinanzasScreen />,
+  };
+
+  return (
+    <>
+      <window.Sidebar role="Administradora" active={nav} onSelect={setNav} items={[
+        { key: 'inicio',     label: 'Dashboard',      icon: PI.grid                                         },
+        { key: 'moderacion', label: 'Moderación',     icon: PI.tag,    badge: pendingMod || undefined       },
+        { key: 'oficial',    label: 'Tienda Oficial', icon: PI.cart                                         },
+        { key: 'pedidos',    label: 'Pedidos',        icon: PI.truck,  badge: PEDIDOS.filter(p => p.status === 'pendiente').length || undefined },
+        { key: 'vendedoras', label: 'Vendedoras',     icon: PI.users                                        },
+        { key: 'finanzas',   label: 'Finanzas',       icon: PI.wallet                                       },
+      ]} />
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {screens[nav] || screens['inicio']}
+      </main>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Admin />);
+</script>
+</body>
+</html>

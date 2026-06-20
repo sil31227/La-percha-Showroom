@@ -1,0 +1,18 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Semantic" subtitle="Success, warning, error (terracotta), info — warm-tuned" -->
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8" />
+<link rel="stylesheet" href="../styles.css" />
+<style>
+  body { margin:0; padding:22px; background:var(--bg-canvas); font-family:var(--font-ui); display:flex; gap:16px; }
+  .col { flex:1; }
+  .chip { height:64px; border-radius:12px 12px 0 0; }
+  .soft { height:26px; border-radius:0 0 12px 12px; display:flex; align-items:center; padding:0 10px; font-size:11px; font-weight:700; }
+  .nm { margin:8px 0 2px; font-size:12px; font-weight:700; color:var(--text-strong); }
+  .v { font-size:10px; font-family:var(--font-mono); color:var(--text-subtle); }
+</style></head>
+<body>
+<div class="col"><div class="chip" style="background:var(--success-500)"></div><div class="soft" style="background:var(--success-50); color:var(--success-600)">success-50</div><p class="nm">Success</p><span class="v">#3f8f4f</span></div>
+<div class="col"><div class="chip" style="background:var(--warning-500)"></div><div class="soft" style="background:var(--warning-50); color:var(--warning-600)">warning-50</div><p class="nm">Warning</p><span class="v">#d08a2c</span></div>
+<div class="col"><div class="chip" style="background:var(--error-500)"></div><div class="soft" style="background:var(--error-50); color:var(--error-600)">error-50</div><p class="nm">Error · terracotta</p><span class="v">#c4492f</span></div>
+<div class="col"><div class="chip" style="background:var(--info-500)"></div><div class="soft" style="background:var(--info-50); color:var(--info-500)">info-50</div><p class="nm">Info</p><span class="v">#3d7870</span></div>
+</body></html>
