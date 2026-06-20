@@ -12,6 +12,10 @@
   #root { height: 100vh; display: flex; overflow: hidden; }
   ::-webkit-scrollbar { width: 9px; height: 9px; }
   ::-webkit-scrollbar-thumb { background: var(--ink-200); border-radius: 9px; }
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  @media (max-width: 768px) {
+    #root { flex-direction: column; }
+  }
 </style>
 </head>
 <body>
@@ -96,7 +100,7 @@ function LoginScreen({ onLogin }) {
 
   return (
     <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(140deg, var(--ink-900) 0%, #1a2820 100%)' }}>
-      <div style={{ width: 420, background: 'var(--surface-card)', borderRadius: 'var(--radius-xl)', padding: '44px 40px', boxShadow: 'var(--shadow-xl)' }}>
+      <div style={{ width: '100%', maxWidth: 420, background: 'var(--surface-card)', borderRadius: 'var(--radius-xl)', padding: '36px 28px', boxShadow: 'var(--shadow-xl)', margin: '0 16px', boxSizing: 'border-box' }}>
 
         {/* Logo + título */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 36 }}>
@@ -134,14 +138,15 @@ function LoginScreen({ onLogin }) {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function DashboardScreen({ pendingMod, onNav }) {
   const recent = PEDIDOS.slice(0, 4);
+  const isMobile = window.useIsMobile();
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <window.TopBar title="Dashboard" sub="Resumen de La Percha Showroom" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 28, paddingBottom: isMobile ? 80 : 28 }}>
 
         {/* Stat cards */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 28 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
           <window.StatCard icon={PI.money}  label="Ventas hoy"            value={fmt(148400)} delta="+12%"  tone="brand"   />
           <window.StatCard icon={PI.truck}  label="Pedidos pendientes"    value="1"            delta="+0"    tone="warning" />
           <window.StatCard icon={PI.tag}    label="En moderación"         value={String(pendingMod)} tone="neutral" />
@@ -149,7 +154,7 @@ function DashboardScreen({ pendingMod, onNav }) {
         </div>
 
         {/* Tabla reciente + actividad */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 20 }}>
 
           {/* Pedidos recientes */}
           <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
@@ -213,14 +218,15 @@ function TiendaOficialScreen() {
   const [productos, setProductos] = React.useState(PRODUCTOS_INIT);
   const [modal, setModal] = React.useState(false);
   const activos = productos.filter(p => p.active).length;
+  const isMobile = window.useIsMobile();
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <window.TopBar title="Tienda Oficial" sub={`${activos} productos activos`}
-        right={<Button variant="primary" onClick={() => setModal(true)}>+ Agregar producto</Button>} />
-      <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
-        <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+        right={<Button variant="primary" onClick={() => setModal(true)}>{isMobile ? '+' : '+ Agregar producto'}</Button>} />
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 12 : 28, paddingBottom: isMobile ? 80 : 28 }}>
+        <div className="tbl-wrap" style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', minWidth: 560, borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ background: 'var(--surface-sunken)' }}>
                 {['Producto', 'Categoría', 'Precio', 'Stock', 'Estado', 'Acciones'].map(h => (
@@ -272,6 +278,7 @@ function TiendaOficialScreen() {
 }
 
 function AddProductModal({ onClose, onAdd }) {
+  const isMobile = window.useIsMobile();
   const [name, setName]     = React.useState('');
   const [cat, setCat]       = React.useState('');
   const [subcat, setSubcat] = React.useState('');
@@ -291,7 +298,7 @@ function AddProductModal({ onClose, onAdd }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-      <div style={{ width: 500, maxHeight: '90vh', overflowY: 'auto', background: 'var(--surface-card)', borderRadius: 'var(--radius-xl)', padding: 32, boxShadow: 'var(--shadow-xl)' }}>
+      <div style={{ width: isMobile ? '100%' : 500, maxWidth: '100%', maxHeight: isMobile ? '95dvh' : '90vh', overflowY: 'auto', background: 'var(--surface-card)', borderRadius: isMobile ? '20px 20px 0 0' : 'var(--radius-xl)', padding: isMobile ? '24px 20px' : 32, boxShadow: 'var(--shadow-xl)', position: isMobile ? 'fixed' : 'relative', bottom: isMobile ? 0 : 'auto', left: isMobile ? 0 : 'auto', right: isMobile ? 0 : 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, margin: 0, color: 'var(--text-strong)' }}>Agregar producto</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--text-muted)', lineHeight: 1, fontFamily: 'var(--font-ui)', padding: '0 4px' }}>×</button>
@@ -347,9 +354,11 @@ function AddProductModal({ onClose, onAdd }) {
 function ModeracionScreen({ queue, onQueueChange }) {
   const [sel, setSel]   = React.useState(queue[0]?.id);
   const [done, setDone] = React.useState({});
+  const [showDetail, setShowDetail] = React.useState(false);
   const item = queue.find(q => q.id === sel) || queue[0];
   const pending = queue.filter(q => !done[q.id]).length;
   const act = (label) => setDone(d => ({ ...d, [sel]: label }));
+  const isMobile = window.useIsMobile();
 
   React.useEffect(() => { onQueueChange(pending); }, [pending]);
 
@@ -366,10 +375,10 @@ function ModeracionScreen({ queue, onQueueChange }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <window.TopBar title="Moderación de prendas" sub={`${pending} publicaciones esperando revisión`}
         right={<Badge tone="warning">{pending} en cola</Badge>} />
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', overflow: 'hidden' }}>
 
         {/* Lista cola */}
-        <div style={{ width: 320, flex: '0 0 320px', borderRight: '1px solid var(--border-subtle)', overflowY: 'auto', background: 'var(--surface-card)' }}>
+        <div style={{ width: isMobile ? '100%' : 320, flex: isMobile ? '0 0 auto' : '0 0 320px', borderRight: isMobile ? 'none' : '1px solid var(--border-subtle)', borderBottom: isMobile ? '1px solid var(--border-subtle)' : 'none', overflowY: 'auto', background: 'var(--surface-card)', maxHeight: isMobile ? 220 : 'none' }}>
           {queue.map(q => {
             const on = q.id === sel;
             const resolved = done[q.id];
@@ -387,8 +396,8 @@ function ModeracionScreen({ queue, onQueueChange }) {
         </div>
 
         {/* Detalle */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
-          <div style={{ display: 'flex', gap: 24, maxWidth: 700 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 28, paddingBottom: isMobile ? 80 : 28 }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? 16 : 24, maxWidth: 700 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ width: 200, height: 250, borderRadius: 'var(--radius-lg)', background: 'linear-gradient(135deg, var(--taupe-100), var(--taupe-300))' }} />
               <div style={{ display: 'flex', gap: 8 }}>
@@ -447,24 +456,25 @@ function PedidosScreen() {
   const [filtro, setFiltro] = React.useState('todos');
   const statuses = ['todos', 'pendiente', 'pagado', 'preparando', 'enviado', 'entregado'];
   const visible = filtro === 'todos' ? PEDIDOS : PEDIDOS.filter(p => p.status === filtro);
+  const isMobile = window.useIsMobile();
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <window.TopBar title="Pedidos" sub={`${PEDIDOS.length} órdenes en total`}
         right={<Badge tone="warning">{PEDIDOS.filter(p => p.status === 'pendiente').length} pendiente</Badge>} />
-      <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 12 : 28, paddingBottom: isMobile ? 80 : 28 }}>
 
         {/* Filtro por estado */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           {statuses.map(s => (
-            <button key={s} onClick={() => setFiltro(s)} style={{ padding: '7px 16px', borderRadius: 99, border: `1.5px solid ${filtro === s ? 'var(--sage-600)' : 'var(--border-default)'}`, background: filtro === s ? 'var(--sage-600)' : 'transparent', color: filtro === s ? '#fff' : 'var(--text-body)', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <button key={s} onClick={() => setFiltro(s)} style={{ padding: '6px 14px', borderRadius: 99, border: `1.5px solid ${filtro === s ? 'var(--sage-600)' : 'var(--border-default)'}`, background: filtro === s ? 'var(--sage-600)' : 'transparent', color: filtro === s ? '#fff' : 'var(--text-body)', fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               {s === 'todos' ? 'Todos' : s[0].toUpperCase() + s.slice(1)}
             </button>
           ))}
         </div>
 
-        <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+        <div className="tbl-wrap" style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', minWidth: 580, borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ background: 'var(--surface-sunken)' }}>
                 {['Pedido', 'Fecha', 'Cliente', 'Productos', 'Total', 'Origen', 'Estado'].map(h => (
@@ -501,6 +511,7 @@ function PedidosScreen() {
 function VendedoresScreen() {
   const [solicitudes, setSolicitudes] = React.useState(SOLICITUDES_INIT);
   const [vendedores,  setVendedores]  = React.useState(VENDEDORES_INIT);
+  const isMobile = window.useIsMobile();
 
   const autorizar = (id) => {
     const s = solicitudes.find(x => x.id === id);
@@ -513,7 +524,7 @@ function VendedoresScreen() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <window.TopBar title="Vendedoras" sub="Solicitudes y vendedoras activas en la Feria"
         right={solicitudes.length > 0 && <Badge tone="warning">{solicitudes.length} solicitudes</Badge>} />
-      <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 12 : 28, paddingBottom: isMobile ? 80 : 28 }}>
 
         {/* Solicitudes pendientes */}
         {solicitudes.length > 0 && (
@@ -548,8 +559,8 @@ function VendedoresScreen() {
           <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase', color: 'var(--text-subtle)', marginBottom: 14 }}>
             Vendedoras activas · {vendedores.length}
           </div>
-          <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <div className="tbl-wrap" style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+            <table style={{ width: '100%', minWidth: 480, borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>
                 <tr style={{ background: 'var(--surface-sunken)' }}>
                   {['Tienda', 'Vendedora', 'Prendas', 'Ventas del mes', 'Calificación', ''].map(h => (
@@ -584,14 +595,15 @@ function VendedoresScreen() {
 // ─── Finanzas ─────────────────────────────────────────────────────────────────
 function FinanzasScreen() {
   const [retiros, setRetiros] = React.useState(RETIROS_INIT);
+  const isMobile = window.useIsMobile();
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <window.TopBar title="Finanzas" sub="Ingresos, comisiones y retiros del mes" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: 28 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 12 : 28, paddingBottom: isMobile ? 80 : 28 }}>
 
         {/* Stat cards */}
-        <div style={{ display: 'flex', gap: 16, marginBottom: 28 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 24 }}>
           <window.StatCard icon={PI.money}  label="Ventas totales (junio)"      value={fmt(648400)} delta="+18%" tone="brand"   />
           <window.StatCard icon={PI.chart}  label="Ingresos Tienda Oficial"     value={fmt(248900)}             tone="mint"    />
           <window.StatCard icon={PI.wallet} label="Comisiones Feria (20%)"      value={fmt(79900)}              tone="neutral" />
@@ -599,12 +611,12 @@ function FinanzasScreen() {
         </div>
 
         {/* Tabla retiros */}
-        <div style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
+        <div className="tbl-wrap" style={{ background: 'var(--surface-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-subtle)', overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
             <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-strong)' }}>Solicitudes de retiro</span>
             <Badge tone="warning">{retiros.filter(r => !r.done).length} pendientes</Badge>
           </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+          <table style={{ width: '100%', minWidth: 400, borderCollapse: 'collapse', fontSize: 14 }}>
             <thead>
               <tr style={{ background: 'var(--surface-sunken)' }}>
                 {['Vendedora', 'Monto', 'Solicitado', 'Estado', 'Acción'].map(h => (
@@ -671,6 +683,7 @@ function Admin() {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {screens[nav] || screens['inicio']}
       </main>
+
     </>
   );
 }

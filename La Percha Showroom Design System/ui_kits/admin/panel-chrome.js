@@ -18,7 +18,40 @@
   };
   window.PanelIcons = PI;
 
+  // Hook para detectar mobile (≤768px)
+  window.useIsMobile = function() {
+    const [mob, setMob] = React.useState(() => window.matchMedia('(max-width: 768px)').matches);
+    React.useEffect(() => {
+      const mq = window.matchMedia('(max-width: 768px)');
+      const h = (e) => setMob(e.matches);
+      mq.addEventListener('change', h);
+      return () => mq.removeEventListener('change', h);
+    }, []);
+    return mob;
+  };
+
   window.Sidebar = function Sidebar({ role, items, active, onSelect }) {
+    const isMobile = window.useIsMobile();
+
+    if (isMobile) {
+      return React.createElement('nav', {
+        style: { position: 'fixed', bottom: 0, left: 0, right: 0, height: 62, background: 'var(--ink-900)', display: 'flex', alignItems: 'stretch', borderTop: '1px solid #2a3a30', zIndex: 100 }
+      },
+        items.map(it => {
+          const on = it.key === active;
+          return React.createElement('button', {
+            key: it.key,
+            onClick: () => onSelect && onSelect(it.key),
+            style: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, border: 'none', background: on ? 'rgba(255,255,255,.06)' : 'transparent', cursor: 'pointer', color: on ? 'var(--sage-400)' : 'var(--ink-400)', position: 'relative', padding: '4px 2px' }
+          },
+            it.badge != null && React.createElement('span', { style: { position: 'absolute', top: 5, right: '50%', transform: 'translateX(14px)', background: 'var(--error-500)', color: '#fff', borderRadius: 999, fontSize: 9, fontWeight: 700, padding: '1px 5px', minWidth: 14, textAlign: 'center' } }, it.badge),
+            React.createElement('span', { style: { display: 'flex', opacity: on ? 1 : 0.65 } }, it.icon),
+            React.createElement('span', { style: { fontSize: 9, fontWeight: on ? 700 : 500, letterSpacing: '.02em', fontFamily: 'var(--font-ui)' } }, it.label)
+          );
+        })
+      );
+    }
+
     return React.createElement('aside', { style: { width: 248, flex: '0 0 248px', background: 'var(--ink-900)', color: 'var(--ink-300)', display: 'flex', flexDirection: 'column', padding: '22px 14px' } },
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 11, padding: '0 8px 22px' } },
         React.createElement('img', { src: 'logo.jpg', style: { width: 40, height: 40, borderRadius: '50%' } }),
@@ -41,10 +74,13 @@
   };
 
   window.TopBar = function TopBar({ title, sub, right }) {
-    return React.createElement('header', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 28px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--surface-card)' } },
+    const isMobile = window.useIsMobile();
+    return React.createElement('header', {
+      style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: isMobile ? '14px 16px' : '20px 28px', borderBottom: '1px solid var(--border-subtle)', background: 'var(--surface-card)', flexShrink: 0 }
+    },
       React.createElement('div', null,
-        React.createElement('h1', { style: { fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 24, color: 'var(--text-strong)', margin: 0 } }, title),
-        sub && React.createElement('p', { style: { margin: '3px 0 0', fontSize: 13, color: 'var(--text-muted)' } }, sub)
+        React.createElement('h1', { style: { fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: isMobile ? 20 : 24, color: 'var(--text-strong)', margin: 0 } }, title),
+        !isMobile && sub && React.createElement('p', { style: { margin: '3px 0 0', fontSize: 13, color: 'var(--text-muted)' } }, sub)
       ),
       React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 14 } }, right)
     );
@@ -53,13 +89,13 @@
   window.StatCard = function StatCard({ label, value, delta, tone = 'brand', icon }) {
     const tones = { brand: ['var(--sage-100)', 'var(--sage-700)'], mint: ['var(--mint-100)', 'var(--mint-700)'], warning: ['var(--warning-50)', 'var(--warning-600)'], neutral: ['var(--ink-100)', 'var(--ink-700)'] };
     const [bg, fg] = tones[tone] || tones.brand;
-    return React.createElement('div', { style: { flex: 1, background: 'var(--surface-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 18, boxShadow: 'var(--shadow-sm)' } },
-      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 } },
-        React.createElement('span', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 38, height: 38, borderRadius: 11, background: bg, color: fg } }, icon),
+    return React.createElement('div', { style: { flex: '1 1 140px', minWidth: 140, background: 'var(--surface-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 16, boxShadow: 'var(--shadow-sm)' } },
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 } },
+        React.createElement('span', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, borderRadius: 10, background: bg, color: fg } }, icon),
         delta && React.createElement('span', { style: { fontSize: 12, fontWeight: 700, color: 'var(--success-600)' } }, delta)
       ),
-      React.createElement('div', { style: { fontFamily: 'var(--font-ui)', fontWeight: 800, fontSize: 26, color: 'var(--text-strong)', letterSpacing: '-0.01em' } }, value),
-      React.createElement('div', { style: { fontSize: 13, color: 'var(--text-muted)', marginTop: 2 } }, label)
+      React.createElement('div', { style: { fontFamily: 'var(--font-ui)', fontWeight: 800, fontSize: 22, color: 'var(--text-strong)', letterSpacing: '-0.01em' } }, value),
+      React.createElement('div', { style: { fontSize: 12, color: 'var(--text-muted)', marginTop: 2 } }, label)
     );
   };
 })();
