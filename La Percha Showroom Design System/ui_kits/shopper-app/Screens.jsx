@@ -539,6 +539,86 @@ function PublishScreen({ onBack, onPublished }) {
   );
 }
 
+// ─── Welcome ─────────────────────────────────────────────────────────────────
+function WelcomeScreen({ onEnter, onRegister, onLogin }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-page)', overflow: 'hidden' }}>
+
+      {/* Hero */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px 24px' }}>
+        {/* Logo / marca */}
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--sage-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--sage-700)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.4 7.2 12 2 3.6 7.2v9.6L12 22l8.4-5.2z"/>
+            <path d="M12 2v20M3.6 7.2l8.4 5.2 8.4-5.2"/>
+          </svg>
+        </div>
+
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, color: 'var(--ink-900)', textAlign: 'center', lineHeight: 1.2, marginBottom: 10 }}>
+          La Percha Showroom
+        </div>
+        <div style={{ fontFamily: 'var(--font-ui)', fontSize: 15, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+          Tu espacio de moda circular en Bahía Blanca
+        </div>
+
+        {/* Ilustración / separador visual */}
+        <div style={{ margin: '36px 0', display: 'flex', gap: 12, justifyContent: 'center' }}>
+          {['🛍️', '👗', '✨'].map(function(e, i) {
+            return (
+              <div key={i} style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--surface-card)', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
+                {e}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Propuesta de valor */}
+        <div style={{ background: 'var(--surface-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: '16px 20px', width: '100%', maxWidth: 320 }}>
+          <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7 }}>
+            {[
+              { ico: '🛒', txt: 'Comprá ropa y regalería' },
+              { ico: '👕', txt: 'Vendé lo que ya no usás' },
+              { ico: '📦', txt: 'Envíos a todo el país' },
+            ].map(function(item) {
+              return (
+                <div key={item.ico} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <span style={{ fontSize: 16 }}>{item.ico}</span>
+                  <span>{item.txt}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Acciones */}
+      <div style={{ padding: '0 24px 40px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button
+          onClick={onRegister}
+          style={{ width: '100%', height: 52, background: 'var(--sage-700)', color: '#fff', border: 'none', borderRadius: 'var(--radius-pill)', fontFamily: 'var(--font-ui)', fontSize: 16, fontWeight: 700, cursor: 'pointer', letterSpacing: '.01em' }}
+        >
+          Registrarme — comprá y vendé ropa
+        </button>
+
+        <button
+          onClick={onEnter}
+          style={{ width: '100%', height: 52, background: 'var(--surface-card)', color: 'var(--text-strong)', border: '1.5px solid var(--border-default)', borderRadius: 'var(--radius-pill)', fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
+        >
+          Entrar a ver qué hay
+        </button>
+
+        <button
+          onClick={onLogin}
+          style={{ background: 'none', border: 'none', fontFamily: 'var(--font-ui)', fontSize: 14, color: 'var(--text-muted)', cursor: 'pointer', padding: '4px 0', textDecoration: 'underline', textUnderlineOffset: 3 }}
+        >
+          Ya tengo cuenta
+        </button>
+      </div>
+    </div>
+  );
+}
+
+window.WelcomeScreen = WelcomeScreen;
 window.RegisterScreen = RegisterScreen;
 window.SellerOnboardingScreen = SellerOnboardingScreen;
 window.PublishScreen = PublishScreen;

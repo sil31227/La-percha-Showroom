@@ -48,6 +48,7 @@ function App() {
   const [favs, setFavs] = React.useState({ f1: true });
   const [cart, setCart] = React.useState({});
   const [toast, setToast] = React.useState(null);
+  const [showWelcome, setShowWelcome] = React.useState(true);
   // 'guest' = no registrado | 'registered' = registrado, no vendedor | 'seller' = vendedor autorizado
   const [userState, setUserState] = React.useState('guest');
 
@@ -74,6 +75,18 @@ function App() {
     if (userState === 'guest') setRoute({ name: 'register' });
     else setRoute({ name: 'publish' });
   };
+
+  if (showWelcome) {
+    return (
+      <window.PhoneFrame>
+        <window.WelcomeScreen
+          onEnter={() => setShowWelcome(false)}
+          onRegister={() => { setShowWelcome(false); setRoute({ name: 'register' }); }}
+          onLogin={() => { setShowWelcome(false); setRoute({ name: 'register' }); }}
+        />
+      </window.PhoneFrame>
+    );
+  }
 
   let content;
   if (route.name === 'product') {
