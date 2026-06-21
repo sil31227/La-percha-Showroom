@@ -1,0 +1,101 @@
+"use client"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useShopStore } from "@/store/useShopStore"
+import { CheckoutStepper } from "@/components/CheckoutStepper"
+import { PaymentMethodCard } from "@/components/PaymentMethodCard"
+
+export default function CheckoutPaso2() {
+  const router = useRouter()
+  const [method, setMethod] = useState('')
+  const [error, setError] = useState(false)
+  const total = useShopStore(s => s.cartTotal())
+
+  const handleConfirmar = () => {
+    if (!method) { setError(true); return }
+    sessionStorage.setItem('checkout_payment', method)
+    router.push('/checkout/paso-3')
+  }
+
+  return (
+    <div className="w-full lg:max-w-lg lg:mx-auto">
+      <CheckoutStepper currentStep={2} />
+
+      <div className="px-4 lg:px-0 pb-32 lg:pb-10 space-y-4 mt-2">
+        <h2 className="font-display text-xl text-text-strong">Método de pago</h2>
+
+        <div className="space-y-3">
+          <PaymentMethodCard
+            id="mp"
+            value="mercadopago"
+            selected={method}
+            onChange={(v) => { setMethod(v); setError(false) }}
+            label="Mercado Pago"
+            description="Pagá con tarjeta, débito o saldo MP">
+            <div className="flex items-center gap-3 bg-surface-sunken rounded-lg p-3">
+              <div className="w-10 h-10 rounded-lg bg-[#009EE3] flex items-center justify-center shrink-0">
+                <span className="text-white font-bold text-xs">MP</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-text-strong">
+                  Total: $ {total.toLocaleString('es-AR')}
+                </p>
+                <p className="text-xs text-text-muted">
+                  Serás redirigido a Mercado Pago para completar el pago
+                </p>
+              </div>
+            </div>
+          </PaymentMethodCard>
+
+          <PaymentMethodCard
+            id="transfer"
+            value="transferencia"
+            selected={method}
+            onChange={(v) => { setMethod(v); setError(false) }}
+            label="Transferencia bancaria"
+            description="CBU / Alias · Acreditación en 24-48hs">
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between py-1 border-b border-border-subtle">
+                <span className="text-text-muted">CBU</span>
+                <span className="font-mono text-text-strong text-xs">0000003100012345678901</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border-subtle">
+                <span className="text-text-muted">Alias</span>
+                <span className="font-semibold text-text-strong">LAPERCHA.SHOWROOM</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border-subtle">
+                <span className="text-text-muted">Banco</span>
+                <span className="text-text-strong">Banco Galicia</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="text-text-muted font-semibold">Monto</span>
+                <span className="font-bold text-price">$ {total.toLocaleString('es-AR')}</span>
+              </div>
+              <p className="text-xs text-text-muted bg-warning-50 rounded-lg p-2.5 mt-1">
+                📧 Envianos el comprobante a <strong>pagos@lapercha.com.ar</strong> con el número de orden
+              </p>
+            </div>
+          </PaymentMethodCard>
+        </div>
+
+        {error && (
+          <p className="text-xs text-error-500">⚠ Seleccioná un método de pago</p>
+        )}
+      </div>
+
+      {/* CTA */}
+      <div className="fixed bottom-20 inset-x-0 mx-auto w-full max-w-107.5
+        bg-bg-page border-t border-border-subtle px-4 pt-3 pb-4
+        lg:static lg:bottom-auto lg:border-t-0 lg:pt-4 lg:pb-0
+        lg:px-0 lg:max-w-full z-10">
+        <button onClick={handleConfirmar}
+          className={`w-full h-13 font-semibold rounded-lg transition-colors
+            ${method
+              ? 'bg-brand hover:bg-brand-hover text-text-on-brand'
+              : 'bg-brand/40 text-text-on-brand cursor-not-allowed'}`}>
+          Confirmar pago →
+        </button>
+      </div>
+    </div>
+  )
+}
