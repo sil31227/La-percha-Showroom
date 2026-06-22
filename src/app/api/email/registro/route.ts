@@ -1,11 +1,12 @@
 import { Resend } from "resend"
 import { NextRequest, NextResponse } from "next/server"
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
-const FROM = process.env.RESEND_FROM_EMAIL || "La Percha Showroom <noreply@lapercha.com>"
+const RESEND_KEY = process.env.RESEND_API_KEY
+const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null
+const FROM = process.env.RESEND_FROM_EMAIL || "La Percha Showroom <onboarding@resend.dev>"
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,12 +29,14 @@ export async function POST(req: NextRequest) {
 
     const verifyUrl = `${SITE_URL}/verificar-email?token=${token}`
 
-    await resend.emails.send({
-      from: FROM,
-      to: email,
-      subject: "¡Bienvenida a La Percha Showroom!",
-      html: welcomeEmail(name || email, verifyUrl),
-    })
+    if (resend) {
+      await resend.emails.send({
+        from: FROM,
+        to: email,
+        subject: "¡Bienvenida a La Percha Showroom!",
+        html: welcomeEmail(name || email, verifyUrl),
+      })
+    }
 
     return NextResponse.json({ ok: true })
   } catch (e: any) {
