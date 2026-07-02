@@ -152,7 +152,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     if (!form.subcategoria_id) delete payload.subcategoria_id
     const { error } = await supabase.from("productos").update(payload).eq("id", id)
     if (error) throw new Error(error.message)
-    set(s => ({ products: s.products.map(p => p.id === id ? { ...p, ...form } : p) }))
+    set(s => ({ products: s.products.map(p => p.id === id ? { ...p, ...rest } : p) }))
   },
   removeStoreProduct: async (id) => {
     await supabase.from("productos").delete().eq("id", id)

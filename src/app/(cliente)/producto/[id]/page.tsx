@@ -51,18 +51,21 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
     )
   }
 
+  const sizes = product.sizes?.length ? product.sizes : ["Único"]
+
   const activeVariant = product.variantes?.[selectedVariant] || null
   const displayPrice = activeVariant ? activeVariant.precio : product.price
 
   const handleAddToCart = () => {
-    if (!selectedSize) { setSizeError(true); return }
+    const size = selectedSize || (sizes.length === 1 ? sizes[0] : "")
+    if (!size) { setSizeError(true); return }
     setSizeError(false)
     addToCart({
       productId: product.id,
       title: product.title,
       price: displayPrice,
       image: product.images[0],
-      size: selectedSize,
+      size,
       store_type: product.store_type,
       variantLabel: activeVariant ? activeVariant.nombre : undefined,
       variantPrice: activeVariant ? activeVariant.precio : undefined,
@@ -160,7 +163,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
 
           {/* Selector de talle */}
           <SizeSelector
-            sizes={product.sizes}
+            sizes={sizes}
             selected={selectedSize}
             onChange={(s) => { setSelectedSize(s); setSizeError(false) }}
             error={sizeError}

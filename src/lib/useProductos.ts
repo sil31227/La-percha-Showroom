@@ -4,7 +4,8 @@ import { supabase } from "@/lib/supabase"
 import type { Product } from "@/lib/types"
 
 function mapProducto(row: Record<string, unknown>): Product {
-  const sizes = (row.talles as string[]) || []
+  const rawSizes = (row.talles as string[]) || []
+  const sizes = rawSizes.length > 0 ? rawSizes : ["Único"]
   const images = (row.imagenes as string[]) || []
   const rawVariants = (row.variantes as any[]) || []
   const variantes = rawVariants.map((v: any) => ({
