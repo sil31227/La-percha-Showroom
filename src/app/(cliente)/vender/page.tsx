@@ -196,8 +196,35 @@ export default function VenderPage() {
     )
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!user) return
+    setSubmitting(true)
+    const productId = `prod-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+    const { error } = await supabase.from("productos").insert({
+      id: productId,
+      titulo: title,
+      descripcion: description,
+      marca: brand,
+      precio: Number(price),
+      categoria_id: category,
+      estado: condition,
+      talles: selectedSizes,
+      imagenes: [],
+      envio_gratis: freeShipping,
+      tipo: "ropa",
+      vendedor_nombre: user.name,
+      vendedor_tipo: "feria",
+      status: "pending",
+      created_at: new Date().toISOString(),
+    })
+    setSubmitting(false)
+    if (error) {
+      console.error("Error publicando:", error)
+      return
+    }
     setSent(true)
   }
 
@@ -394,10 +421,10 @@ export default function VenderPage() {
           </div>
         </div>
 
-        <button type="submit"
+        <button type="submit" disabled={submitting}
           className="w-full h-12 bg-brand hover:bg-brand-hover text-text-on-brand
-            font-semibold rounded-lg transition-colors">
-          Publicar prenda
+            font-semibold rounded-lg transition-colors disabled:opacity-60">
+          {submitting ? "Publicando..." : "Publicar prenda"}
         </button>
 
         <p className="text-[10px] text-text-subtle text-center">

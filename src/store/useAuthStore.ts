@@ -1,11 +1,13 @@
-import { create } from 'zustand'
+import { create } from "zustand"
+import { supabase } from "@/lib/supabase"
+import type { Session, User as SupabaseUser } from "@supabase/supabase-js"
 
 export interface VentaRecord {
   id: string
   title: string
   price: number
   date: string
-  status: 'pendiente' | 'liberado' | 'retirado'
+  status: "pendiente" | "liberado" | "retirado"
 }
 
 export interface User {
@@ -14,124 +16,182 @@ export interface User {
   email: string
   avatar: string
   is_seller: boolean
-  seller_status: 'none' | 'pending' | 'approved' | 'rejected'
+  seller_status: "none" | "pending" | "approved" | "rejected"
   balance: number
   ventas: VentaRecord[]
 }
 
 interface AuthStore {
   user: User | null
+  session: Session | null
   isLoading: boolean
+  initialized: boolean
+  initialize: () => Promise<void>
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>
-  requestSeller: () => void
+  requestSeller: () => Promise<void>
   withdraw: (amount: number) => void
-  logout: () => void
+  logout: () => Promise<void>
   isAuthenticated: () => boolean
 }
 
-const MOCK_VENTAS_MARIA: VentaRecord[] = [
-  { id: 'v1', title: 'Vestido lino sage', price: 24900, date: '18 jun 2026', status: 'liberado' },
-  { id: 'v2', title: 'Blazer crema oversize', price: 18900, date: '10 jun 2026', status: 'retirado' },
-  { id: 'v3', title: 'Jeans straight tiro alto', price: 17800, date: '05 jun 2026', status: 'liberado' },
-  { id: 'v4', title: 'Top crochet mint', price: 9800, date: '21 jun 2026', status: 'pendiente' },
-]
+function mapProfile(profile: Record<string, unknown> | null, email: string): User {
+  return {
+    id: (profile?.id as string) || "",
+    name: (profile?.full_name as string) || email.split("@")[0],
+    email,
+    avatar: (profile?.avatar_url as string) || `https://i.pravatar.cc/80?u=${encodeURIComponent(email)}`,
+    is_seller: (profile?.is_seller as boolean) || false,
+    seller_status: (profile?.seller_status as User["seller_status"]) || "none",
+    balance: (profile?.balance as number) || 0,
+    ventas: [],
+  }
+}
 
-const MOCK_USERS: Record<string, { name: string; password: string; avatar: string; is_seller: boolean; seller_status: 'none' | 'pending' | 'approved' | 'rejected'; balance: number; ventas: VentaRecord[] }> = {
-  'maria@email.com': { name: 'María G.', password: '123456', avatar: 'https://i.pravatar.cc/80?img=47', is_seller: true, seller_status: 'approved', balance: 34160, ventas: MOCK_VENTAS_MARIA },
-  'sofia@email.com': { name: 'Sofía R.', password: '123456', avatar: 'https://i.pravatar.cc/80?img=48', is_seller: false, seller_status: 'none', balance: 0, ventas: [] },
+async function fetchProfile(userId: string): Promise<Record<string, unknown> | null> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single()
+  return data
 }
 
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   user: null,
+  session: null,
   isLoading: false,
+  initialized: false,
+
+  initialize: async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.user) {
+      const profile = await fetchProfile(session.user.id)
+      set({
+        session,
+        user: mapProfile(profile, session.user.email ?? ""),
+        initialized: true,
+      })
+    } else {
+      set({ initialized: true })
+    }
+
+    supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id)
+        set({ session, user: mapProfile(profile, session.user.email ?? "") })
+      } else {
+        set({ session: null, user: null })
+      }
+    })
+  },
 
   login: async (email, password) => {
     set({ isLoading: true })
-    await new Promise(r => setTimeout(r, 800))
-
-    const existing = MOCK_USERS[email.toLowerCase()]
-    if (!existing) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) {
       set({ isLoading: false })
-      return { ok: false, error: 'No encontramos una cuenta con ese email' }
+      if (error.message.includes("Invalid login credentials")) {
+        return { ok: false, error: "Email o contraseña incorrectos" }
+      }
+      return { ok: false, error: error.message }
     }
-    if (existing.password !== password) {
-      set({ isLoading: false })
-      return { ok: false, error: 'Contraseña incorrecta' }
+    if (data.user) {
+      const profile = await fetchProfile(data.user.id)
+      set({
+        session: data.session,
+        user: mapProfile(profile, data.user.email ?? ""),
+        isLoading: false,
+      })
+      return { ok: true }
     }
-
-    set({
-      user: {
-        id: `u_${Date.now()}`,
-        name: existing.name,
-        email: email.toLowerCase(),
-        avatar: existing.avatar,
-        is_seller: existing.is_seller,
-        seller_status: existing.seller_status,
-        balance: existing.balance,
-        ventas: existing.ventas,
-      },
-      isLoading: false,
-    })
-    return { ok: true }
+    set({ isLoading: false })
+    return { ok: false, error: "Error al iniciar sesión" }
   },
 
   register: async (name, email, password) => {
     set({ isLoading: true })
-    await new Promise(r => setTimeout(r, 800))
-
-    if (MOCK_USERS[email.toLowerCase()]) {
-      set({ isLoading: false })
-      return { ok: false, error: 'Ya existe una cuenta con ese email' }
-    }
     if (password.length < 6) {
       set({ isLoading: false })
-      return { ok: false, error: 'La contraseña debe tener al menos 6 caracteres' }
+      return { ok: false, error: "La contraseña debe tener al menos 6 caracteres" }
     }
 
-    set({
-      user: {
-        id: `u_${Date.now()}`,
-        name,
-        email: email.toLowerCase(),
-        avatar: `https://i.pravatar.cc/80?u=${encodeURIComponent(email)}`,
-        is_seller: false,
-        seller_status: 'none',
-        balance: 0,
-        ventas: [],
-      },
-      isLoading: false,
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { full_name: name } },
     })
 
-    // Guardar registro en Supabase para que el admin lo vea
-    fetch("/api/registros/crear", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.toLowerCase(), name }),
-    }).catch(() => {})
+    if (error) {
+      set({ isLoading: false })
+      if (error.message.includes("already registered")) {
+        return { ok: false, error: "Ya existe una cuenta con ese email" }
+      }
+      return { ok: false, error: error.message }
+    }
 
-    return { ok: true }
+    if (data.user) {
+      await supabase.from("profiles").upsert({
+        id: data.user.id,
+        full_name: name,
+        avatar_url: `https://i.pravatar.cc/80?u=${encodeURIComponent(email)}`,
+        is_seller: false,
+        seller_status: "none",
+        balance: 0,
+      })
+
+      fetch("/api/registros/crear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name }),
+      }).catch(() => {})
+
+      set({
+        session: data.session,
+        user: {
+          id: data.user.id,
+          name,
+          email,
+          avatar: `https://i.pravatar.cc/80?u=${encodeURIComponent(email)}`,
+          is_seller: false,
+          seller_status: "none",
+          balance: 0,
+          ventas: [],
+        },
+        isLoading: false,
+      })
+      return { ok: true }
+    }
+
+    set({ isLoading: false })
+    return { ok: false, error: "Error al crear la cuenta" }
   },
 
-  requestSeller: () => set(s => {
-    if (!s.user) return s
-    return { user: { ...s.user, seller_status: 'pending' } }
-  }),
+  requestSeller: async () => {
+    const user = get().user
+    if (!user) return
+    await supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id)
+    set(s => s.user ? { user: { ...s.user, seller_status: "pending" } } : s)
+  },
 
-  withdraw: (amount) => set(s => {
-    if (!s.user) return s
-    return {
-      user: {
-        ...s.user,
-        balance: s.user.balance - amount,
-        ventas: s.user.ventas.map(v =>
-          v.status === 'liberado' ? { ...v, status: 'retirado' as const } : v
-        ),
-      },
-    }
-  }),
+  withdraw: (amount) =>
+    set(s => {
+      if (!s.user) return s
+      return {
+        user: {
+          ...s.user,
+          balance: s.user.balance - amount,
+          ventas: s.user.ventas.map(v =>
+            v.status === "liberado" ? { ...v, status: "retirado" as const } : v
+          ),
+        },
+      }
+    }),
 
-  logout: () => set({ user: null }),
+  logout: async () => {
+    await supabase.auth.signOut()
+    set({ user: null, session: null })
+  },
 
   isAuthenticated: () => get().user !== null,
 }))

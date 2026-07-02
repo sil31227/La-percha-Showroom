@@ -1,13 +1,61 @@
 "use client"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Heart, ArrowLeft } from "lucide-react"
+import { Heart, ArrowLeft, Loader2 } from "lucide-react"
 import { useShopStore } from "@/store/useShopStore"
-import { PRODUCTS } from "@/lib/placeholder-products"
+import { supabase } from "@/lib/supabase"
+import type { Product } from "@/lib/types"
 import { ProductCard } from "@/components/ProductCard"
+
+function mapProducto(row: Record<string, unknown>): Product {
+  const sizes = (row.talles as string[]) || []
+  const images = (row.imagenes as string[]) || []
+  return {
+    id: row.id as string,
+    title: row.titulo as string,
+    description: (row.descripcion as string) || "",
+    brand: (row.marca as string) || "",
+    price: Number(row.precio) || 0,
+    images,
+    sizes,
+    condition: (row.estado as Product["condition"]) || "used",
+    store_type: (row.vendedor_tipo === "oficial" ? "oficial" : "feria") as Product["store_type"],
+    category: (row.categoria_id as Product["category"]) || "mujer",
+    subcategory: (row.subcategoria_id as Product["subcategory"]),
+    seller: {
+      id: (row.vendedor_nombre as string) || "Tienda Oficial",
+      name: (row.vendedor_nombre as string) || "Tienda Oficial",
+      avatar: "https://i.pravatar.cc/40?img=10",
+      rating: 5.0,
+      sales_count: 0,
+    },
+    accepts_offers: false,
+    free_shipping: (row.envio_gratis as boolean) || false,
+    created_at: (row.created_at as string) || new Date().toISOString(),
+  }
+}
 
 export default function FavoritosPage() {
   const favorites = useShopStore(s => s.favorites)
-  const favProducts = PRODUCTS.filter(p => favorites.includes(p.id))
+  const [favProducts, setFavProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (favorites.length === 0) {
+      setFavProducts([])
+      setLoading(false)
+      return
+    }
+    supabase
+      .from("productos")
+      .select("*")
+      .in("id", favorites)
+      .eq("status", "approved")
+      .then(({ data }) => {
+        setFavProducts((data || []).map(mapProducto))
+        setLoading(false)
+      })
+  }, [favorites])
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -21,7 +69,11 @@ export default function FavoritosPage() {
         </span>
       </header>
 
-      {favProducts.length === 0 ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-32">
+          <Loader2 className="w-8 h-8 text-brand animate-spin" />
+        </div>
+      ) : favProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 gap-3">
           <p className="text-5xl">♡</p>
           <p className="text-text-muted text-sm">Todavía no guardaste prendas favoritas</p>

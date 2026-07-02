@@ -1,8 +1,8 @@
 "use client"
 import { useState } from "react"
 import Link from "next/link"
-import { Search, SlidersHorizontal, ChevronRight, Store, Heart } from "lucide-react"
-import { PRODUCTS } from "@/lib/placeholder-products"
+import { Search, SlidersHorizontal, ChevronRight, Store, Heart, Loader2 } from "lucide-react"
+import { useApprovedProductos } from "@/lib/useProductos"
 import { filterProducts } from "@/lib/filterProducts"
 import { useShopStore } from "@/store/useShopStore"
 import { ProductCard } from "@/components/ProductCard"
@@ -83,14 +83,23 @@ function SectionHeader({
 export default function HomePage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const { filters, setFilter } = useShopStore()
+  const { products, loading } = useApprovedProductos()
 
   const isTienda = ['tienda_percha', 'regaleria', 'bazar', 'decoracion'].includes(filters.category)
   const activeChip = isTienda ? 'tienda_percha' : filters.category
   const isDiscovery = filters.category === 'all' && !filters.subcategory && !filters.search
 
-  const oficialProducts = PRODUCTS.filter(p => p.store_type === 'oficial')
-  const feriaProducts = PRODUCTS.filter(p => p.store_type === 'feria')
-  const filteredProducts = filterProducts(PRODUCTS, filters)
+  const oficialProducts = products.filter(p => p.store_type === 'oficial')
+  const feriaProducts = products.filter(p => p.store_type === 'feria')
+  const filteredProducts = filterProducts(products, filters)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-brand animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col min-h-screen">

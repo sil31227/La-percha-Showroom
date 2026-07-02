@@ -1,6 +1,18 @@
 -- Schema La Percha Showroom
 -- Ejecutar en Supabase SQL Editor: https://hvmctiqzjbqsghuwhquk.supabase.co
 
+-- 0. PROFILES (extiende auth.users de Supabase)
+CREATE TABLE IF NOT EXISTS profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name TEXT,
+  avatar_url TEXT,
+  is_seller BOOLEAN DEFAULT false,
+  seller_status TEXT CHECK (seller_status IN ('none','pending','approved','rejected')) DEFAULT 'none',
+  balance INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 1. CATEGORÍAS
 CREATE TABLE categorias (
   id TEXT PRIMARY KEY,
@@ -163,6 +175,7 @@ INSERT INTO terminos (id, contenido) VALUES (1, $$Términos y Condiciones para V
 7. PRIVACIDAD: Los datos personales son tratados conforme a la Ley de Protección de Datos Personales. No compartimos información con terceros sin consentimiento.$$);
 
 -- ===== RLS POLICIES =====
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE productos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE categorias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subcategorias ENABLE ROW LEVEL SECURITY;
@@ -171,6 +184,11 @@ ALTER TABLE pedidos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE faq ENABLE ROW LEVEL SECURITY;
 ALTER TABLE terminos ENABLE ROW LEVEL SECURITY;
 
+-- Profiles: users can read/write their own
+CREATE POLICY "profiles_select_own" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "profiles_insert_own" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "profiles_update_own" ON profiles FOR UPDATE USING (auth.uid() = id);
+
 -- Public read access for client-facing tables
 CREATE POLICY "lectura_publica_productos" ON productos FOR SELECT USING (status = 'approved');
 CREATE POLICY "lectura_publica_categorias" ON categorias FOR SELECT USING (true);
@@ -178,7 +196,8 @@ CREATE POLICY "lectura_publica_subcategorias" ON subcategorias FOR SELECT USING 
 CREATE POLICY "lectura_publica_faq" ON faq FOR SELECT USING (true);
 CREATE POLICY "lectura_publica_terminos" ON terminos FOR SELECT USING (true);
 
--- Full access for authenticated admin (you can restrict this later by email)
+-- Full access for admin (service_role bypasses RLS; these are for the anon key with admin auth)
+CREATE POLICY "admin_all_profiles" ON profiles FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "admin_all_productos" ON productos FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "admin_all_categorias" ON categorias FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "admin_all_subcategorias" ON subcategorias FOR ALL USING (true) WITH CHECK (true);

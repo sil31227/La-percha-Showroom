@@ -2,19 +2,61 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useShopStore } from "@/store/useShopStore"
+import { useAuthStore } from "@/store/useAuthStore"
 import { CheckoutStepper } from "@/components/CheckoutStepper"
 import { PaymentMethodCard } from "@/components/PaymentMethodCard"
 
 export default function CheckoutPaso2() {
   const router = useRouter()
-  const [method, setMethod] = useState('')
+  const [method, setMethod] = useState("")
   const [error, setError] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [apiError, setApiError] = useState("")
   const total = useShopStore(s => s.cartTotal())
+  const cart = useShopStore(s => s.cart)
+  const user = useAuthStore(s => s.user)
 
-  const handleConfirmar = () => {
+  const handleConfirmar = async () => {
     if (!method) { setError(true); return }
-    sessionStorage.setItem('checkout_payment', method)
-    router.push('/checkout/paso-3')
+    setError(false)
+    setApiError("")
+
+    let address = null
+    try {
+      const addrRaw = sessionStorage.getItem("checkout_address")
+      if (addrRaw) address = JSON.parse(addrRaw)
+    } catch {}
+
+    if (method === "mercadopago") {
+      setSubmitting(true)
+      try {
+        const res = await fetch("/api/mercadopago/crear-preferencia", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: cart,
+            direccion: address,
+            email: user?.email || (address as Record<string, string>)?.email,
+            payerName: user?.name || (address as Record<string, string>)?.name,
+          }),
+        })
+        const data = await res.json()
+        if (data.ok && data.initPoint) {
+          sessionStorage.setItem("checkout_order_id", data.orderId)
+          sessionStorage.removeItem("checkout_address")
+          sessionStorage.removeItem("checkout_payment")
+          window.location.href = data.initPoint
+        } else {
+          setApiError(data.error || "Error al crear el pago")
+        }
+      } catch {
+        setApiError("Error de conexión. Intentá de nuevo.")
+      }
+      setSubmitting(false)
+    } else {
+      sessionStorage.setItem("checkout_payment", method)
+      router.push("/checkout/paso-3")
+    }
   }
 
   return (
@@ -29,7 +71,7 @@ export default function CheckoutPaso2() {
             id="mp"
             value="mercadopago"
             selected={method}
-            onChange={(v) => { setMethod(v); setError(false) }}
+            onChange={(v) => { setMethod(v); setError(false); setApiError("") }}
             label="Mercado Pago"
             description="Pagá con tarjeta, débito o saldo MP">
             <div className="flex items-center gap-3 bg-surface-sunken rounded-lg p-3">
@@ -38,7 +80,7 @@ export default function CheckoutPaso2() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-text-strong">
-                  Total: $ {total.toLocaleString('es-AR')}
+                  Total: $ {total.toLocaleString("es-AR")}
                 </p>
                 <p className="text-xs text-text-muted">
                   Serás redirigido a Mercado Pago para completar el pago
@@ -51,7 +93,7 @@ export default function CheckoutPaso2() {
             id="transfer"
             value="transferencia"
             selected={method}
-            onChange={(v) => { setMethod(v); setError(false) }}
+            onChange={(v) => { setMethod(v); setError(false); setApiError("") }}
             label="Transferencia bancaria"
             description="CBU / Alias · Acreditación en 24-48hs">
             <div className="space-y-2 text-sm">
@@ -69,31 +111,33 @@ export default function CheckoutPaso2() {
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-text-muted font-semibold">Monto</span>
-                <span className="font-bold text-price">$ {total.toLocaleString('es-AR')}</span>
+                <span className="font-bold text-price">$ {total.toLocaleString("es-AR")}</span>
               </div>
               <p className="text-xs text-text-muted bg-warning-50 rounded-lg p-2.5 mt-1">
-                📧 Envianos el comprobante a <strong>pagos@lapercha.com.ar</strong> con el número de orden
+                Envianos el comprobante a <strong>pagos@lapercha.com.ar</strong> con el número de orden
               </p>
             </div>
           </PaymentMethodCard>
         </div>
 
         {error && (
-          <p className="text-xs text-error-500">⚠ Seleccioná un método de pago</p>
+          <p className="text-xs text-error-500">Seleccioná un método de pago</p>
+        )}
+        {apiError && (
+          <p className="text-xs text-error-500 bg-error-50 rounded-lg p-2.5">{apiError}</p>
         )}
       </div>
 
-      {/* CTA */}
       <div className="fixed bottom-20 inset-x-0 mx-auto w-full max-w-107.5
         bg-bg-page border-t border-border-subtle px-4 pt-3 pb-4
         lg:static lg:bottom-auto lg:border-t-0 lg:pt-4 lg:pb-0
         lg:px-0 lg:max-w-full z-10">
-        <button onClick={handleConfirmar}
+        <button onClick={handleConfirmar} disabled={submitting || !method}
           className={`w-full h-13 font-semibold rounded-lg transition-colors
-            ${method
-              ? 'bg-brand hover:bg-brand-hover text-text-on-brand'
-              : 'bg-brand/40 text-text-on-brand cursor-not-allowed'}`}>
-          Confirmar pago →
+            ${method && !submitting
+              ? "bg-brand hover:bg-brand-hover text-text-on-brand"
+              : "bg-brand/40 text-text-on-brand cursor-not-allowed"}`}>
+          {submitting ? "Conectando con Mercado Pago..." : "Confirmar pago →"}
         </button>
       </div>
     </div>

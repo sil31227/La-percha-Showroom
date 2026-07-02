@@ -2,8 +2,8 @@
 import { use, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, ShoppingBag, Heart } from "lucide-react"
-import { PRODUCTS } from "@/lib/placeholder-products"
+import { ArrowLeft, ShoppingBag, Heart, Loader2 } from "lucide-react"
+import { useProductoById } from "@/lib/useProductos"
 import { useShopStore } from "@/store/useShopStore"
 import { ProductGallery } from "@/components/ProductGallery"
 import { SizeSelector } from "@/components/SizeSelector"
@@ -28,7 +28,16 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
   const toggleFavorite = useShopStore(s => s.toggleFavorite)
   const isFav = useShopStore(s => s.isFavorite(id))
 
-  const product = PRODUCTS.find(p => p.id === id)
+  const { product, loading } = useProductoById(id)
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-brand animate-spin" />
+      </div>
+    )
+  }
+
   if (!product) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
