@@ -1,8 +1,9 @@
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState } from "react"
-import { LayoutDashboard, ShieldCheck, Users, Store, Package, Tags, HelpCircle, UserPlus, Menu, X, ChevronRight, LogOut } from "lucide-react"
+import { useEffect, useState } from "react"
+import { LayoutDashboard, ShieldCheck, Users, Store, Package, Tags, HelpCircle, UserPlus, Menu, X, LogOut } from "lucide-react"
+import { useAdminStore } from "@/store/useAdminStore"
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -18,10 +19,20 @@ const NAV = [
 export function AdminSidebar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+  const { loadFromSupabase, products, vendors } = useAdminStore()
+  const pendingProducts = products.filter(p => p.status === "pending").length
+  const pendingVendors = vendors.filter(v => v.status === "pending").length
+
+  useEffect(() => { loadFromSupabase() }, [])
+
+  function badge(href: string) {
+    if (href === "/admin/moderacion" && pendingProducts > 0) return pendingProducts
+    if (href === "/admin/vendedores" && pendingVendors > 0) return pendingVendors
+    return 0
+  }
 
   return (
     <>
-      {/* Mobile top bar + hamburger */}
       <div className="lg:hidden fixed top-0 inset-x-0 h-14 bg-surface-card border-b border-border-subtle flex items-center gap-3 px-4 z-50">
         <Link href="/admin" className="w-7 h-7 rounded-lg overflow-hidden shrink-0">
           <img src="/logo.jpg" alt="" className="w-full h-full object-cover" />
@@ -32,7 +43,6 @@ export function AdminSidebar() {
         </button>
       </div>
 
-      {/* Mobile drawer overlay */}
       {open && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-carob-900/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
@@ -48,11 +58,10 @@ export function AdminSidebar() {
                 const active = pathname === item.href
                 return (
                   <Link key={item.href} href={item.href} onClick={() => setOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                      ${active ? 'bg-matcha-50 text-matcha-700' : 'text-text-body hover:bg-surface-sunken'}`}>
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? 'bg-matcha-50 text-matcha-700' : 'text-text-body hover:bg-surface-sunken'}`}>
                     <item.icon className={`w-4 h-4 ${active ? 'text-matcha-600' : 'text-text-muted'}`} />
                     {item.label}
-                    {active && <ChevronRight className="w-3.5 h-3.5 ml-auto text-matcha-500" />}
+                    {badge(item.href) > 0 && <span className="ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-error-500 text-white">{badge(item.href)}</span>}
                   </Link>
                 )
               })}
@@ -67,7 +76,6 @@ export function AdminSidebar() {
         </div>
       )}
 
-      {/* Desktop fixed sidebar */}
       <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-56 bg-surface-card border-r border-border-subtle p-5">
         <Link href="/admin" className="flex items-center gap-2 mb-8">
           <img src="/logo.jpg" alt="" className="w-7 h-7 rounded-lg object-cover" />
@@ -78,11 +86,10 @@ export function AdminSidebar() {
             const active = pathname === item.href
             return (
               <Link key={item.href} href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                  ${active ? 'bg-matcha-50 text-matcha-700' : 'text-text-body hover:bg-surface-sunken'}`}>
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active ? 'bg-matcha-50 text-matcha-700' : 'text-text-body hover:bg-surface-sunken'}`}>
                 <item.icon className={`w-4 h-4 ${active ? 'text-matcha-600' : 'text-text-muted'}`} />
                 {item.label}
-                {active && <ChevronRight className="w-3.5 h-3.5 ml-auto text-matcha-500" />}
+                {badge(item.href) > 0 && <span className="ml-auto px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-error-500 text-white">{badge(item.href)}</span>}
               </Link>
             )
           })}

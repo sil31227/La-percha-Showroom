@@ -252,6 +252,11 @@ export default function VenderPage() {
       console.error("Error publicando:", error)
       return
     }
+    fetch("/api/email/nueva-publicacion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ titulo: title, vendedora: user.name, precio: price }),
+    }).catch(() => {})
     setSent(true)
   }
 
