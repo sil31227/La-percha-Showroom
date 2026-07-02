@@ -170,7 +170,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   requestSeller: async () => {
     const user = get().user
     if (!user) return
-    await supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id)
+    await Promise.all([
+      supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id),
+      supabase.from("vendedores").upsert({ id: user.id, nombre: user.name, email: user.email, avatar: user.avatar, status: "pending", productos_count: 0 }),
+    ])
     set(s => s.user ? { user: { ...s.user, seller_status: "pending" } } : s)
   },
 

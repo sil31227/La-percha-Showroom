@@ -90,11 +90,33 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set(s => ({ products: s.products.map(p => p.id === id ? { ...p, status: "rejected" as const } : p) }))
   },
   approveVendor: async (id) => {
-    await supabase.from("vendedores").update({ status: "approved" }).eq("id", id)
+    const vendor = get().vendors.find(v => v.id === id)
+    await Promise.all([
+      supabase.from("vendedores").update({ status: "approved" }).eq("id", id),
+      supabase.from("profiles").update({ seller_status: "approved", is_seller: true }).eq("id", id),
+    ])
+    if (vendor?.email) {
+      fetch("/api/email/vendor-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: vendor.email, name: vendor.nombre, status: "approved" }),
+      }).catch(() => {})
+    }
     set(s => ({ vendors: s.vendors.map(v => v.id === id ? { ...v, status: "approved" as const } : v) }))
   },
   rejectVendor: async (id) => {
-    await supabase.from("vendedores").update({ status: "rejected" }).eq("id", id)
+    const vendor = get().vendors.find(v => v.id === id)
+    await Promise.all([
+      supabase.from("vendedores").update({ status: "rejected" }).eq("id", id),
+      supabase.from("profiles").update({ seller_status: "rejected", is_seller: false }).eq("id", id),
+    ])
+    if (vendor?.email) {
+      fetch("/api/email/vendor-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: vendor.email, name: vendor.nombre, status: "rejected" }),
+      }).catch(() => {})
+    }
     set(s => ({ vendors: s.vendors.map(v => v.id === id ? { ...v, status: "rejected" as const } : v) }))
   },
 
