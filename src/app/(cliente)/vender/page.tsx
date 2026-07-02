@@ -47,6 +47,7 @@ export default function VenderPage() {
   const [sent, setSent] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [deletedImages, setDeletedImages] = useState<string[]>([])
   const [selectedColors, setSelectedColors] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -222,6 +223,14 @@ export default function VenderPage() {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
+  function removeImage(index: number) {
+    const url = images[index]
+    setImages(prev => prev.filter((_, j) => j !== index))
+    if (url && url.includes("hvmctiqzjbqsghuwhquk.supabase.co")) {
+      setDeletedImages(prev => [...prev, url])
+    }
+  }
+
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -257,6 +266,11 @@ export default function VenderPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ titulo: title, vendedora: user.name, precio: price }),
     }).catch(() => {})
+    if (deletedImages.length > 0) {
+      const paths = deletedImages.map(url => { const parts = url.split("/productos/"); return parts[1]?.split("?")[0] }).filter(Boolean) as string[]
+      if (paths.length > 0) fetch("/api/imagenes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths }) }).catch(() => {})
+    }
+    setDeletedImages([])
     setSent(true)
   }
 
@@ -280,7 +294,7 @@ export default function VenderPage() {
               className="px-5 py-2.5 rounded-full border border-border-default text-text-body font-semibold text-sm hover:border-brand transition-colors">
               Volver al inicio
             </Link>
-            <button onClick={() => { setSent(false); setTitle(""); setDescription(""); setBrand(""); setPrice(""); setSelectedSizes([]); setSelectedColors([]); setImages([]) }}
+            <button onClick={() => { setSent(false); setTitle(""); setDescription(""); setBrand(""); setPrice(""); setSelectedSizes([]); setSelectedColors([]); setImages([]); setDeletedImages([]) }}
               className="px-5 py-2.5 rounded-full bg-brand text-text-on-brand font-semibold text-sm hover:bg-brand-hover transition-colors">
               Publicar otra
             </button>
@@ -310,7 +324,7 @@ export default function VenderPage() {
               {images.map((url, i) => (
                 <div key={i} className="relative shrink-0">
                   <img src={url} alt="" className="w-24 h-32 rounded-lg object-cover" />
-                  <button type="button" onClick={() => setImages(prev => prev.filter((_, j) => j !== i))} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error-500 text-white flex items-center justify-center"><X className="w-3 h-3" /></button>
+                  <button type="button" onClick={() => removeImage(i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error-500 text-white flex items-center justify-center"><X className="w-3 h-3" /></button>
                 </div>
               ))}
             </div>
