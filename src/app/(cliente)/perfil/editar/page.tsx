@@ -1,17 +1,21 @@
 "use client"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import Link from "next/link"
 import { useAuthStore } from "@/store/useAuthStore"
-import { ArrowLeft, User, Banknote, Mail, Phone, Camera, ShieldCheck } from "lucide-react"
+import { supabase } from "@/lib/supabase"
+import { ArrowLeft, User, Banknote, Mail, Phone, Camera, ShieldCheck, Loader2 } from "lucide-react"
 
 export default function EditarPerfilPage() {
-  const { user } = useAuthStore()
+  const { user, updateProfile } = useAuthStore()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   const [profile, setProfile] = useState({
     name: user?.name || "",
     email: user?.email || "",
-    phone: "",
+    phone: user?.phone || "",
     avatar: user?.avatar || "",
   })
 
@@ -23,10 +27,65 @@ export default function EditarPerfilPage() {
     alias: "",
   })
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("folder", "avatars")
+
+      const res = await fetch("/api/upload", { method: "POST", body: formData })
+      const data = await res.json()
+
+      if (data.url) {
+        setProfile(p => ({ ...p, avatar: data.url }))
+      } else {
+        console.error("Error al subir foto:", data.error)
+      }
+    } catch (err) {
+      console.error("Error al subir foto:", err)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    if (!user?.id) return
+
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: profile.name,
+          avatar_url: profile.avatar,
+          phone: profile.phone,
+        })
+        .eq("id", user.id)
+
+      if (error) {
+        console.error("Error al guardar perfil:", error.message)
+        return
+      }
+
+      updateProfile?.({
+        name: profile.name,
+        avatar: profile.avatar,
+        phone: profile.phone,
+      })
+
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      console.error("Error al guardar perfil:", err)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -55,10 +114,19 @@ export default function EditarPerfilPage() {
 
           <div className="flex flex-col items-center gap-3">
             <div className="relative">
-              <img src={profile.avatar || "https://i.pravatar.cc/120?u=user"} alt="" className="w-20 h-20 rounded-full object-cover ring-4 ring-matcha-100" />
-              <button type="button" className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center shadow-md">
+              {uploading ? (
+                <div className="w-20 h-20 rounded-full ring-4 ring-matcha-100 bg-surface-sunken flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 text-brand animate-spin" />
+                </div>
+              ) : (
+                <img src={profile.avatar || "https://i.pravatar.cc/120?u=user"} alt="" className="w-20 h-20 rounded-full object-cover ring-4 ring-matcha-100" />
+              )}
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center shadow-md hover:bg-brand-hover transition-colors disabled:opacity-50">
                 <Camera className="w-3.5 h-3.5" />
               </button>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarUpload}
+                className="hidden" />
             </div>
             <input type="text" value={profile.avatar}
               onChange={e => setProfile(p => ({ ...p, avatar: e.target.value }))}
@@ -149,9 +217,11 @@ export default function EditarPerfilPage() {
           </div>
         </div>
 
-        <button type="submit"
-          className="w-full h-12 bg-brand hover:bg-brand-hover text-white font-semibold rounded-full transition-colors text-sm">
-          {saved ? "✓ Guardado" : "Guardar cambios"}
+        <button type="submit" disabled={saving || uploading}
+          className="w-full h-12 bg-brand hover:bg-brand-hover text-white font-semibold rounded-full transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+          {saving ? (
+            <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</span>
+          ) : saved ? "✓ Guardado" : "Guardar cambios"}
         </button>
 
         <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-info-50 border border-info-200">

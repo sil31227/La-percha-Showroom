@@ -15,6 +15,7 @@ export interface User {
   name: string
   email: string
   avatar: string
+  phone: string
   is_seller: boolean
   seller_status: "none" | "pending" | "approved" | "rejected"
   balance: number
@@ -31,6 +32,7 @@ interface AuthStore {
   register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   requestSeller: () => Promise<void>
   refreshProfile: () => Promise<void>
+  updateProfile: (data: { name?: string; avatar?: string; phone?: string }) => void
   withdraw: (amount: number) => void
   logout: () => Promise<void>
   isAuthenticated: () => boolean
@@ -42,6 +44,7 @@ function mapProfile(profile: Record<string, unknown> | null, email: string, user
     name: (profile?.full_name as string) || email.split("@")[0],
     email,
     avatar: (profile?.avatar_url as string) || `https://i.pravatar.cc/80?u=${encodeURIComponent(email)}`,
+    phone: (profile?.phone as string) || "",
     is_seller: (profile?.is_seller as boolean) || false,
     seller_status: (profile?.seller_status as User["seller_status"]) || "none",
     balance: (profile?.balance as number) || 0,
@@ -174,6 +177,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
           name,
           email,
           avatar: `https://i.pravatar.cc/80?u=${encodeURIComponent(email)}`,
+          phone: "",
           is_seller: false,
           seller_status: "none",
           balance: 0,
@@ -212,6 +216,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       set(s => s.user ? {
         user: {
           ...s.user,
+          name: (profile.full_name as string) || s.user.name,
+          avatar: (profile.avatar_url as string) || s.user.avatar,
+          phone: (profile.phone as string) || "",
           is_seller: (profile.is_seller as boolean) || false,
           seller_status: (profile.seller_status as User["seller_status"]) || "none",
           balance: (profile.balance as number) || 0,
@@ -219,6 +226,16 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       } : s)
     }
   },
+
+  updateProfile: (data) =>
+    set(s => s.user ? {
+      user: {
+        ...s.user,
+        ...(data.name !== undefined ? { name: data.name } : {}),
+        ...(data.avatar !== undefined ? { avatar: data.avatar } : {}),
+        ...(data.phone !== undefined ? { phone: data.phone } : {}),
+      }
+    } : s),
 
   withdraw: (amount) =>
     set(s => {

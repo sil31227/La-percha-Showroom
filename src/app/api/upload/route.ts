@@ -19,8 +19,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Formato no permitido. Usá JPEG, PNG, WebP, GIF o AVIF" }, { status: 400 })
     }
 
+    const folder = (formData.get("folder") as string) || ""
     const ext = file.name.split(".").pop() || "jpg"
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const baseName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const filename = folder ? `${folder}/${baseName}` : baseName
 
     const supabase = createAdminClient()
 
