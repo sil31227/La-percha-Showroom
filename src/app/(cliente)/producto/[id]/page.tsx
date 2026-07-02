@@ -54,6 +54,8 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
   const sizes = product.sizes?.length ? product.sizes : ["Único"]
   const showSizeSelector = product.tipo !== "tienda" || sizes.length > 1 || sizes[0] !== "Único"
 
+  console.log("[producto page]", product.id, "tipo:", product.tipo, "variantes:", product.variantes?.length, product.variantes)
+
   const activeVariant = product.variantes?.[selectedVariant] || null
   const displayPrice = activeVariant ? activeVariant.precio : product.price
 

@@ -7,14 +7,35 @@ function mapProducto(row: Record<string, unknown>): Product {
   const rawSizes = (row.talles as string[]) || []
   const sizes = rawSizes.length > 0 ? rawSizes : ["Único"]
   const images = (row.imagenes as string[]) || []
-  const rawVariants = (row.variantes as any[]) || []
-  const variantes = rawVariants.map((v: any) => ({
-    nombre: v.nombre || "",
-    atributos: v.atributos || (v.talle !== undefined ? { Talle: v.talle, Color: v.color || "" } : {}),
-    precio: v.precio ?? (Number(row.precio) || 0),
-    stock: v.stock ?? 0,
-    imagen: v.imagen || images[0] || "",
-  }))
+
+  let rawVariants: any[] = []
+  try {
+    const vRaw = row.variantes
+    if (Array.isArray(vRaw)) {
+      rawVariants = vRaw
+    } else if (typeof vRaw === "string") {
+      rawVariants = JSON.parse(vRaw)
+    }
+  } catch {
+    rawVariants = []
+  }
+
+  console.log("[mapProducto]", row.id, "variantes raw:", row.variantes, "parsed:", rawVariants.length)
+
+  const variantes = rawVariants.map((v: any) => {
+    const hasAtributos = v.atributos && typeof v.atributos === "object" && Object.keys(v.atributos).length > 0
+    const hasOldFormat = v.talle !== undefined
+    const atributos = hasAtributos ? v.atributos
+      : hasOldFormat ? { Talle: v.talle, Color: v.color || "" }
+      : {}
+    return {
+      nombre: v.nombre || "",
+      atributos,
+      precio: v.precio ?? (Number(row.precio) || 0),
+      stock: v.stock ?? 0,
+      imagen: v.imagen || images[0] || "",
+    }
+  })
 
   return {
     id: row.id as string,
