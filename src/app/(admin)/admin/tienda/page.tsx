@@ -81,15 +81,20 @@ export default function TiendaPage() {
   }
   function openEdit(p: AdminProduct) {
     const rawVariants = (p.variantes as unknown as Record<string, unknown>[]) || []
-    const variantes: typeof EMPTY.variantes = rawVariants.map((v) => ({
-      nombre: (v.nombre as string) || "",
-      atributos: (v.atributos as Record<string, string>) || ((v.talle as string) !== undefined ? { Talle: v.talle as string, Color: (v.color as string) || "" } : {}),
-      precio: (v.precio as number) ?? p.precio,
-      stock: (v.stock as number) ?? 0,
-      imagen: (v.imagen as string) || p.imagenes?.[0] || "",
-    }))
+    const variantes: typeof EMPTY.variantes = rawVariants.map((v) => {
+      const atributos = (v.atributos as Record<string, string>)
+        || ((v.talle as string) !== undefined ? { Talle: v.talle as string, Color: (v.color as string) || "" } : {})
+      const nombre = (v.nombre as string) || genVariantName(atributos)
+      return {
+        nombre,
+        atributos,
+        precio: (v.precio as number) ?? p.precio,
+        stock: (v.stock as number) ?? 0,
+        imagen: (v.imagen as string) || p.imagenes?.[0] || "",
+      }
+    })
     const groups = deriveGroups(variantes, p.tipo)
-    setForm({ titulo: p.titulo, precio: p.precio, precio_anterior: p.precio_anterior, descripcion: p.descripcion || "", marca: p.marca, categoria_id: p.categoria_id, subcategoria_id: p.subcategoria_id || "", estado: p.estado || "", talles: p.talles || [], colores: p.colores || [], imagenes: p.imagenes || [], variantGroups: groups, variantes, envio_gratis: p.envio_gratis || false, destacado: p.destacado || false, tipo: p.tipo }); setShowPrevPrice(!!p.precio_anterior); setEditingId(p.id); setError(""); setView("form") }
+    setForm({ titulo: p.titulo, precio: p.precio, precio_anterior: p.precio_anterior, descripcion: p.descripcion || "", marca: p.marca, material: p.material, categoria_id: p.categoria_id, subcategoria_id: p.subcategoria_id || "", estado: p.estado || "", talles: p.talles || [], colores: p.colores || [], imagenes: p.imagenes || [], variantGroups: groups, variantes, envio_gratis: p.envio_gratis || false, destacado: p.destacado || false, tipo: p.tipo }); setShowPrevPrice(!!p.precio_anterior); setEditingId(p.id); setError(""); setView("form") }
   function addImage() { if (!newImage.trim()) return; setForm(f => ({ ...f, imagenes: [...f.imagenes, newImage.trim()] })); setNewImage("") }
   function removeImage(index: number) {
     const url = form.imagenes[index]
@@ -254,7 +259,10 @@ export default function TiendaPage() {
 
   function autoGenerateVariants() {
     const groups = form.variantGroups.filter(g => g.name.trim() && g.values.length > 0)
-    if (groups.length === 0) return form.variantes
+    if (groups.length === 0) return form.variantes.map(v => ({
+      ...v,
+      nombre: v.nombre || genVariantName(v.atributos),
+    }))
 
     function* combos(idx: number, current: Record<string, string>): Generator<Record<string, string>> {
       if (idx === groups.length) { yield { ...current }; return }
@@ -279,7 +287,10 @@ export default function TiendaPage() {
         })
       }
     }
-    return newVariants
+    return newVariants.map(v => ({
+      ...v,
+      nombre: v.nombre || genVariantName(v.atributos),
+    }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
