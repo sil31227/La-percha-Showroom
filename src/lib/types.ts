@@ -50,6 +50,7 @@ export interface CartItem {
   price: number
   image: string
   size: string
+  quantity: number
   store_type: StoreType
   variantLabel?: string
   variantPrice?: number

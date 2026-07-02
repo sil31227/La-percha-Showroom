@@ -1,5 +1,6 @@
-import { X } from "lucide-react"
+import { X, Minus, Plus } from "lucide-react"
 import type { CartItem } from "@/lib/types"
+import { useShopStore } from "@/store/useShopStore"
 
 interface Props {
   item: CartItem
@@ -7,6 +8,10 @@ interface Props {
 }
 
 export function CartItemRow({ item, onRemove }: Props) {
+  const updateQuantity = useShopStore(s => s.updateQuantity)
+  const qty = item.quantity || 1
+  const showQuantity = item.store_type === "oficial"
+
   return (
     <div className="flex items-center gap-3 bg-surface-card px-4 py-3.5
       border-b border-border-subtle last:border-b-0
@@ -25,6 +30,24 @@ export function CartItemRow({ item, onRemove }: Props) {
           $ {item.price.toLocaleString('es-AR')}
         </p>
       </div>
+      {showQuantity && (
+        <div className="flex items-center gap-1 shrink-0 mr-1">
+          <button
+            onClick={() => updateQuantity(item.productId, qty - 1)}
+            className="w-7 h-7 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-surface-inverse/10 transition-colors"
+          >
+            <Minus className="w-3 h-3 text-text-muted" />
+          </button>
+          <span className="w-7 text-center text-xs font-semibold text-text-strong">{qty}</span>
+          <button
+            onClick={() => updateQuantity(item.productId, qty + 1)}
+            disabled={(item.variantStock ?? Infinity) > 0 && qty >= (item.variantStock ?? Infinity)}
+            className="w-7 h-7 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-surface-inverse/10 transition-colors disabled:opacity-30"
+          >
+            <Plus className="w-3 h-3 text-text-muted" />
+          </button>
+        </div>
+      )}
       <button
         onClick={() => onRemove(item.productId)}
         aria-label="Eliminar del carrito"

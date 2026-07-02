@@ -47,6 +47,7 @@ export function ProductCard({ product }: { product: Product }) {
       price: product.price,
       image: images[0] || '',
       size: firstSize,
+      quantity: 1,
       store_type: product.store_type,
     })
   }

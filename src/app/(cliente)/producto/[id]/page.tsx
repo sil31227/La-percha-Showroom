@@ -2,7 +2,7 @@
 import { use, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, ShoppingBag, Heart, Loader2 } from "lucide-react"
+import { ArrowLeft, ShoppingBag, Heart, Loader2, Minus, Plus } from "lucide-react"
 import { useProductoById } from "@/lib/useProductos"
 import { useShopStore } from "@/store/useShopStore"
 import { ProductGallery } from "@/components/ProductGallery"
@@ -28,6 +28,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
   const [selectedVariant, setSelectedVariant] = useState(-1)
   const [sizeError, setSizeError] = useState(false)
   const [toast, setToast] = useState(false)
+  const [quantity, setQuantity] = useState(1)
 
   const addToCart = useShopStore(s => s.addToCart)
   const toggleFavorite = useShopStore(s => s.toggleFavorite)
@@ -62,6 +63,8 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
 
   const activeVariant = product.variantes?.[selectedVariant] || null
   const displayPrice = activeVariant ? activeVariant.precio : product.price
+  const showQuantity = product.store_type === "oficial" && product.tipo !== "ropa"
+  const maxStock = activeVariant ? (activeVariant.stock || 0) : (product.stock || 0)
 
   const handleAddToCart = () => {
     const size = selectedSize || (sizes.length === 1 ? sizes[0] : "")
@@ -73,6 +76,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
       price: displayPrice,
       image: product.images[0],
       size,
+      quantity: quantity,
       store_type: product.store_type,
       variantLabel: activeVariant ? variantLabel(activeVariant) : undefined,
       variantPrice: activeVariant ? activeVariant.precio : undefined,
@@ -207,6 +211,35 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
                 <p className="text-[10px] text-text-muted mt-1.5">
                   Stock disponible: {activeVariant.stock} unidad{activeVariant.stock !== 1 ? 'es' : ''}
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* Quantity selector (solo tienda oficial no-ropa) */}
+          {showQuantity && (
+            <div className="flex items-center gap-3 py-1">
+              <span className="text-xs font-semibold text-text-muted uppercase tracking-wide">Cantidad</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  className="w-8 h-8 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-surface-inverse/10 transition-colors disabled:opacity-30"
+                  disabled={quantity <= 1}
+                >
+                  <Minus className="w-3.5 h-3.5 text-text-strong" />
+                </button>
+                <span className="w-10 text-center text-sm font-semibold text-text-strong">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity(q => maxStock > 0 ? Math.min(maxStock, q + 1) : q + 1)}
+                  className="w-8 h-8 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-surface-inverse/10 transition-colors disabled:opacity-30"
+                  disabled={maxStock > 0 && quantity >= maxStock}
+                >
+                  <Plus className="w-3.5 h-3.5 text-text-strong" />
+                </button>
+              </div>
+              {maxStock > 0 && (
+                <span className="text-[10px] text-text-muted">{maxStock} disponible{maxStock !== 1 ? 's' : ''}</span>
               )}
             </div>
           )}

@@ -14,7 +14,7 @@ export function CartSummary({ total, itemCount }: Props) {
       lg:sticky lg:top-[calc(var(--nav-h)+1.5rem)]">
       <div className="px-4 py-3 space-y-2 lg:px-5 lg:py-4">
         <div className="flex justify-between text-sm">
-          <span className="text-text-muted">Subtotal ({itemCount} prenda{itemCount !== 1 ? 's' : ''})</span>
+          <span className="text-text-muted">Subtotal ({itemCount} producto{itemCount !== 1 ? 's' : ''})</span>
           <span className="font-semibold text-text-strong">
             $ {total.toLocaleString('es-AR')}
           </span>

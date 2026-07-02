@@ -38,6 +38,7 @@ interface ShopStore {
   cart: CartItem[]
   addToCart: (item: CartItem) => void
   removeFromCart: (productId: string) => void
+  updateQuantity: (productId: string, quantity: number) => void
   clearCart: () => void
   cartCount: () => number
   cartTotal: () => number
@@ -65,9 +66,16 @@ export const useShopStore = create<ShopStore>()((set, get) => ({
   cart: [],
   addToCart: (item) =>
     set((s) => {
-      const exists = s.cart.find(i => i.productId === item.productId)
-      if (exists) return s
-      const next = { cart: [...s.cart, item] }
+      const key = (i: CartItem) => `${i.productId}||${i.size}||${i.variantLabel || ""}`
+      const existing = s.cart.find(i => key(i) === key(item))
+      if (existing) {
+        const next = {
+          cart: s.cart.map(i => i === existing ? { ...i, quantity: i.quantity + item.quantity } : i),
+        }
+        saveCart(next.cart)
+        return next
+      }
+      const next = { cart: [...s.cart, { ...item, quantity: item.quantity || 1 }] }
       saveCart(next.cart)
       return next
     }),
@@ -77,12 +85,25 @@ export const useShopStore = create<ShopStore>()((set, get) => ({
       saveCart(next.cart)
       return next
     }),
+  updateQuantity: (productId, quantity) =>
+    set((s) => {
+      if (quantity <= 0) {
+        const next = { cart: s.cart.filter(i => i.productId !== productId) }
+        saveCart(next.cart)
+        return next
+      }
+      const next = {
+        cart: s.cart.map(i => i.productId === productId ? { ...i, quantity } : i),
+      }
+      saveCart(next.cart)
+      return next
+    }),
   clearCart: () => {
     saveCart([])
     set({ cart: [] })
   },
-  cartCount: () => get().cart.length,
-  cartTotal: () => get().cart.reduce((sum, i) => sum + i.price, 0),
+  cartCount: () => get().cart.reduce((sum, i) => sum + (i.quantity || 1), 0),
+  cartTotal: () => get().cart.reduce((sum, i) => sum + i.price * (i.quantity || 1), 0),
 
   favorites: [],
   toggleFavorite: (productId) =>

@@ -9,12 +9,13 @@ export default function CarritoPage() {
   const cart = useShopStore(s => s.cart)
   const removeFromCart = useShopStore(s => s.removeFromCart)
   const total = useShopStore(s => s.cartTotal())
+  const itemCount = useShopStore(s => s.cartCount())
 
   return (
     <>
       <div className="flex items-center h-14 px-4 lg:px-6">
         <h1 className="font-display text-xl text-text-strong">
-          Carrito {cart.length > 0 && `(${cart.length})`}
+          Carrito {itemCount > 0 && `(${itemCount})`}
         </h1>
       </div>
 
@@ -47,7 +48,7 @@ export default function CarritoPage() {
           </div>
 
           {/* Resumen */}
-          <CartSummary total={total} itemCount={cart.length} />
+          <CartSummary total={total} itemCount={itemCount} />
         </div>
       )}
     </>
