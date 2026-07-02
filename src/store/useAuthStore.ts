@@ -169,12 +169,18 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   requestSeller: async () => {
     const user = get().user
-    if (!user) return
-    await Promise.all([
-      supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id),
-      supabase.from("vendedores").upsert({ id: user.id, nombre: user.name, email: user.email, avatar: user.avatar, status: "pending", productos_count: 0 }),
-    ])
-    set(s => s.user ? { user: { ...s.user, seller_status: "pending" } } : s)
+    if (!user) { console.error("[requestSeller] No hay usuario autenticado"); return }
+    try {
+      const [profileRes, vendorRes] = await Promise.all([
+        supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id),
+        supabase.from("vendedores").upsert({ id: user.id, nombre: user.name, email: user.email, avatar: user.avatar, status: "pending", productos_count: 0 }),
+      ])
+      if (profileRes.error) console.error("[requestSeller] Error profiles:", profileRes.error)
+      if (vendorRes.error) console.error("[requestSeller] Error vendedores:", vendorRes.error)
+      set(s => s.user ? { user: { ...s.user, seller_status: "pending" } } : s)
+    } catch (err) {
+      console.error("[requestSeller] Exception:", err)
+    }
   },
 
   withdraw: (amount) =>
