@@ -145,7 +145,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     if (data) set(s => ({ products: [data as AdminProduct, ...s.products] }))
   },
   updateStoreProduct: async (id, form) => {
-    const payload: Record<string, unknown> = { ...form, updated_at: new Date().toISOString() }
+    const { variantGroups: _vg, ...rest } = form as Record<string, unknown>
+    const payload: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() } as Record<string, unknown>
     if (!form.estado) delete payload.estado
     if (!form.categoria_id) delete payload.categoria_id
     if (!form.subcategoria_id) delete payload.subcategoria_id
