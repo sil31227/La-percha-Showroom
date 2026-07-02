@@ -132,7 +132,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       id, titulo: form.titulo, precio: form.precio, precio_anterior: form.precio_anterior,
       descripcion: form.descripcion, marca: form.marca, material: form.material,
       talles: form.talles, colores: form.colores, imagenes: form.imagenes,
-      variantes: form.variantes,
+      variantes: JSON.parse(JSON.stringify(form.variantes || [])),
       envio_gratis: form.envio_gratis, destacado: form.destacado,
       tipo: form.tipo, vendedor_nombre: "Tienda Oficial", vendedor_tipo: "oficial",
       status: "approved",
@@ -148,12 +148,19 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   updateStoreProduct: async (id, form) => {
     const { variantGroups: _vg, ...rest } = form as Record<string, unknown>
     const payload: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() } as Record<string, unknown>
+    if (rest.variantes !== undefined) {
+      payload.variantes = JSON.parse(JSON.stringify(rest.variantes))
+    }
     console.log("[updateStoreProduct] rest.variantes:", (rest as any).variantes, "payload.variantes:", payload.variantes)
     if (!form.estado) delete payload.estado
     if (!form.categoria_id) delete payload.categoria_id
     if (!form.subcategoria_id) delete payload.subcategoria_id
-    const { error } = await supabase.from("productos").update(payload).eq("id", id)
-    if (error) throw new Error(error.message)
+    const { error: err1 } = await supabase.from("productos").update(payload).eq("id", id)
+    if (err1) { console.error("[updateStoreProduct] error:", err1); throw new Error(err1.message) }
+    const { error: err2 } = await supabase.from("productos").update({ variantes: payload.variantes }).eq("id", id)
+    if (err2) console.error("[updateStoreProduct] variantes-only update error:", err2)
+    const { data: verify } = await supabase.from("productos").select("variantes").eq("id", id).single()
+    console.log("[updateStoreProduct] VERIFY from DB:", verify?.variantes)
     set(s => ({ products: s.products.map(p => p.id === id ? { ...p, ...rest } : p) }))
   },
   removeStoreProduct: async (id) => {
