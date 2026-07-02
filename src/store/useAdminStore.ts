@@ -31,6 +31,7 @@ export interface StoreProductForm {
   titulo: string; precio: number; precio_anterior?: number; descripcion: string
   marca?: string; categoria_id: string; subcategoria_id: string; estado: string
   talles: string[]; colores: string[]; imagenes: string[]
+  variantes: { nombre: string; talle: string; color: string; precio: number; stock: number; imagen: string }[]
   envio_gratis: boolean; destacado: boolean; tipo: "ropa" | "tienda"
 }
 
@@ -127,6 +128,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       id, titulo: form.titulo, precio: form.precio, precio_anterior: form.precio_anterior,
       descripcion: form.descripcion, marca: form.marca,
       talles: form.talles, colores: form.colores, imagenes: form.imagenes,
+      variantes: form.variantes,
       envio_gratis: form.envio_gratis, destacado: form.destacado,
       tipo: form.tipo, vendedor_nombre: "Tienda Oficial", vendedor_tipo: "oficial",
       status: "approved",

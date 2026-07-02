@@ -7,7 +7,7 @@ const CONDITIONS = [{ v: "new_tag", l: "Nuevo con etiqueta" }, { v: "new", l: "N
 const SIZES = ["XS","S","M","L","XL","Único"]
 const COLORES = ["Negro","Blanco","Beige","Gris","Verde","Azul","Rojo","Rosa","Amarillo","Marrón"]
 
-const EMPTY: StoreProductForm = { titulo: "", precio: 0, descripcion: "", categoria_id: "", subcategoria_id: "", estado: "new_tag", talles: [], colores: [], imagenes: [], envio_gratis: false, destacado: false, tipo: "ropa" }
+const EMPTY: StoreProductForm = { titulo: "", precio: 0, descripcion: "", categoria_id: "", subcategoria_id: "", estado: "new_tag", talles: [], colores: [], imagenes: [], variantes: [], envio_gratis: false, destacado: false, tipo: "ropa" }
 
 export default function TiendaPage() {
   const { products, loaded, categories, loadFromSupabase, addStoreProduct, updateStoreProduct, removeStoreProduct } = useAdminStore()
@@ -41,7 +41,7 @@ export default function TiendaPage() {
     setForm(f => ({ ...f, tipo: t, categoria_id: firstCat?.id || "", subcategoria_id: firstSub?.id || "", estado: t === "ropa" ? "new_tag" : "", talles: [], marca: "", colores: [] }))
     setView("form")
   }
-  function openEdit(p: AdminProduct) { setForm({ titulo: p.titulo, precio: p.precio, precio_anterior: p.precio_anterior, descripcion: p.descripcion || "", marca: p.marca, categoria_id: p.categoria_id, subcategoria_id: p.subcategoria_id || "", estado: p.estado || "", talles: p.talles || [], colores: p.colores || [], imagenes: p.imagenes || [], envio_gratis: p.envio_gratis || false, destacado: p.destacado || false, tipo: p.tipo }); setShowPrevPrice(!!p.precio_anterior); setEditingId(p.id); setError(""); setView("form") }
+  function openEdit(p: AdminProduct) { setForm({ titulo: p.titulo, precio: p.precio, precio_anterior: p.precio_anterior, descripcion: p.descripcion || "", marca: p.marca, categoria_id: p.categoria_id, subcategoria_id: p.subcategoria_id || "", estado: p.estado || "", talles: p.talles || [], colores: p.colores || [], imagenes: p.imagenes || [], variantes: (p as any).variantes || [], envio_gratis: p.envio_gratis || false, destacado: p.destacado || false, tipo: p.tipo }); setShowPrevPrice(!!p.precio_anterior); setEditingId(p.id); setError(""); setView("form") }
   function addImage() { if (!newImage.trim()) return; setForm(f => ({ ...f, imagenes: [...f.imagenes, newImage.trim()] })); setNewImage("") }
   function removeImage(index: number) {
     const url = form.imagenes[index]
@@ -151,6 +151,34 @@ export default function TiendaPage() {
             <button type="button" onClick={addImage} className="h-11 px-4 rounded-full bg-surface-sunken flex items-center gap-1.5 text-sm font-semibold hover:bg-matcha-100 transition-colors"><Upload className="w-4 h-4" /> +</button>
           </div>
         </div>
+        {isRopa && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">Variantes (talle × color)</label>
+              <button type="button" onClick={() => setForm(f => ({ ...f, variantes: [...f.variantes, { nombre: "", talle: f.talles[0] || "", color: f.colores[0] || "", precio: f.precio, stock: 1, imagen: f.imagenes[0] || "" }] }))} className="text-[11px] font-semibold text-matcha-600 hover:text-matcha-700">+ Agregar</button>
+            </div>
+            {form.variantes.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {form.variantes.map((v, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-surface-sunken rounded-lg p-2">
+                    <select value={v.talle} onChange={e => setForm(f => ({ ...f, variantes: f.variantes.map((x, j) => j === i ? { ...x, talle: e.target.value, nombre: `${e.target.value} / ${x.color}` } : x) }))} className="h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none">
+                      <option value="">Talle</option>
+                      {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <select value={v.color} onChange={e => setForm(f => ({ ...f, variantes: f.variantes.map((x, j) => j === i ? { ...x, color: e.target.value, nombre: `${x.talle} / ${e.target.value}` } : x) }))} className="h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none">
+                      <option value="">Color</option>
+                      {COLORES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                    <input type="number" value={v.precio || ""} onChange={e => setForm(f => ({ ...f, variantes: f.variantes.map((x, j) => j === i ? { ...x, precio: Number(e.target.value) } : x) }))} placeholder="$" className="w-16 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
+                    <input type="number" value={v.stock || ""} onChange={e => setForm(f => ({ ...f, variantes: f.variantes.map((x, j) => j === i ? { ...x, stock: Number(e.target.value) } : x) }))} placeholder="Stock" className="w-14 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
+                    <button type="button" onClick={() => setForm(f => ({ ...f, variantes: f.variantes.filter((_, j) => j !== i) }))} className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-error-50"><X className="w-3 h-3 text-error-500" /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {form.variantes.length > 0 && <p className="text-[10px] text-text-muted">Si usás variantes, el precio y stock de cada una reemplaza al precio y stock general del producto.</p>}
+          </div>
+        )}
         <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Descripción</label><textarea value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={3} placeholder="Describí el producto..." className="w-full px-4 py-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none resize-none" /></div>
         <div className="space-y-3"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={form.envio_gratis} onChange={e => setForm(f => ({ ...f, envio_gratis: e.target.checked }))} className="accent-brand w-4 h-4 rounded" /><span className="flex items-center gap-1.5 text-sm text-text-body"><Truck className="w-4 h-4 text-success-500" /> Envío gratis</span></label><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={form.destacado} onChange={e => setForm(f => ({ ...f, destacado: e.target.checked }))} className="accent-brand w-4 h-4 rounded" /><span className="flex items-center gap-1.5 text-sm text-text-body"><Star className="w-4 h-4 text-chai-500 fill-chai-500" /> Producto destacado</span></label></div>
         {error && <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-error-50 text-error-600 text-sm"><AlertCircle className="w-4 h-4 shrink-0" />{error}</div>}
