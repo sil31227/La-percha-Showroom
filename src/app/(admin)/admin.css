@@ -3,3 +3,33 @@
   to { transform: translateX(0); }
 }
 .animate-slide-in { animation: slideIn 200ms ease-out; }
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in-right { animation: slideInRight 200ms ease-out; }
+
+/* Safe areas for iPhone notch */
+.safe-top { padding-top: max(0.75rem, env(safe-area-inset-top)); }
+.safe-bottom { padding-bottom: max(0px, env(safe-area-inset-bottom)); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Mobile-first responsive overrides */
+@media (max-width: 1023px) {
+  .admin-card-sm {
+    @apply rounded-xl;
+  }
+
+  /* Make text more readable */
+  body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Scrollable tables */
+  .admin-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

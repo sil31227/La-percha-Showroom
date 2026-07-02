@@ -36,10 +36,10 @@ export default function AdminDashboard() {
   const vendorTotal = vendors.filter(v => v.status === "approved").length
   const lastPending = products.filter(p => p.status === "pending").slice(0, 5)
 
-  if (!loaded) return <div className="p-5 pt-20 lg:pt-7 text-sm text-text-muted">Cargando...</div>
+  if (!loaded) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
   return (
-    <div className="p-5 lg:p-7 pt-20 lg:pt-7 space-y-6 max-w-4xl">
+    <div className="p-5 lg:p-7 lg:pt-7 space-y-6 max-w-4xl">
       <div>
         <h1 className="font-display text-2xl text-text-strong">Dashboard</h1>
         <p className="text-sm text-text-muted mt-1">Panel de administración</p>

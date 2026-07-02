@@ -105,10 +105,10 @@ export default function TiendaPage() {
   function validate(): boolean { if (!form.titulo.trim()) { setError("El título es obligatorio"); return false }; if (!form.precio || form.precio <= 0) { setError("El precio debe ser mayor a 0"); return false }; if (form.imagenes.length === 0) { setError("Agregá al menos una imagen"); return false }; if (form.tipo === "ropa" && form.talles.length === 0) { setError("Seleccioná al menos un talle"); return false }; return true }
   async function handleSubmit(e: React.FormEvent) { e.preventDefault(); if (!validate()) return; setSaving(true); try { const data = { ...form, precio_anterior: showPrevPrice ? form.precio_anterior : undefined }; if (editingId) await updateStoreProduct(editingId, data); else await addStoreProduct(data); if (deletedImages.length > 0) { const paths = deletedImages.map(url => { const parts = url.split("/productos/"); return parts[1]?.split("?")[0] }).filter(Boolean) as string[]; if (paths.length > 0) { fetch("/api/imagenes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths }) }).catch(() => {}) } } setDeletedImages([]); setView("list") } catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar el producto") } finally { setSaving(false) } }
 
-  if (!loaded) return <div className="p-5 pt-20 lg:pt-7 text-sm text-text-muted">Cargando...</div>
+  if (!loaded) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
   if (view === "list") return (
-    <div className="p-5 lg:p-7 pt-20 lg:pt-7 space-y-5 max-w-4xl">
+    <div className="p-5 lg:p-7 lg:pt-7 space-y-5 max-w-4xl">
       <div className="flex items-center justify-between"><div><h1 className="font-display text-2xl text-text-strong">Tienda La Percha</h1><p className="text-sm text-text-muted mt-1">{storeProducts.length} productos</p></div><button onClick={openNew} className="flex items-center gap-1.5 bg-brand text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-brand-hover transition-colors"><Plus className="w-4 h-4" /> Nuevo</button></div>
       <div className="flex gap-2 overflow-x-auto pb-1">{[{ v: "all" as const, l: "Todos" }, { v: "ropa" as const, l: "Ropa" }, { v: "tienda" as const, l: "Tienda" }].map(f => <button key={f.v} onClick={() => setFilterType(f.v)} className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors ${filterType === f.v ? 'bg-brand text-white' : 'bg-surface-sunken text-text-body'}`}>{f.l}</button>)}</div>
       {storeProducts.length === 0 ? <div className="bg-surface-card rounded-xl border border-border-subtle px-4 py-16 text-center text-sm text-text-muted">No hay productos. Tocá "Nuevo" para agregar el primero.</div> : (
@@ -125,7 +125,7 @@ export default function TiendaPage() {
   )
 
   if (view === "type") return (
-    <div className="p-5 lg:p-7 pt-20 lg:pt-7 space-y-6 max-w-lg mx-auto">
+    <div className="p-5 lg:p-7 lg:pt-7 space-y-6 max-w-lg mx-auto">
       <button onClick={() => setView("list")} className="flex items-center gap-1 text-sm text-text-muted hover:text-text-strong transition-colors"><ChevronLeft className="w-4 h-4" /> Volver</button>
       <div><h1 className="font-display text-2xl text-text-strong">Nuevo producto</h1><p className="text-sm text-text-muted mt-1">¿Qué tipo de producto vas a publicar?</p></div>
       <div className="grid grid-cols-1 gap-4">
@@ -140,7 +140,7 @@ export default function TiendaPage() {
   const subs = categories.find(c => c.id === form.categoria_id)?.subcategorias || []
 
   return (
-    <div className="p-5 lg:p-7 pt-20 lg:pt-7 space-y-5 max-w-2xl mx-auto">
+    <div className="p-5 lg:p-7 lg:pt-7 space-y-5 max-w-2xl mx-auto">
       <div className="flex items-center gap-3"><button onClick={() => setView("list")} className="w-8 h-8 rounded-full bg-surface-sunken flex items-center justify-center shrink-0"><ChevronLeft className="w-4 h-4 text-text-muted" /></button><div><h1 className="font-display text-xl text-text-strong">{editingId ? "Editar producto" : "Nuevo producto"}</h1><p className="text-xs text-text-muted">{isRopa ? "Prenda de ropa" : "Tienda"}</p></div></div>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Título *</label><input required value={form.titulo} onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))} placeholder="ej: Vestido lino sage" className="w-full h-11 px-4 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none" /></div>

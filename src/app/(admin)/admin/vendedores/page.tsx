@@ -16,10 +16,10 @@ export default function VendedoresPage() {
 
   async function copyCBU(cbu: string, id: string) { await navigator.clipboard.writeText(cbu); setCopied(id); setTimeout(() => setCopied(null), 1500) }
 
-  if (!loaded) return <div className="p-5 pt-20 lg:pt-7 text-sm text-text-muted">Cargando...</div>
+  if (!loaded) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
   return (
-    <div className="p-5 lg:p-7 pt-20 lg:pt-7 space-y-5 max-w-4xl">
+    <div className="p-5 lg:p-7 lg:pt-7 space-y-5 max-w-4xl">
       <div><h1 className="font-display text-2xl text-text-strong">Vendedores</h1><p className="text-sm text-text-muted mt-1">Gestioná las solicitudes de vendedores</p></div>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map(f => <button key={f.v} onClick={() => setFilter(f.v)} className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors ${filter === f.v ? 'bg-brand text-white' : 'bg-surface-sunken text-text-body'}`}>{f.l}<span className="ml-1.5 opacity-70">{f.c}</span></button>)}

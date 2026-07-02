@@ -10,14 +10,14 @@ export default function ModeracionPage() {
 
   useEffect(() => { loadFromSupabase() }, [])
 
-  if (!loaded) return <div className="p-5 pt-20 lg:pt-7 text-sm text-text-muted">Cargando...</div>
+  if (!loaded) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
   const filtered = products.filter(p => filter === "all" ? true : p.status === filter)
   const counts = { all: products.length, pending: products.filter(p => p.status === "pending").length, approved: products.filter(p => p.status === "approved").length, rejected: products.filter(p => p.status === "rejected").length }
   const FILTERS = [{ v: "pending" as const, l: "Pendientes", c: counts.pending }, { v: "approved" as const, l: "Aprobadas", c: counts.approved }, { v: "rejected" as const, l: "Rechazadas", c: counts.rejected }, { v: "all" as const, l: "Todas", c: counts.all }]
 
   return (
-    <div className="p-5 lg:p-7 pt-20 lg:pt-7 space-y-5 max-w-4xl">
+    <div className="p-5 lg:p-7 lg:pt-7 space-y-5 max-w-4xl">
       <div><h1 className="font-display text-2xl text-text-strong">Moderación</h1><p className="text-sm text-text-muted mt-1">Aprobá o rechazá publicaciones</p></div>
       <div className="flex gap-2 overflow-x-auto pb-1">
         {FILTERS.map(f => (

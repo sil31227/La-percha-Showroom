@@ -12,11 +12,11 @@ export default function AdminFAQPage() {
   useEffect(() => { loadFromSupabase() }, [])
   useEffect(() => { setTermsDraft(terms) }, [terms])
 
-  if (!loaded) return <div className="p-5 pt-20 lg:pt-7 text-sm text-text-muted">Cargando...</div>
+  if (!loaded) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="p-5 lg:p-7 pt-20 lg:pt-7 space-y-6">
+      <div className="p-5 lg:p-7 lg:pt-7 space-y-6">
         <div className="flex items-center justify-between"><div><h1 className="font-display text-2xl text-text-strong">Preguntas frecuentes</h1><p className="text-sm text-text-muted mt-1">{faq.length} preguntas</p></div><button onClick={() => setAdding(true)} className="flex items-center gap-1.5 bg-brand text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-brand-hover transition-colors"><Plus className="w-4 h-4" /> Agregar</button></div>
         {adding && <div className="bg-surface-card rounded-xl border border-border-subtle p-5 space-y-3"><input value={newP} onChange={e => setNewP(e.target.value)} placeholder="Pregunta" autoFocus className="w-full h-10 px-3 rounded-lg bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none" /><textarea value={newR} onChange={e => setNewR(e.target.value)} rows={3} placeholder="Respuesta" className="w-full px-3 py-2 rounded-lg bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none resize-none" /><div className="flex gap-2 justify-end"><button onClick={() => { setAdding(false); setNewP(""); setNewR("") }} className="px-4 py-2 rounded-full border border-border-default text-sm font-semibold">Cancelar</button><button onClick={() => { addFAQ(newP, newR); setAdding(false); setNewP(""); setNewR("") }} className="px-4 py-2 rounded-full bg-brand text-white text-sm font-semibold">Guardar</button></div></div>}
         <div className="space-y-2">{faq.map(item => (

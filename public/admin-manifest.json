@@ -1,0 +1,11 @@
+{
+  "name": "La Percha Admin",
+  "short_name": "LP Admin",
+  "start_url": "/admin",
+  "display": "standalone",
+  "background_color": "#f8f6f2",
+  "theme_color": "#809671",
+  "icons": [
+    { "src": "/logo.jpg", "sizes": "192x192", "type": "image/jpeg" }
+  ]
+}

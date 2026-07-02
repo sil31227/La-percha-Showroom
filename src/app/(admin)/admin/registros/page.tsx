@@ -40,7 +40,7 @@ export default function RegistrosPage() {
   const pendientes = registros.filter(r => !r.verified).length
 
   return (
-    <div className="p-5 lg:p-7 pt-20 lg:pt-7 space-y-5 max-w-4xl">
+    <div className="p-5 lg:p-7 lg:pt-7 space-y-5 max-w-4xl">
       <div>
         <h1 className="font-display text-2xl text-text-strong">Registros</h1>
         <p className="text-sm text-text-muted mt-1">

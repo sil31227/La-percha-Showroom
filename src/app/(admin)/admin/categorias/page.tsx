@@ -13,10 +13,10 @@ export default function CategoriasPage() {
 
   useEffect(() => { loadFromSupabase() }, [])
 
-  if (!loaded) return <div className="p-5 pt-20 lg:pt-7 text-sm text-text-muted">Cargando...</div>
+  if (!loaded) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
   return (
-    <div className="p-5 lg:p-7 pt-20 lg:pt-7 space-y-5 max-w-2xl mx-auto">
+    <div className="p-5 lg:p-7 lg:pt-7 space-y-5 max-w-2xl mx-auto">
       <div><h1 className="font-display text-2xl text-text-strong">Categorías</h1><p className="text-sm text-text-muted mt-1">Gestioná categorías y subcategorías</p></div>
       <div className="space-y-3">
         {categories.map(cat => (
