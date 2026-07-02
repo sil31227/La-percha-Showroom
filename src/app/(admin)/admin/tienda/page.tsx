@@ -251,7 +251,43 @@ export default function TiendaPage() {
   }
 
   function validate(): boolean { if (!form.titulo.trim()) { setError("El título es obligatorio"); return false }; if (!form.precio || form.precio <= 0) { setError("El precio debe ser mayor a 0"); return false }; if (form.imagenes.length === 0) { setError("Agregá al menos una imagen"); return false }; if (form.tipo === "ropa" && form.talles.length === 0) { setError("Seleccioná al menos un talle"); return false }; return true }
-  async function handleSubmit(e: React.FormEvent) { e.preventDefault(); if (!validate()) return; setSaving(true); try { const data = { ...form, precio_anterior: showPrevPrice ? form.precio_anterior : undefined }; if (editingId) await updateStoreProduct(editingId, data); else await addStoreProduct(data); if (deletedImages.length > 0) { const paths = deletedImages.map(url => { const parts = url.split("/productos/"); return parts[1]?.split("?")[0] }).filter(Boolean) as string[]; if (paths.length > 0) { fetch("/api/imagenes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths }) }).catch(() => {}) } } setDeletedImages([]); setView("list") } catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar el producto") } finally { setSaving(false) } }
+
+  function autoGenerateVariants() {
+    const groups = form.variantGroups.filter(g => g.name.trim() && g.values.length > 0)
+    if (groups.length === 0) return form.variantes
+
+    function* combos(idx: number, current: Record<string, string>): Generator<Record<string, string>> {
+      if (idx === groups.length) { yield { ...current }; return }
+      for (const val of groups[idx].values) {
+        current[groups[idx].name] = val
+        yield* combos(idx + 1, current)
+      }
+    }
+
+    const newVariants = [...form.variantes]
+    const existingKeys = new Set(newVariants.map(v => JSON.stringify(v.atributos)))
+
+    for (const atributos of combos(0, {})) {
+      const key = JSON.stringify(atributos)
+      if (!existingKeys.has(key)) {
+        newVariants.push({
+          nombre: genVariantName(atributos),
+          atributos,
+          precio: form.precio,
+          stock: 1,
+          imagen: form.imagenes[0] || "",
+        })
+      }
+    }
+    return newVariants
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault(); if (!validate()) return; setSaving(true)
+    try {
+      const finalVariantes = isRopa ? form.variantes : autoGenerateVariants()
+      const data = { ...form, variantes: finalVariantes, precio_anterior: showPrevPrice ? form.precio_anterior : undefined }
+      if (editingId) await updateStoreProduct(editingId, data); else await addStoreProduct(data); if (deletedImages.length > 0) { const paths = deletedImages.map(url => { const parts = url.split("/productos/"); return parts[1]?.split("?")[0] }).filter(Boolean) as string[]; if (paths.length > 0) { fetch("/api/imagenes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths }) }).catch(() => {}) } } setDeletedImages([]); setView("list") } catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar el producto") } finally { setSaving(false) } }
 
   if (!loaded) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
