@@ -121,6 +121,9 @@ export default function TiendaPage() {
 
   const isRopa = form.tipo === "ropa"
   const tallesLabel = isRopa ? "Talles" : "Tamaño/Set"
+  const defaultColoresLabel = isRopa ? "Colores" : form.tipo === "regaleria" ? "Sabores / Aroma" : "Colores"
+  const [coloresLabel, setColoresLabel] = useState(defaultColoresLabel)
+  const [editingColoresLabel, setEditingColoresLabel] = useState(false)
   const catOpts = categories.filter(c => !c.tipo || c.tipo === form.tipo)
   const selectedCat = categories.find(c => c.id === form.categoria_id)
   const subs = selectedCat?.subcategorias || []
@@ -147,6 +150,7 @@ export default function TiendaPage() {
     setHasVariants(false)
     setVariantsOpen(false)
     setShowPrevPrice(false)
+    setColoresLabel(t === "ropa" ? "Colores" : t === "regaleria" ? "Sabores / Aroma" : "Colores")
     setView("form")
   }
 
@@ -173,6 +177,7 @@ export default function TiendaPage() {
     setShowPrevPrice(!!p.precio_anterior)
     setHasVariants(hasVars)
     setVariantsOpen(hasVars)
+    setColoresLabel(p.tipo === "ropa" ? "Colores" : p.tipo === "regaleria" ? "Sabores / Aroma" : "Colores")
     setEditingId(p.id)
     setError("")
     setDeletedImages([])
@@ -198,6 +203,7 @@ export default function TiendaPage() {
     }))
     setHasVariants(false)
     setVariantsOpen(false)
+    setColoresLabel(t === "ropa" ? "Colores" : t === "regaleria" ? "Sabores / Aroma" : "Colores")
   }
 
   function confirmTypeChange() {
@@ -647,9 +653,30 @@ export default function TiendaPage() {
           </div>
         )}
 
-        {/* Colores */}
+        {/* Colores / Sabores / Atributo editable */}
         <div>
-          <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">Colores</label>
+          <div className="flex items-center gap-2 mb-1.5">
+            {editingColoresLabel ? (
+              <input
+                value={coloresLabel}
+                onChange={e => setColoresLabel(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); setEditingColoresLabel(false) } }}
+                onBlur={() => setEditingColoresLabel(false)}
+                autoFocus
+                className="text-[11px] font-semibold text-text-muted uppercase tracking-wide bg-surface-sunken px-2 py-0.5 rounded outline-none border border-brand w-48"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEditingColoresLabel(true)}
+                className="text-[11px] font-semibold text-text-muted uppercase tracking-wide hover:text-brand transition-colors flex items-center gap-1"
+                title="Click para renombrar"
+              >
+                {coloresLabel}
+                <Pencil className="w-2.5 h-2.5 opacity-40" />
+              </button>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2 mb-3">
             {COLORES.map(c => (
               <button key={c} type="button" onClick={() => toggleColor(c)} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${form.colores.includes(c) ? 'bg-surface-inverse text-white border-surface-inverse' : 'bg-surface-sunken text-text-body border-transparent'}`}>{c}</button>
@@ -662,7 +689,7 @@ export default function TiendaPage() {
             ))}
           </div>
           <div className="flex gap-2">
-            <input value={newColor} onChange={e => setNewColor(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addColor() } }} placeholder="Agregar color..." className="flex-1 h-9 px-3 rounded-lg bg-surface-sunken text-xs border border-transparent focus:border-brand outline-none" />
+            <input value={newColor} onChange={e => setNewColor(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addColor() } }} placeholder={`Agregar ${coloresLabel.toLowerCase().replace(" / ", "/")}...`} className="flex-1 h-9 px-3 rounded-lg bg-surface-sunken text-xs border border-transparent focus:border-brand outline-none" />
             <button type="button" onClick={addColor} className="px-3 h-9 rounded-full bg-surface-sunken text-xs font-semibold hover:bg-matcha-100 transition-colors">+</button>
           </div>
         </div>
@@ -766,11 +793,11 @@ export default function TiendaPage() {
                           {(isRopa || form.colores.length > 0) && (
                             form.colores.length > 0 ? (
                               <select value={v.color} onChange={e => updateVariantField(i, "color", e.target.value)} className="h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none">
-                                <option value="">Color</option>
+                                <option value="">{coloresLabel.replace(" / ", "/")}</option>
                                 {form.colores.map(c => <option key={c} value={c}>{c}</option>)}
                               </select>
                             ) : (
-                              <input value={v.color} onChange={e => updateVariantField(i, "color", e.target.value)} placeholder="Color" className="w-16 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
+                              <input value={v.color} onChange={e => updateVariantField(i, "color", e.target.value)} placeholder={coloresLabel.replace(" / ", "/")} className="w-16 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
                             )
                           )}
                           <input type="number" value={v.precio || ""} onChange={e => updateVariantField(i, "precio", Number(e.target.value))} placeholder="$" className="w-16 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
