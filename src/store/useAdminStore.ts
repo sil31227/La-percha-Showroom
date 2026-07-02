@@ -137,6 +137,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       tipo: form.tipo, vendedor_nombre: "Tienda Oficial", vendedor_tipo: "oficial",
       status: "approved",
     }
+    console.log("[addStoreProduct] payload.variantes:", payload.variantes)
     if (form.estado) payload.estado = form.estado
     if (form.categoria_id) payload.categoria_id = form.categoria_id
     if (form.subcategoria_id) payload.subcategoria_id = form.subcategoria_id
@@ -147,6 +148,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   updateStoreProduct: async (id, form) => {
     const { variantGroups: _vg, ...rest } = form as Record<string, unknown>
     const payload: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() } as Record<string, unknown>
+    console.log("[updateStoreProduct] rest.variantes:", (rest as any).variantes, "payload.variantes:", payload.variantes)
     if (!form.estado) delete payload.estado
     if (!form.categoria_id) delete payload.categoria_id
     if (!form.subcategoria_id) delete payload.subcategoria_id

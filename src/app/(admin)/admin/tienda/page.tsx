@@ -286,6 +286,7 @@ export default function TiendaPage() {
     e.preventDefault(); if (!validate()) return; setSaving(true)
     try {
       const finalVariantes = isRopa ? form.variantes : autoGenerateVariants()
+      console.log("[admin save] tipo:", form.tipo, "groups:", form.variantGroups.length, "variantes:", finalVariantes.length, finalVariantes)
       const data = { ...form, variantes: finalVariantes, precio_anterior: showPrevPrice ? form.precio_anterior : undefined }
       if (editingId) await updateStoreProduct(editingId, data); else await addStoreProduct(data); if (deletedImages.length > 0) { const paths = deletedImages.map(url => { const parts = url.split("/productos/"); return parts[1]?.split("?")[0] }).filter(Boolean) as string[]; if (paths.length > 0) { fetch("/api/imagenes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths }) }).catch(() => {}) } } setDeletedImages([]); setView("list") } catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar el producto") } finally { setSaving(false) } }
 
