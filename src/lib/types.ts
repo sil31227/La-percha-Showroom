@@ -6,8 +6,7 @@ export type Subcategory = 'ropa' | 'calzado' | 'accesorios' | 'belleza' | 'bebes
 
 export interface Variante {
   nombre: string
-  talle: string
-  color: string
+  atributos: Record<string, string>
   precio: number
   stock: number
   imagen: string

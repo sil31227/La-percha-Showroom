@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { supabase } from "@/lib/supabase"
+import type { Variante } from "@/lib/types"
 
 export type ProductStatus = "pending" | "approved" | "rejected"
 export type VendorStatus = "pending" | "approved" | "rejected"
@@ -8,7 +9,7 @@ export interface AdminProduct {
   id: string; titulo: string; precio: number; precio_anterior?: number
   descripcion?: string; marca?: string; material?: string; categoria_id: string; subcategoria_id?: string
   estado?: string; talles?: string[]; colores?: string[]; imagenes: string[]
-  stock?: number; variantes?: any[]
+  stock?: number; variantes?: Variante[]
   envio_gratis?: boolean; destacado?: boolean; tipo: "ropa" | "tienda"
   vendedor_nombre: string; vendedor_tipo: "oficial" | "feria"
   status: ProductStatus; orden?: number; created_at?: string
@@ -32,7 +33,8 @@ export interface StoreProductForm {
   titulo: string; precio: number; precio_anterior?: number; descripcion: string
   marca?: string; material?: string; categoria_id: string; subcategoria_id: string; estado: string
   talles: string[]; colores: string[]; imagenes: string[]
-  variantes: { nombre: string; talle: string; color: string; precio: number; stock: number; imagen: string }[]
+  variantGroups: { id: string; name: string; values: string[] }[]
+  variantes: { nombre: string; atributos: Record<string, string>; precio: number; stock: number; imagen: string }[]
   envio_gratis: boolean; destacado: boolean; tipo: "ropa" | "tienda"
 }
 

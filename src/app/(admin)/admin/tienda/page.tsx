@@ -28,7 +28,7 @@ function SortableProductRow({ p, onEdit, onDelete }: { p: AdminProduct; onEdit: 
   )
 }
 
-const EMPTY: StoreProductForm = { titulo: "", precio: 0, descripcion: "", categoria_id: "", subcategoria_id: "", estado: "new_tag", talles: [], colores: [], imagenes: [], variantes: [], envio_gratis: false, destacado: false, tipo: "ropa" }
+const EMPTY: StoreProductForm = { titulo: "", precio: 0, descripcion: "", categoria_id: "", subcategoria_id: "", estado: "new_tag", talles: [], colores: [], imagenes: [], variantGroups: [], variantes: [], envio_gratis: false, destacado: false, tipo: "ropa" }
 
 export default function TiendaPage() {
   const { products, loaded, categories, loadFromSupabase, addStoreProduct, updateStoreProduct, removeStoreProduct, reorderProducts } = useAdminStore()
@@ -44,6 +44,8 @@ export default function TiendaPage() {
   const [deletedImages, setDeletedImages] = useState<string[]>([])
   const [showDelete, setShowDelete] = useState<string | null>(null)
   const [filterType, setFilterType] = useState<"all" | "ropa" | "tienda">("all")
+  const [newGroupName, setNewGroupName] = useState("")
+  const [groupValueInputs, setGroupValueInputs] = useState<Record<string, string>>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { loadFromSupabase() }, [])
@@ -74,10 +76,20 @@ export default function TiendaPage() {
     const matching = categories.filter(c => c.tipo === t)
     const firstCat = matching[0]
     const firstSub = firstCat?.subcategorias?.[0]
-    setForm(f => ({ ...f, tipo: t, categoria_id: firstCat?.id || "", subcategoria_id: firstSub?.id || "", estado: t === "ropa" ? "new_tag" : "", talles: [], marca: "", colores: [] }))
+    setForm(f => ({ ...f, tipo: t, categoria_id: firstCat?.id || "", subcategoria_id: firstSub?.id || "", estado: t === "ropa" ? "new_tag" : "", talles: [], marca: "", colores: [], variantGroups: [], variantes: [] }))
     setView("form")
   }
-  function openEdit(p: AdminProduct) { setForm({ titulo: p.titulo, precio: p.precio, precio_anterior: p.precio_anterior, descripcion: p.descripcion || "", marca: p.marca, categoria_id: p.categoria_id, subcategoria_id: p.subcategoria_id || "", estado: p.estado || "", talles: p.talles || [], colores: p.colores || [], imagenes: p.imagenes || [], variantes: (p as any).variantes || [], envio_gratis: p.envio_gratis || false, destacado: p.destacado || false, tipo: p.tipo }); setShowPrevPrice(!!p.precio_anterior); setEditingId(p.id); setError(""); setView("form") }
+  function openEdit(p: AdminProduct) {
+    const rawVariants = (p.variantes as unknown as Record<string, unknown>[]) || []
+    const variantes: typeof EMPTY.variantes = rawVariants.map((v) => ({
+      nombre: (v.nombre as string) || "",
+      atributos: (v.atributos as Record<string, string>) || ((v.talle as string) !== undefined ? { Talle: v.talle as string, Color: (v.color as string) || "" } : {}),
+      precio: (v.precio as number) ?? p.precio,
+      stock: (v.stock as number) ?? 0,
+      imagen: (v.imagen as string) || p.imagenes?.[0] || "",
+    }))
+    const groups = deriveGroups(variantes, p.tipo)
+    setForm({ titulo: p.titulo, precio: p.precio, precio_anterior: p.precio_anterior, descripcion: p.descripcion || "", marca: p.marca, categoria_id: p.categoria_id, subcategoria_id: p.subcategoria_id || "", estado: p.estado || "", talles: p.talles || [], colores: p.colores || [], imagenes: p.imagenes || [], variantGroups: groups, variantes, envio_gratis: p.envio_gratis || false, destacado: p.destacado || false, tipo: p.tipo }); setShowPrevPrice(!!p.precio_anterior); setEditingId(p.id); setError(""); setView("form") }
   function addImage() { if (!newImage.trim()) return; setForm(f => ({ ...f, imagenes: [...f.imagenes, newImage.trim()] })); setNewImage("") }
   function removeImage(index: number) {
     const url = form.imagenes[index]
@@ -102,6 +114,142 @@ export default function TiendaPage() {
   }
   function toggleSize(s: string) { setForm(f => ({ ...f, talles: f.talles.includes(s) ? f.talles.filter(z => z !== s) : [...f.talles, s] })) }
   function addColor() { if (!newColor.trim()) return; setForm(f => ({ ...f, colores: [...f.colores, newColor.trim()] })); setNewColor("") }
+
+  function deriveGroups(variantes: typeof form.variantes, tipo: string) {
+    if (tipo === "ropa") return []
+    if (!variantes.length) return []
+    const groupMap = new Map<string, Set<string>>()
+    for (const v of variantes) {
+      for (const [key, val] of Object.entries(v.atributos)) {
+        if (!groupMap.has(key)) groupMap.set(key, new Set())
+        groupMap.get(key)!.add(val)
+      }
+    }
+    return Array.from(groupMap.entries()).map(([name, values], i) => ({
+      id: `g-${Date.now()}-${i}`,
+      name,
+      values: Array.from(values),
+    }))
+  }
+
+  function addGroup() {
+    const name = newGroupName.trim()
+    if (!name) return
+    if (form.variantGroups.some(g => g.name.toLowerCase() === name.toLowerCase())) {
+      setError("Ya existe un grupo con ese nombre"); return
+    }
+    const id = `g-${Date.now()}`
+    setForm(f => ({ ...f, variantGroups: [...f.variantGroups, { id, name, values: [] }] }))
+    setNewGroupName("")
+    setError("")
+  }
+
+  function removeGroup(id: string) {
+    setForm(f => ({
+      ...f,
+      variantGroups: f.variantGroups.filter(g => g.id !== id),
+      variantes: f.variantes.map(v => {
+        const remaining = f.variantGroups.filter(g => g.id !== id)
+        const newAtributos: Record<string, string> = {}
+        for (const g of remaining) {
+          if (v.atributos[g.name]) newAtributos[g.name] = v.atributos[g.name]
+        }
+        return { ...v, atributos: newAtributos, nombre: genVariantName(newAtributos) }
+      }),
+    }))
+  }
+
+  function updateGroupName(id: string, name: string) {
+    const oldGroup = form.variantGroups.find(g => g.id === id)
+    if (!oldGroup) return
+    setForm(f => ({
+      ...f,
+      variantGroups: f.variantGroups.map(g => g.id === id ? { ...g, name } : g),
+      variantes: f.variantes.map(v => {
+        const newAtributos: Record<string, string> = { ...v.atributos }
+        if (oldGroup.name && newAtributos[oldGroup.name] !== undefined) {
+          const val = newAtributos[oldGroup.name]
+          delete newAtributos[oldGroup.name]
+          if (name) newAtributos[name] = val
+        }
+        return { ...v, atributos: newAtributos, nombre: genVariantName(newAtributos) }
+      }),
+    }))
+  }
+
+  function addGroupValue(groupId: string) {
+    const val = (groupValueInputs[groupId] || "").trim()
+    if (!val) return
+    const group = form.variantGroups.find(g => g.id === groupId)
+    if (group && group.values.includes(val)) return
+    setForm(f => ({
+      ...f,
+      variantGroups: f.variantGroups.map(g => g.id === groupId ? { ...g, values: [...g.values, val] } : g),
+    }))
+    setGroupValueInputs(prev => ({ ...prev, [groupId]: "" }))
+  }
+
+  function removeGroupValue(groupId: string, value: string) {
+    setForm(f => ({
+      ...f,
+      variantGroups: f.variantGroups.map(g => g.id === groupId ? { ...g, values: g.values.filter(v => v !== value) } : g),
+    }))
+  }
+
+  function genVariantName(atributos: Record<string, string>) {
+    return Object.entries(atributos).map(([k, v]) => `${k}: ${v}`).join(" / ")
+  }
+
+  function addVariant() {
+    if (!isRopa && form.variantGroups.length === 0) {
+      setError("Agregá al menos un grupo de atributos antes de crear variantes"); return
+    }
+    setError("")
+    const firstImage = form.imagenes[0] || ""
+    if (isRopa) {
+      setForm(f => ({
+        ...f,
+        variantes: [...f.variantes, {
+          nombre: `${f.talles[0] || ""} / ${f.colores[0] || ""}`,
+          atributos: { Talle: f.talles[0] || "", Color: f.colores[0] || "" },
+          precio: f.precio,
+          stock: 1,
+          imagen: firstImage,
+        }],
+      }))
+    } else {
+      const atributos: Record<string, string> = {}
+      for (const g of form.variantGroups) {
+        atributos[g.name] = g.values[0] || ""
+      }
+      setForm(f => ({
+        ...f,
+        variantes: [...f.variantes, {
+          nombre: genVariantName(atributos),
+          atributos,
+          precio: f.precio,
+          stock: 1,
+          imagen: firstImage,
+        }],
+      }))
+    }
+  }
+
+  function removeVariant(i: number) {
+    setForm(f => ({ ...f, variantes: f.variantes.filter((_, j) => j !== i) }))
+  }
+
+  function updateVariantAttr(i: number, attrName: string, value: string) {
+    setForm(f => ({
+      ...f,
+      variantes: f.variantes.map((v, j) => {
+        if (j !== i) return v
+        const newAtributos = { ...v.atributos, [attrName]: value }
+        return { ...v, atributos: newAtributos, nombre: genVariantName(newAtributos) }
+      }),
+    }))
+  }
+
   function validate(): boolean { if (!form.titulo.trim()) { setError("El título es obligatorio"); return false }; if (!form.precio || form.precio <= 0) { setError("El precio debe ser mayor a 0"); return false }; if (form.imagenes.length === 0) { setError("Agregá al menos una imagen"); return false }; if (form.tipo === "ropa" && form.talles.length === 0) { setError("Seleccioná al menos un talle"); return false }; return true }
   async function handleSubmit(e: React.FormEvent) { e.preventDefault(); if (!validate()) return; setSaving(true); try { const data = { ...form, precio_anterior: showPrevPrice ? form.precio_anterior : undefined }; if (editingId) await updateStoreProduct(editingId, data); else await addStoreProduct(data); if (deletedImages.length > 0) { const paths = deletedImages.map(url => { const parts = url.split("/productos/"); return parts[1]?.split("?")[0] }).filter(Boolean) as string[]; if (paths.length > 0) { fetch("/api/imagenes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths }) }).catch(() => {}) } } setDeletedImages([]); setView("list") } catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar el producto") } finally { setSaving(false) } }
 
@@ -111,7 +259,7 @@ export default function TiendaPage() {
     <div className="p-5 lg:p-7 lg:pt-7 space-y-5 max-w-4xl">
       <div className="flex items-center justify-between"><div><h1 className="font-display text-2xl text-text-strong">Tienda La Percha</h1><p className="text-sm text-text-muted mt-1">{storeProducts.length} productos</p></div><button onClick={openNew} className="flex items-center gap-1.5 bg-brand text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-brand-hover transition-colors"><Plus className="w-4 h-4" /> Nuevo</button></div>
       <div className="flex gap-2 overflow-x-auto pb-1">{[{ v: "all" as const, l: "Todos" }, { v: "ropa" as const, l: "Ropa" }, { v: "tienda" as const, l: "Tienda" }].map(f => <button key={f.v} onClick={() => setFilterType(f.v)} className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors ${filterType === f.v ? 'bg-brand text-white' : 'bg-surface-sunken text-text-body'}`}>{f.l}</button>)}</div>
-      {storeProducts.length === 0 ? <div className="bg-surface-card rounded-xl border border-border-subtle px-4 py-16 text-center text-sm text-text-muted">No hay productos. Tocá "Nuevo" para agregar el primero.</div> : (
+       {storeProducts.length === 0 ? <div className="bg-surface-card rounded-xl border border-border-subtle px-4 py-16 text-center text-sm text-text-muted">No hay productos. Tocá &ldquo;Nuevo&rdquo; para agregar el primero.</div> : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={storeProducts.map(p => p.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
@@ -185,27 +333,102 @@ export default function TiendaPage() {
             <button type="button" onClick={addImage} className="h-11 px-4 rounded-full bg-surface-sunken flex items-center gap-1.5 text-sm font-semibold hover:bg-matcha-100 transition-colors"><Upload className="w-4 h-4" /> +</button>
           </div>
         </div>
-        {isRopa && (
+        {/* ── Atributos del producto (solo tienda) ── */}
+        {!isRopa && (
+          <div>
+            <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-2">Atributos del producto</label>
+            {form.variantGroups.map(group => (
+              <div key={group.id} className="mb-3 bg-surface-sunken rounded-xl p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <input
+                    value={group.name}
+                    onChange={e => updateGroupName(group.id, e.target.value)}
+                    placeholder="Nombre del atributo (ej: Color)"
+                    className="flex-1 h-8 px-3 rounded-lg bg-white text-xs border border-transparent focus:border-brand outline-none"
+                  />
+                  <button type="button" onClick={() => removeGroup(group.id)} className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-error-50 shrink-0"><X className="w-3 h-3 text-error-500" /></button>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {group.values.map(val => (
+                    <span key={val} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white text-[11px] font-medium border border-border-subtle">
+                      {val}
+                      <button type="button" onClick={() => removeGroupValue(group.id, val)} className="hover:text-error-500">&times;</button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={groupValueInputs[group.id] || ""}
+                    onChange={e => setGroupValueInputs(prev => ({ ...prev, [group.id]: e.target.value }))}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addGroupValue(group.id) } }}
+                    placeholder="Agregar valor..."
+                    className="flex-1 h-8 px-3 rounded-lg bg-white text-[11px] border border-transparent focus:border-brand outline-none"
+                  />
+                  <button type="button" onClick={() => addGroupValue(group.id)} className="px-3 h-8 rounded-full bg-white text-[11px] font-semibold hover:bg-matcha-100 transition-colors">+</button>
+                </div>
+              </div>
+            ))}
+            <div className="flex gap-2">
+              <input
+                value={newGroupName}
+                onChange={e => setNewGroupName(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addGroup() } }}
+                placeholder="Nombre del nuevo atributo (ej: Olor)..."
+                className="flex-1 h-9 px-3 rounded-lg bg-surface-sunken text-xs border border-transparent focus:border-brand outline-none"
+              />
+              <button type="button" onClick={addGroup} className="px-4 h-9 rounded-full bg-surface-sunken text-xs font-semibold hover:bg-matcha-100 transition-colors">+ Agregar</button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Variantes ── */}
+        {(isRopa || form.variantGroups.length > 0) && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">Variantes (talle × color)</label>
-              <button type="button" onClick={() => setForm(f => ({ ...f, variantes: [...f.variantes, { nombre: "", talle: f.talles[0] || "", color: f.colores[0] || "", precio: f.precio, stock: 1, imagen: f.imagenes[0] || "" }] }))} className="text-[11px] font-semibold text-matcha-600 hover:text-matcha-700">+ Agregar</button>
+              <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">
+                {isRopa ? 'Variantes (talle × color)' : 'Variantes'}
+              </label>
+              <button type="button" onClick={addVariant} className="text-[11px] font-semibold text-matcha-600 hover:text-matcha-700">+ Agregar</button>
             </div>
             {form.variantes.length > 0 && (
               <div className="space-y-2 mb-3">
                 {form.variantes.map((v, i) => (
-                  <div key={i} className="flex items-center gap-2 bg-surface-sunken rounded-lg p-2">
-                    <select value={v.talle} onChange={e => setForm(f => ({ ...f, variantes: f.variantes.map((x, j) => j === i ? { ...x, talle: e.target.value, nombre: `${e.target.value} / ${x.color}` } : x) }))} className="h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none">
-                      <option value="">Talle</option>
-                      {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <select value={v.color} onChange={e => setForm(f => ({ ...f, variantes: f.variantes.map((x, j) => j === i ? { ...x, color: e.target.value, nombre: `${x.talle} / ${e.target.value}` } : x) }))} className="h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none">
-                      <option value="">Color</option>
-                      {COLORES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                  <div key={i} className="flex items-center gap-2 bg-surface-sunken rounded-lg p-2 flex-wrap">
+                    {isRopa ? (
+                      <>
+                        <select
+                          value={v.atributos.Talle || ""}
+                          onChange={e => updateVariantAttr(i, "Talle", e.target.value)}
+                          className="h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none"
+                        >
+                          <option value="">Talle</option>
+                          {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <select
+                          value={v.atributos.Color || ""}
+                          onChange={e => updateVariantAttr(i, "Color", e.target.value)}
+                          className="h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none"
+                        >
+                          <option value="">Color</option>
+                          {[...COLORES, ...form.colores.filter(c => !COLORES.includes(c))].map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </>
+                    ) : (
+                      form.variantGroups.map(group => (
+                        <select
+                          key={group.id}
+                          value={v.atributos[group.name] || ""}
+                          onChange={e => updateVariantAttr(i, group.name, e.target.value)}
+                          className={`h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none ${group.name.length > 8 ? 'w-24' : 'w-auto'}`}
+                        >
+                          <option value="">{group.name}</option>
+                          {group.values.map(val => <option key={val} value={val}>{val}</option>)}
+                        </select>
+                      ))
+                    )}
                     <input type="number" value={v.precio || ""} onChange={e => setForm(f => ({ ...f, variantes: f.variantes.map((x, j) => j === i ? { ...x, precio: Number(e.target.value) } : x) }))} placeholder="$" className="w-16 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
                     <input type="number" value={v.stock || ""} onChange={e => setForm(f => ({ ...f, variantes: f.variantes.map((x, j) => j === i ? { ...x, stock: Number(e.target.value) } : x) }))} placeholder="Stock" className="w-14 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
-                    <button type="button" onClick={() => setForm(f => ({ ...f, variantes: f.variantes.filter((_, j) => j !== i) }))} className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-error-50"><X className="w-3 h-3 text-error-500" /></button>
+                    <button type="button" onClick={() => removeVariant(i)} className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-error-50"><X className="w-3 h-3 text-error-500" /></button>
                   </div>
                 ))}
               </div>
