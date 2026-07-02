@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
-import { LayoutDashboard, ShieldCheck, Users, Store, Package, Tags, HelpCircle, UserPlus, Menu, X, LogOut, MoreHorizontal } from "lucide-react"
+import { LayoutDashboard, ShieldCheck, Users, Store, Package, ShoppingBag, Tags, HelpCircle, UserPlus, Menu, X, LogOut, MoreHorizontal } from "lucide-react"
 import { useAdminStore } from "@/store/useAdminStore"
 
 const NAV = [
@@ -11,7 +11,8 @@ const NAV = [
   { href: "/admin/vendedores", label: "Vendedores", icon: Users },
   { href: "/admin/registros", label: "Registros", icon: UserPlus },
   { href: "/admin/tienda", label: "Tienda", icon: Store },
-  { href: "/admin/pedidos", label: "Pedidos", icon: Package },
+  { href: "/admin/stock", label: "Stock", icon: Package },
+  { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
   { href: "/admin/categorias", label: "Categorías", icon: Tags },
   { href: "/admin/faq", label: "FAQ / Términos", icon: HelpCircle },
 ]
@@ -20,7 +21,8 @@ const MOBILE_TABS = [
   { href: "/admin", label: "Inicio", icon: LayoutDashboard },
   { href: "/admin/moderacion", label: "Moderar", icon: ShieldCheck },
   { href: "/admin/tienda", label: "Tienda", icon: Store },
-  { href: "/admin/pedidos", label: "Pedidos", icon: Package },
+  { href: "/admin/stock", label: "Stock", icon: Package },
+  { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
 ]
 
 export function AdminSidebar() {

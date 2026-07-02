@@ -5,11 +5,6 @@ import { ArrowLeft, Camera, Plus, X, ShieldCheck, Package, BadgePercent, Truck, 
 import { useAuthStore } from "@/store/useAuthStore"
 import { supabase } from "@/lib/supabase"
 
-const CATEGORIES = [
-  { value: 'mujer', label: 'Mujer' },
-  { value: 'hombre', label: 'Hombre' },
-  { value: 'kids', label: 'Kids' },
-]
 const CONDITIONS = [
   { value: 'new_tag', label: 'Nuevo con etiqueta' },
   { value: 'new', label: 'Nuevo' },
@@ -36,11 +31,22 @@ export default function VenderPage() {
     const interval = setInterval(refreshProfile, 15000)
     return () => clearInterval(interval)
   }, [user?.seller_status])
+
+  useEffect(() => {
+    supabase.from("categorias").select("id, nombre").order("orden")
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setCategories(data)
+          setCategory(data[0].id)
+        }
+      })
+  }, [])
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [brand, setBrand] = useState("")
   const [price, setPrice] = useState("")
-  const [category, setCategory] = useState("mujer")
+  const [category, setCategory] = useState("")
+  const [categories, setCategories] = useState<{id: string, nombre: string}[]>([])
   const [condition, setCondition] = useState("like_new")
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [freeShipping, setFreeShipping] = useState(false)
@@ -394,14 +400,14 @@ export default function VenderPage() {
         <div>
           <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Categoría</p>
           <div className="flex gap-2">
-            {CATEGORIES.map(c => (
-              <button key={c.value} type="button"
-                onClick={() => setCategory(c.value)}
+            {categories.map(c => (
+              <button key={c.id} type="button"
+                onClick={() => setCategory(c.id)}
                 className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors border
-                  ${category === c.value
+                  ${category === c.id
                     ? 'bg-brand border-brand text-text-on-brand'
                     : 'border-border-default text-text-body hover:border-brand'}`}>
-                {c.label}
+                {c.nombre}
               </button>
             ))}
           </div>

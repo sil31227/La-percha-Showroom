@@ -72,6 +72,8 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
       store_type: product.store_type,
       variantLabel: activeVariant ? activeVariant.nombre : undefined,
       variantPrice: activeVariant ? activeVariant.precio : undefined,
+      variantAttributes: activeVariant ? activeVariant.atributos : undefined,
+      variantStock: activeVariant ? activeVariant.stock : undefined,
     })
     setToast(true)
     setTimeout(() => router.push('/home'), 2100)

@@ -50,6 +50,8 @@ export interface CartItem {
   store_type: StoreType
   variantLabel?: string
   variantPrice?: number
+  variantAttributes?: Record<string, string>
+  variantStock?: number
 }
 
 export interface Filters {
