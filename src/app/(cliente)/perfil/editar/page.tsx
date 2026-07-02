@@ -43,10 +43,10 @@ export default function EditarPerfilPage() {
       if (data.url) {
         setProfile(p => ({ ...p, avatar: data.url }))
       } else {
-        console.error("Error al subir foto:", data.error)
+        alert("Error al subir la foto: " + (data.error || "Error desconocido"))
       }
-    } catch (err) {
-      console.error("Error al subir foto:", err)
+    } catch (err: any) {
+      alert("Error al subir la foto: " + (err?.message || "Error de conexión"))
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
@@ -64,25 +64,23 @@ export default function EditarPerfilPage() {
         .update({
           full_name: profile.name,
           avatar_url: profile.avatar,
-          phone: profile.phone,
         })
         .eq("id", user.id)
 
       if (error) {
-        console.error("Error al guardar perfil:", error.message)
+        alert("Error al guardar perfil: " + error.message)
         return
       }
 
-      updateProfile?.({
+      updateProfile({
         name: profile.name,
         avatar: profile.avatar,
-        phone: profile.phone,
       })
 
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
-    } catch (err) {
-      console.error("Error al guardar perfil:", err)
+    } catch (err: any) {
+      alert("Error al guardar perfil: " + (err?.message || "Error de conexión"))
     } finally {
       setSaving(false)
     }
