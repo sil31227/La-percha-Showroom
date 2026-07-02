@@ -30,8 +30,10 @@ function mapProducto(row: Record<string, unknown>): Product {
     const atributos = hasAtributos ? v.atributos
       : hasOldFormat ? { Talle: v.talle, Color: v.color || "" }
       : {}
+    const nombre = (v.nombre as string)
+      || Object.entries(atributos).map(([k, val]) => `${k}: ${val}`).join(" / ")
     return {
-      nombre: v.nombre || "",
+      nombre,
       atributos,
       precio: v.precio ?? (Number(row.precio) || 0),
       stock: v.stock ?? 0,
