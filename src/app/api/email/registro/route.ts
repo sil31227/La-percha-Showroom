@@ -15,7 +15,6 @@ export async function POST(req: NextRequest) {
 
     const token = crypto.randomUUID()
 
-    // Store token in Supabase
     await fetch(`${SUPABASE_URL}/rest/v1/verification_tokens`, {
       method: "POST",
       headers: {
@@ -40,6 +39,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true })
   } catch (e: any) {
+    console.error("Error email registro:", e)
     return NextResponse.json({ error: e.message }, { status: 500 })
   }
 }

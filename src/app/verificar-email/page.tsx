@@ -21,7 +21,14 @@ function VerifyContent() {
       if (error || !data) { setStatus("error"); setMessage("Token no válido o expirado."); return }
       if (data.verified) { setStatus("success"); setMessage("Tu email ya fue verificado anteriormente."); return }
       await supabase.from("verification_tokens").update({ verified: true }).eq("token", token)
-      setStatus("success"); setMessage("¡Email verificado! Ya podés usar La Percha.")
+      if (data.email) {
+        fetch("/api/auth/confirm-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: data.email }),
+        }).catch(() => {})
+      }
+      setStatus("success"); setMessage("¡Email verificado! Ya podés iniciar sesión.")
     })
   }, [token])
 
