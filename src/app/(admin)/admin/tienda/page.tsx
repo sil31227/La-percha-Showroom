@@ -800,6 +800,9 @@ export default function TiendaPage() {
                               <input value={v.color} onChange={e => updateVariantField(i, "color", e.target.value)} placeholder={coloresLabel.replace(" / ", "/")} className="w-16 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
                             )
                           )}
+                          {!isRopa && form.talles.length === 0 && form.colores.length === 0 && (
+                            <input value={v.talle} onChange={e => updateVariantField(i, "talle", e.target.value)} placeholder="ej: Jazmín, Vainilla..." className="w-28 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
+                          )}
                           <input type="number" value={v.precio || ""} onChange={e => updateVariantField(i, "precio", Number(e.target.value))} placeholder="$" className="w-16 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
                           <input type="number" value={v.stock || ""} onChange={e => updateVariantField(i, "stock", Number(e.target.value))} placeholder="Stock" className="w-14 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
                           <input value={v.imagen || ""} onChange={e => updateVariantField(i, "imagen", e.target.value)} placeholder="URL img" className="w-24 h-8 px-2 rounded-lg bg-white text-[10px] border border-transparent outline-none" />
