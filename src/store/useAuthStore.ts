@@ -35,9 +35,9 @@ interface AuthStore {
   isAuthenticated: () => boolean
 }
 
-function mapProfile(profile: Record<string, unknown> | null, email: string): User {
+function mapProfile(profile: Record<string, unknown> | null, email: string, userId?: string): User {
   return {
-    id: (profile?.id as string) || "",
+    id: (profile?.id as string) || userId || "",
     name: (profile?.full_name as string) || email.split("@")[0],
     email,
     avatar: (profile?.avatar_url as string) || `https://i.pravatar.cc/80?u=${encodeURIComponent(email)}`,
@@ -57,6 +57,20 @@ async function fetchProfile(userId: string): Promise<Record<string, unknown> | n
   return data
 }
 
+async function ensureProfile(userId: string, email: string, name: string) {
+  const existing = await fetchProfile(userId)
+  if (!existing) {
+    await supabase.from("profiles").upsert({
+      id: userId,
+      full_name: name || email.split("@")[0],
+      avatar_url: `https://i.pravatar.cc/80?u=${encodeURIComponent(email)}`,
+      is_seller: false,
+      seller_status: "none",
+      balance: 0,
+    })
+  }
+}
+
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   user: null,
   session: null,
@@ -66,10 +80,11 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   initialize: async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (session?.user) {
+      await ensureProfile(session.user.id, session.user.email ?? "", session.user.user_metadata?.full_name || "")
       const profile = await fetchProfile(session.user.id)
       set({
         session,
-        user: mapProfile(profile, session.user.email ?? ""),
+        user: mapProfile(profile, session.user.email ?? "", session.user.id),
         initialized: true,
       })
     } else {
@@ -78,8 +93,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
     supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
+        await ensureProfile(session.user.id, session.user.email ?? "", session.user.user_metadata?.full_name || "")
         const profile = await fetchProfile(session.user.id)
-        set({ session, user: mapProfile(profile, session.user.email ?? "") })
+        set({ session, user: mapProfile(profile, session.user.email ?? "", session.user.id) })
       } else {
         set({ session: null, user: null })
       }
@@ -97,10 +113,11 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       return { ok: false, error: error.message }
     }
     if (data.user) {
+      await ensureProfile(data.user.id, data.user.email ?? "", data.user.user_metadata?.full_name || "")
       const profile = await fetchProfile(data.user.id)
       set({
         session: data.session,
-        user: mapProfile(profile, data.user.email ?? ""),
+        user: mapProfile(profile, data.user.email ?? "", data.user.id),
         isLoading: false,
       })
       return { ok: true }
