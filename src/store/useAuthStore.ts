@@ -136,7 +136,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } },
+      options: {
+        data: { full_name: name },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/ingresar`,
+      },
     })
 
     if (error) {
