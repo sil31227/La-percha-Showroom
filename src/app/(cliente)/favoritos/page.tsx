@@ -18,7 +18,7 @@ function mapProducto(row: Record<string, unknown>): Product {
     price: Number(row.precio) || 0,
     images,
     sizes,
-    condition: (row.estado as Product["condition"]) || "used",
+    condition: ((row.estado as string) || "") as Product["condition"],
     store_type: (row.vendedor_tipo === "oficial" ? "oficial" : "feria") as Product["store_type"],
     category: (row.categoria_id as Product["category"]) || "mujer",
     subcategory: (row.subcategoria_id as Product["subcategory"]),

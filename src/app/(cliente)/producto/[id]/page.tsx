@@ -135,12 +135,14 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
 
           {/* Metadata */}
           <div className="flex gap-4">
-            <div>
-              <p className="text-xs text-text-muted">Estado</p>
-              <p className="text-sm font-semibold text-text-strong">
-                {CONDITION_LABEL[product.condition]}
-              </p>
-            </div>
+            {product.condition && (
+              <div>
+                <p className="text-xs text-text-muted">Estado</p>
+                <p className="text-sm font-semibold text-text-strong">
+                  {CONDITION_LABEL[product.condition]}
+                </p>
+              </div>
+            )}
             <div>
               <p className="text-xs text-text-muted">Marca</p>
               <p className="text-sm font-semibold text-text-strong">{product.brand}</p>
