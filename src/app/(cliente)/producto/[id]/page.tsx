@@ -1,8 +1,8 @@
 "use client"
-import { use, useState } from "react"
+import { use, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, ShoppingBag, Heart, Loader2, Minus, Plus } from "lucide-react"
+import { ArrowLeft, ShoppingBag, Heart, Loader2, Minus, Plus, Check } from "lucide-react"
 import { useProductoById } from "@/lib/useProductos"
 import { useShopStore } from "@/store/useShopStore"
 import { ProductGallery } from "@/components/ProductGallery"
@@ -25,7 +25,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
   const { id } = use(params)
   const router = useRouter()
   const [selectedSize, setSelectedSize] = useState('')
-  const [selectedVariant, setSelectedVariant] = useState(-1)
+  const [selectedVariants, setSelectedVariants] = useState<Set<number>>(new Set())
   const [sizeError, setSizeError] = useState(false)
   const [toast, setToast] = useState(false)
   const [quantity, setQuantity] = useState(1)
@@ -61,28 +61,50 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
 
   console.log("[producto page]", product.id, "tipo:", product.tipo, "variantes:", product.variantes?.length, product.variantes)
 
-  const activeVariant = product.variantes?.[selectedVariant] || null
-  const displayPrice = activeVariant ? activeVariant.precio : product.price
+  const isMultiVariant = product.store_type === "oficial" && product.tipo !== "ropa" && (product.variantes?.length || 0) > 0
+  const hasVariants = (product.variantes?.length || 0) > 0
   const showQuantity = product.store_type === "oficial" && product.tipo !== "ropa"
-  const maxStock = activeVariant ? (activeVariant.stock || 0) : (product.stock || 0)
+  const selectedList = hasVariants ? [...selectedVariants].filter(i => product.variantes![i]) : []
+  const displayPrice = selectedList.length === 1 ? (product.variantes![selectedList[0]].precio) : product.price
+  const maxStock = selectedList.length === 1 ? (product.variantes![selectedList[0]].stock || 0) : (product.stock || 0)
+
+  const toggleVariant = useCallback((i: number) => {
+    setSelectedVariants(prev => {
+      const next = new Set(prev)
+      if (next.has(i)) {
+        next.delete(i)
+      } else {
+        if (isMultiVariant) {
+          next.add(i)
+        } else {
+          return new Set([i])
+        }
+      }
+      return next
+    })
+  }, [isMultiVariant])
 
   const handleAddToCart = () => {
     const size = selectedSize || (sizes.length === 1 ? sizes[0] : "")
     if (!size) { setSizeError(true); return }
     setSizeError(false)
-    addToCart({
-      productId: product.id,
-      title: product.title,
-      price: displayPrice,
-      image: product.images[0],
-      size,
-      quantity: quantity,
-      store_type: product.store_type,
-      variantLabel: activeVariant ? variantLabel(activeVariant) : undefined,
-      variantPrice: activeVariant ? activeVariant.precio : undefined,
-      variantAttributes: activeVariant ? { Talle: activeVariant.talle, Color: activeVariant.color } : undefined,
-      variantStock: activeVariant ? activeVariant.stock : undefined,
-    })
+    if (hasVariants && selectedList.length === 0) return
+    const targets = hasVariants ? selectedList.map(i => product.variantes![i]) : [null]
+    for (const v of targets) {
+      addToCart({
+        productId: product.id,
+        title: product.title,
+        price: v ? v.precio : product.price,
+        image: v?.imagen || product.images[0],
+        size,
+        quantity: quantity,
+        store_type: product.store_type,
+        variantLabel: v ? variantLabel(v) : undefined,
+        variantPrice: v ? v.precio : undefined,
+        variantAttributes: v ? { Talle: v.talle, Color: v.color } : undefined,
+        variantStock: v ? v.stock : undefined,
+      })
+    }
     setToast(true)
     setTimeout(() => router.push('/home'), 2100)
   }
@@ -185,31 +207,37 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
           )}
 
           {/* Selector de variante */}
-          {product.variantes && product.variantes.length > 0 && (
+          {hasVariants && (
             <div>
               <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-                Variante
+                {isMultiVariant ? "Sabores / Variantes" : "Variante"}
               </label>
               <div className="flex flex-wrap gap-2">
-                {product.variantes.map((v, i) => (
+                {product.variantes!.map((v, i) => (
                   <button
                     key={i}
-                    onClick={() => setSelectedVariant(i)}
-                    className={`px-3.5 py-2 rounded-full text-[11px] font-semibold border transition-colors text-left
-                      ${selectedVariant === i
+                    onClick={() => toggleVariant(i)}
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[11px] font-semibold border transition-colors text-left
+                      ${selectedVariants.has(i)
                         ? 'bg-brand text-white border-brand'
                         : 'bg-surface-sunken text-text-body border-transparent hover:border-brand'}`}
                   >
+                    {isMultiVariant && selectedVariants.has(i) && <Check className="w-3 h-3" />}
                     <span>{variantLabel(v)}</span>
                     {v.precio !== product.price && (
-                      <span className="ml-1 opacity-80">($ {v.precio.toLocaleString('es-AR')})</span>
+                      <span className="ml-0.5 opacity-80">($ {v.precio.toLocaleString('es-AR')})</span>
                     )}
                   </button>
                 ))}
               </div>
-              {activeVariant && activeVariant.stock > 0 && (
+              {isMultiVariant && selectedList.length > 0 && (
                 <p className="text-[10px] text-text-muted mt-1.5">
-                  Stock disponible: {activeVariant.stock} unidad{activeVariant.stock !== 1 ? 'es' : ''}
+                  {selectedList.length} seleccionado{selectedList.length !== 1 ? 's' : ''}
+                </p>
+              )}
+              {!isMultiVariant && selectedList.length === 1 && product.variantes![selectedList[0]].stock > 0 && (
+                <p className="text-[10px] text-text-muted mt-1.5">
+                  Stock: {product.variantes![selectedList[0]].stock} unid.
                 </p>
               )}
             </div>
