@@ -6,8 +6,9 @@ export type VendorStatus = "pending" | "approved" | "rejected"
 
 export interface AdminProduct {
   id: string; titulo: string; precio: number; precio_anterior?: number
-  descripcion?: string; marca?: string; categoria_id: string; subcategoria_id?: string
+  descripcion?: string; marca?: string; material?: string; categoria_id: string; subcategoria_id?: string
   estado?: string; talles?: string[]; colores?: string[]; imagenes: string[]
+  stock?: number; variantes?: any[]
   envio_gratis?: boolean; destacado?: boolean; tipo: "ropa" | "tienda"
   vendedor_nombre: string; vendedor_tipo: "oficial" | "feria"
   status: ProductStatus; orden?: number; created_at?: string
@@ -29,7 +30,7 @@ export interface AdminSubcategory { id: string; categoria_id: string; nombre: st
 
 export interface StoreProductForm {
   titulo: string; precio: number; precio_anterior?: number; descripcion: string
-  marca?: string; categoria_id: string; subcategoria_id: string; estado: string
+  marca?: string; material?: string; categoria_id: string; subcategoria_id: string; estado: string
   talles: string[]; colores: string[]; imagenes: string[]
   variantes: { nombre: string; talle: string; color: string; precio: number; stock: number; imagen: string }[]
   envio_gratis: boolean; destacado: boolean; tipo: "ropa" | "tienda"
@@ -126,7 +127,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     const id = `store-${Date.now()}`
     const payload: Record<string, unknown> = {
       id, titulo: form.titulo, precio: form.precio, precio_anterior: form.precio_anterior,
-      descripcion: form.descripcion, marca: form.marca,
+      descripcion: form.descripcion, marca: form.marca, material: form.material,
       talles: form.talles, colores: form.colores, imagenes: form.imagenes,
       variantes: form.variantes,
       envio_gratis: form.envio_gratis, destacado: form.destacado,

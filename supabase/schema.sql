@@ -39,6 +39,7 @@ CREATE TABLE productos (
   precio NUMERIC NOT NULL DEFAULT 0,
   precio_anterior NUMERIC,
   marca TEXT,
+  material TEXT,
   categoria_id TEXT,
   subcategoria_id TEXT,
   estado TEXT CHECK (estado IN ('new_tag','new','like_new','used')),
