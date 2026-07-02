@@ -19,7 +19,7 @@ const CONDITIONS = [
 const SIZES = ['XS','S','M','L','XL','Único']
 
 export default function VenderPage() {
-  const { user, requestSeller } = useAuthStore()
+  const { user, requestSeller, refreshProfile } = useAuthStore()
   const [terms, setTerms] = useState("")
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [showTerms, setShowTerms] = useState(false)
@@ -29,6 +29,13 @@ export default function VenderPage() {
       if (data) setTerms(data.contenido)
     })
   }, [])
+
+  useEffect(() => {
+    if (user?.seller_status !== "pending") return
+    refreshProfile()
+    const interval = setInterval(refreshProfile, 15000)
+    return () => clearInterval(interval)
+  }, [user?.seller_status])
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [brand, setBrand] = useState("")

@@ -30,6 +30,7 @@ interface AuthStore {
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   requestSeller: () => Promise<void>
+  refreshProfile: () => Promise<void>
   withdraw: (amount: number) => void
   logout: () => Promise<void>
   isAuthenticated: () => boolean
@@ -200,6 +201,22 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       set(s => s.user ? { user: { ...s.user, seller_status: "pending" } } : s)
     } catch (err) {
       console.error("[requestSeller] Exception:", err)
+    }
+  },
+
+  refreshProfile: async () => {
+    const user = get().user
+    if (!user?.id) return
+    const profile = await fetchProfile(user.id)
+    if (profile) {
+      set(s => s.user ? {
+        user: {
+          ...s.user,
+          is_seller: (profile.is_seller as boolean) || false,
+          seller_status: (profile.seller_status as User["seller_status"]) || "none",
+          balance: (profile.balance as number) || 0,
+        }
+      } : s)
     }
   },
 
