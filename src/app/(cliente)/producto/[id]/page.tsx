@@ -25,7 +25,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
   const { id } = use(params)
   const router = useRouter()
   const [selectedSize, setSelectedSize] = useState('')
-  const [selectedVariants, setSelectedVariants] = useState<Set<number>>(new Set())
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState<number[]>([])
   const [sizeError, setSizeError] = useState(false)
   const [toast, setToast] = useState(false)
   const [quantity, setQuantity] = useState(1)
@@ -64,23 +64,19 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
   const isMultiVariant = product.store_type === "oficial" && product.tipo !== "ropa" && (product.variantes?.length || 0) > 0
   const hasVariants = (product.variantes?.length || 0) > 0
   const showQuantity = product.store_type === "oficial" && product.tipo !== "ropa"
-  const selectedList = hasVariants ? [...selectedVariants].filter(i => product.variantes![i]) : []
+  const selectedList = hasVariants ? selectedVariantIdx.filter(i => product.variantes![i]) : []
   const displayPrice = selectedList.length === 1 ? (product.variantes![selectedList[0]].precio) : product.price
   const maxStock = selectedList.length === 1 ? (product.variantes![selectedList[0]].stock || 0) : (product.stock || 0)
 
   const toggleVariant = useCallback((i: number) => {
-    setSelectedVariants(prev => {
-      const next = new Set(prev)
-      if (next.has(i)) {
-        next.delete(i)
-      } else {
-        if (isMultiVariant) {
-          next.add(i)
-        } else {
-          return new Set([i])
-        }
+    setSelectedVariantIdx(prev => {
+      if (prev.includes(i)) {
+        return prev.filter(x => x !== i)
       }
-      return next
+      if (isMultiVariant) {
+        return [...prev, i]
+      }
+      return [i]
     })
   }, [isMultiVariant])
 
@@ -218,11 +214,11 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
                     key={i}
                     onClick={() => toggleVariant(i)}
                     className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[11px] font-semibold border transition-colors text-left
-                      ${selectedVariants.has(i)
+                      ${selectedVariantIdx.includes(i)
                         ? 'bg-brand text-white border-brand'
                         : 'bg-surface-sunken text-text-body border-transparent hover:border-brand'}`}
                   >
-                    {isMultiVariant && selectedVariants.has(i) && <Check className="w-3 h-3" />}
+                    {isMultiVariant && selectedVariantIdx.includes(i) && <Check className="w-3 h-3" />}
                     <span>{variantLabel(v)}</span>
                     {v.precio !== product.price && (
                       <span className="ml-0.5 opacity-80">($ {v.precio.toLocaleString('es-AR')})</span>
