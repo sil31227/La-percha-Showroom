@@ -5,6 +5,7 @@ import { Plus, X, Pencil, Trash2, ChevronLeft, Star, Truck, Upload, AlertCircle,
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { ProductOptions } from "@/components/admin/ProductOptions"
 
 const CONDITIONS = [{ v: "new_tag", l: "Nuevo con etiqueta" }, { v: "new", l: "Nuevo" }, { v: "like_new", l: "Como nuevo" }, { v: "used", l: "Usado" }]
 const SIZES = ["XS","S","M","L","XL","Único"]
@@ -381,99 +382,37 @@ export default function TiendaPage() {
             <button type="button" onClick={addImage} className="h-11 px-4 rounded-full bg-surface-sunken flex items-center gap-1.5 text-sm font-semibold hover:bg-matcha-100 transition-colors"><Upload className="w-4 h-4" /> +</button>
           </div>
         </div>
-        {/* ── Atributos del producto (solo tienda) ── */}
+        {/* ── Opciones del producto ── */}
         {!isRopa && (
-          <div>
-            <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-2">Atributos del producto</label>
-            {form.variantGroups.map(group => (
-              <div key={group.id} className="mb-3 bg-surface-sunken rounded-xl p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <input
-                    value={group.name}
-                    onChange={e => updateGroupName(group.id, e.target.value)}
-                    placeholder="Nombre del atributo (ej: Color)"
-                    className="flex-1 h-8 px-3 rounded-lg bg-white text-xs border border-transparent focus:border-brand outline-none"
-                  />
-                  <button type="button" onClick={() => removeGroup(group.id)} className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-error-50 shrink-0"><X className="w-3 h-3 text-error-500" /></button>
-                </div>
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {group.values.map(val => (
-                    <span key={val} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white text-[11px] font-medium border border-border-subtle">
-                      {val}
-                      <button type="button" onClick={() => removeGroupValue(group.id, val)} className="hover:text-error-500">&times;</button>
-                    </span>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    value={groupValueInputs[group.id] || ""}
-                    onChange={e => setGroupValueInputs(prev => ({ ...prev, [group.id]: e.target.value }))}
-                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addGroupValue(group.id) } }}
-                    placeholder="Agregar valor..."
-                    className="flex-1 h-8 px-3 rounded-lg bg-white text-[11px] border border-transparent focus:border-brand outline-none"
-                  />
-                  <button type="button" onClick={() => addGroupValue(group.id)} className="px-3 h-8 rounded-full bg-white text-[11px] font-semibold hover:bg-matcha-100 transition-colors">+</button>
-                </div>
-              </div>
-            ))}
-            <div className="flex gap-2">
-              <input
-                value={newGroupName}
-                onChange={e => setNewGroupName(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addGroup() } }}
-                placeholder="Nombre del nuevo atributo (ej: Olor)..."
-                className="flex-1 h-9 px-3 rounded-lg bg-surface-sunken text-xs border border-transparent focus:border-brand outline-none"
-              />
-              <button type="button" onClick={addGroup} className="px-4 h-9 rounded-full bg-surface-sunken text-xs font-semibold hover:bg-matcha-100 transition-colors">+ Agregar</button>
-            </div>
-          </div>
+          <ProductOptions
+            groups={form.variantGroups}
+            variants={form.variantes}
+            basePrice={form.precio}
+            baseImage={form.imagenes[0] || ""}
+            isRopa={false}
+            onChange={(groups, variantes) => setForm(f => ({ ...f, variantGroups: groups, variantes }))}
+          />
         )}
 
-        {/* ── Variantes ── */}
-        {(isRopa || form.variantGroups.length > 0) && (
+        {/* ── Variantes ropa (talle × color) ── */}
+        {isRopa && (
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">
-                {isRopa ? 'Variantes (talle × color)' : 'Variantes'}
-              </label>
+              <label className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">Variantes (talle × color)</label>
               <button type="button" onClick={addVariant} className="text-[11px] font-semibold text-matcha-600 hover:text-matcha-700">+ Agregar</button>
             </div>
             {form.variantes.length > 0 && (
               <div className="space-y-2 mb-3">
                 {form.variantes.map((v, i) => (
                   <div key={i} className="flex items-center gap-2 bg-surface-sunken rounded-lg p-2 flex-wrap">
-                    {isRopa ? (
-                      <>
-                        <select
-                          value={v.atributos.Talle || ""}
-                          onChange={e => updateVariantAttr(i, "Talle", e.target.value)}
-                          className="h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none"
-                        >
-                          <option value="">Talle</option>
-                          {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                        <select
-                          value={v.atributos.Color || ""}
-                          onChange={e => updateVariantAttr(i, "Color", e.target.value)}
-                          className="h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none"
-                        >
-                          <option value="">Color</option>
-                          {[...COLORES, ...form.colores.filter(c => !COLORES.includes(c))].map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      </>
-                    ) : (
-                      form.variantGroups.map(group => (
-                        <select
-                          key={group.id}
-                          value={v.atributos[group.name] || ""}
-                          onChange={e => updateVariantAttr(i, group.name, e.target.value)}
-                          className={`h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none ${group.name.length > 8 ? 'w-24' : 'w-auto'}`}
-                        >
-                          <option value="">{group.name}</option>
-                          {group.values.map(val => <option key={val} value={val}>{val}</option>)}
-                        </select>
-                      ))
-                    )}
+                    <select value={v.atributos.Talle || ""} onChange={e => updateVariantAttr(i, "Talle", e.target.value)} className="h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none">
+                      <option value="">Talle</option>
+                      {SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <select value={v.atributos.Color || ""} onChange={e => updateVariantAttr(i, "Color", e.target.value)} className="h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none">
+                      <option value="">Color</option>
+                      {[...COLORES, ...form.colores.filter(c => !COLORES.includes(c))].map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
                     <input type="number" value={v.precio || ""} onChange={e => setForm(f => ({ ...f, variantes: f.variantes.map((x, j) => j === i ? { ...x, precio: Number(e.target.value) } : x) }))} placeholder="$" className="w-16 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
                     <input type="number" value={v.stock || ""} onChange={e => setForm(f => ({ ...f, variantes: f.variantes.map((x, j) => j === i ? { ...x, stock: Number(e.target.value) } : x) }))} placeholder="Stock" className="w-14 h-8 px-2 rounded-lg bg-white text-[11px] border border-transparent outline-none" />
                     <button type="button" onClick={() => removeVariant(i)} className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-error-50"><X className="w-3 h-3 text-error-500" /></button>
