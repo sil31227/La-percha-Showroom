@@ -20,6 +20,7 @@ export default function TiendaPage() {
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [deletedImages, setDeletedImages] = useState<string[]>([])
   const [showDelete, setShowDelete] = useState<string | null>(null)
   const [filterType, setFilterType] = useState<"all" | "ropa" | "tienda">("all")
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -42,6 +43,13 @@ export default function TiendaPage() {
   }
   function openEdit(p: AdminProduct) { setForm({ titulo: p.titulo, precio: p.precio, precio_anterior: p.precio_anterior, descripcion: p.descripcion || "", marca: p.marca, categoria_id: p.categoria_id, subcategoria_id: p.subcategoria_id || "", estado: p.estado || "", talles: p.talles || [], colores: p.colores || [], imagenes: p.imagenes || [], envio_gratis: p.envio_gratis || false, destacado: p.destacado || false, tipo: p.tipo }); setShowPrevPrice(!!p.precio_anterior); setEditingId(p.id); setError(""); setView("form") }
   function addImage() { if (!newImage.trim()) return; setForm(f => ({ ...f, imagenes: [...f.imagenes, newImage.trim()] })); setNewImage("") }
+  function removeImage(index: number) {
+    const url = form.imagenes[index]
+    setForm(f => ({ ...f, imagenes: f.imagenes.filter((_, j) => j !== index) }))
+    if (url && url.includes("hvmctiqzjbqsghuwhquk.supabase.co")) {
+      setDeletedImages(prev => [...prev, url])
+    }
+  }
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files; if (!files?.length) return
     setUploading(true)
@@ -59,7 +67,7 @@ export default function TiendaPage() {
   function toggleSize(s: string) { setForm(f => ({ ...f, talles: f.talles.includes(s) ? f.talles.filter(z => z !== s) : [...f.talles, s] })) }
   function addColor() { if (!newColor.trim()) return; setForm(f => ({ ...f, colores: [...f.colores, newColor.trim()] })); setNewColor("") }
   function validate(): boolean { if (!form.titulo.trim()) { setError("El título es obligatorio"); return false }; if (!form.precio || form.precio <= 0) { setError("El precio debe ser mayor a 0"); return false }; if (form.imagenes.length === 0) { setError("Agregá al menos una imagen"); return false }; if (form.tipo === "ropa" && form.talles.length === 0) { setError("Seleccioná al menos un talle"); return false }; return true }
-  async function handleSubmit(e: React.FormEvent) { e.preventDefault(); if (!validate()) return; setSaving(true); try { const data = { ...form, precio_anterior: showPrevPrice ? form.precio_anterior : undefined }; if (editingId) await updateStoreProduct(editingId, data); else await addStoreProduct(data); setView("list") } catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar el producto") } finally { setSaving(false) } }
+  async function handleSubmit(e: React.FormEvent) { e.preventDefault(); if (!validate()) return; setSaving(true); try { const data = { ...form, precio_anterior: showPrevPrice ? form.precio_anterior : undefined }; if (editingId) await updateStoreProduct(editingId, data); else await addStoreProduct(data); if (deletedImages.length > 0) { const paths = deletedImages.map(url => { const parts = url.split("/productos/"); return parts[1]?.split("?")[0] }).filter(Boolean) as string[]; if (paths.length > 0) { fetch("/api/imagenes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths }) }).catch(() => {}) } } setDeletedImages([]); setView("list") } catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar el producto") } finally { setSaving(false) } }
 
   if (!loaded) return <div className="p-5 pt-20 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
@@ -120,7 +128,7 @@ export default function TiendaPage() {
               {form.imagenes.map((url, i) => (
                 <div key={i} className="relative shrink-0">
                   <img src={url} alt="" className="w-20 h-26 rounded-lg object-cover" />
-                  <button type="button" onClick={() => setForm(f => ({ ...f, imagenes: f.imagenes.filter((_, j) => j !== i) }))} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error-500 text-white flex items-center justify-center"><X className="w-3 h-3" /></button>
+                  <button type="button" onClick={() => removeImage(i)} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error-500 text-white flex items-center justify-center"><X className="w-3 h-3" /></button>
                 </div>
               ))}
             </div>
