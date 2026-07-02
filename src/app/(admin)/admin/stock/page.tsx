@@ -71,7 +71,7 @@ export default function StockPage() {
                                   : "bg-surface-sunken text-text-body"
                               }`}
                             >
-                              <span className="font-medium truncate">{v.nombre}</span>
+                              <span className="font-medium truncate">{[v.talle, v.color].filter(Boolean).join(" / ") || "Único"}</span>
                               <span className="shrink-0 flex items-center gap-1 font-semibold">
                                 {vLow && <AlertTriangle className="w-3 h-3" />}
                                 {vStock} unid.

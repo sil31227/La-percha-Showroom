@@ -2,6 +2,14 @@
 import { useEffect, useState } from "react"
 import { useAdminStore } from "@/store/useAdminStore"
 import { ChevronDown, Pencil, Trash2, Plus, X, Check } from "lucide-react"
+import type { ProductType } from "@/lib/types"
+
+const TIPOS: { v: ProductType; l: string }[] = [
+  { v: "ropa", l: "Ropa" },
+  { v: "regaleria", l: "Regalería" },
+  { v: "bazar", l: "Bazar" },
+  { v: "decoracion", l: "Decoración" },
+]
 
 export default function CategoriasPage() {
   const { categories, loaded, loadFromSupabase, addSubcategory, renameSubcategory, deleteSubcategory, renameCategory, addCategory } = useAdminStore()
@@ -9,7 +17,7 @@ export default function CategoriasPage() {
   const [editing, setEditing] = useState<{ catId: string; subId?: string; nombre: string } | null>(null)
   const [adding, setAdding] = useState<{ catId: string; nombre: string } | null>(null)
   const [deleting, setDeleting] = useState<{ catId: string; subId: string; nombre: string } | null>(null)
-  const [newCat, setNewCat] = useState({ nombre: "", tipo: "ropa" as "ropa" | "tienda", open: false })
+  const [newCat, setNewCat] = useState({ nombre: "", tipo: "ropa" as ProductType, open: false })
 
   useEffect(() => { loadFromSupabase() }, [])
 
@@ -48,8 +56,8 @@ export default function CategoriasPage() {
             <p className="text-sm font-semibold text-text-strong">Nueva categoría</p>
             <input value={newCat.nombre} onChange={e => setNewCat(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre de la categoría" className="w-full h-10 px-3 rounded-lg bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none" />
             <div className="flex gap-2">
-              {(["ropa", "tienda"] as const).map(t => (
-                <button key={t} type="button" onClick={() => setNewCat(s => ({ ...s, tipo: t }))} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${newCat.tipo === t ? 'bg-brand text-white border-brand' : 'bg-surface-sunken text-text-body border-transparent'}`}>{t === "ropa" ? "Ropa" : "Tienda"}</button>
+              {TIPOS.map(t => (
+                <button key={t.v} type="button" onClick={() => setNewCat(s => ({ ...s, tipo: t.v }))} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${newCat.tipo === t.v ? 'bg-brand text-white border-brand' : 'bg-surface-sunken text-text-body border-transparent'}`}>{t.l}</button>
               ))}
             </div>
             <div className="flex gap-2">

@@ -17,6 +17,10 @@ const CONDITION_LABEL: Record<string, string> = {
   used: 'Usado',
 }
 
+function variantLabel(v: { talle: string; color: string }): string {
+  return [v.talle, v.color].filter(Boolean).join(" / ") || "Único"
+}
+
 export default function ProductoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const router = useRouter()
@@ -52,7 +56,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
   }
 
   const sizes = product.sizes?.length ? product.sizes : ["Único"]
-  const showSizeSelector = product.tipo !== "tienda" || sizes.length > 1 || sizes[0] !== "Único"
+  const showSizeSelector = product.tipo === "ropa" || sizes.length > 1 || sizes[0] !== "Único"
 
   console.log("[producto page]", product.id, "tipo:", product.tipo, "variantes:", product.variantes?.length, product.variantes)
 
@@ -70,9 +74,9 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
       image: product.images[0],
       size,
       store_type: product.store_type,
-      variantLabel: activeVariant ? activeVariant.nombre : undefined,
+      variantLabel: activeVariant ? variantLabel(activeVariant) : undefined,
       variantPrice: activeVariant ? activeVariant.precio : undefined,
-      variantAttributes: activeVariant ? activeVariant.atributos : undefined,
+      variantAttributes: activeVariant ? { Talle: activeVariant.talle, Color: activeVariant.color } : undefined,
       variantStock: activeVariant ? activeVariant.stock : undefined,
     })
     setToast(true)
@@ -192,7 +196,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
                         ? 'bg-brand text-white border-brand'
                         : 'bg-surface-sunken text-text-body border-transparent hover:border-brand'}`}
                   >
-                    <span>{v.nombre}</span>
+                    <span>{variantLabel(v)}</span>
                     {v.precio !== product.price && (
                       <span className="ml-1 opacity-80">($ {v.precio.toLocaleString('es-AR')})</span>
                     )}

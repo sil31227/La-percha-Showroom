@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { supabase } from "@/lib/supabase"
-import type { Variante } from "@/lib/types"
+import type { Variante, ProductType } from "@/lib/types"
 
 export type ProductStatus = "pending" | "approved" | "rejected"
 export type VendorStatus = "pending" | "approved" | "rejected"
@@ -10,7 +10,7 @@ export interface AdminProduct {
   descripcion?: string; marca?: string; material?: string; categoria_id: string; subcategoria_id?: string
   estado?: string; talles?: string[]; colores?: string[]; imagenes: string[]
   stock?: number; variantes?: Variante[]
-  envio_gratis?: boolean; destacado?: boolean; tipo: "ropa" | "tienda"
+  envio_gratis?: boolean; destacado?: boolean; tipo: ProductType
   vendedor_nombre: string; vendedor_tipo: "oficial" | "feria"
   status: ProductStatus; orden?: number; created_at?: string
 }
@@ -26,16 +26,15 @@ export interface AdminOrder {
   talle?: string; direccion?: string; status: OrderStatus; created_at?: string
 }
 export interface FAQItem { id: string; pregunta: string; respuesta: string; orden?: number }
-export interface AdminCategory { id: string; nombre: string; tipo?: string; destacada?: boolean; orden?: number; subcategorias: AdminSubcategory[] }
+export interface AdminCategory { id: string; nombre: string; tipo?: ProductType; destacada?: boolean; orden?: number; subcategorias: AdminSubcategory[] }
 export interface AdminSubcategory { id: string; categoria_id: string; nombre: string; orden?: number }
 
 export interface StoreProductForm {
   titulo: string; precio: number; precio_anterior?: number; descripcion: string
   marca?: string; material?: string; categoria_id: string; subcategoria_id: string; estado: string
   talles: string[]; colores: string[]; imagenes: string[]
-  variantGroups: { id: string; name: string; values: string[] }[]
-  variantes: { nombre: string; atributos: Record<string, string>; precio: number; stock: number; imagen: string }[]
-  envio_gratis: boolean; destacado: boolean; tipo: "ropa" | "tienda"
+  variantes: Variante[]
+  envio_gratis: boolean; destacado: boolean; tipo: ProductType
 }
 
 interface AdminState {
@@ -132,6 +131,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       id, titulo: form.titulo, precio: form.precio, precio_anterior: form.precio_anterior,
       descripcion: form.descripcion, marca: form.marca, material: form.material,
       talles: form.talles, colores: form.colores, imagenes: form.imagenes,
+      stock: form.variantes.length > 0 ? form.variantes.reduce((s, v) => s + (v.stock || 0), 0) : (form.talles?.length ? 0 : 1),
       variantes: JSON.parse(JSON.stringify(form.variantes || [])),
       envio_gratis: form.envio_gratis, destacado: form.destacado,
       tipo: form.tipo, vendedor_nombre: "Tienda Oficial", vendedor_tipo: "oficial",
@@ -146,22 +146,17 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     if (data) set(s => ({ products: [data as AdminProduct, ...s.products] }))
   },
   updateStoreProduct: async (id, form) => {
-    const { variantGroups: _vg, ...rest } = form as Record<string, unknown>
-    const payload: Record<string, unknown> = { ...rest, updated_at: new Date().toISOString() } as Record<string, unknown>
-    if (rest.variantes !== undefined) {
-      payload.variantes = JSON.parse(JSON.stringify(rest.variantes))
+    const payload: Record<string, unknown> = { ...form, updated_at: new Date().toISOString() }
+    if (form.variantes !== undefined) {
+      payload.variantes = JSON.parse(JSON.stringify(form.variantes))
     }
-    console.log("[updateStoreProduct] rest.variantes:", (rest as any).variantes, "payload.variantes:", payload.variantes)
+    console.log("[updateStoreProduct] payload.variantes:", payload.variantes)
     if (!form.estado) delete payload.estado
     if (!form.categoria_id) delete payload.categoria_id
     if (!form.subcategoria_id) delete payload.subcategoria_id
-    const { error: err1 } = await supabase.from("productos").update(payload).eq("id", id)
-    if (err1) { console.error("[updateStoreProduct] error:", err1); throw new Error(err1.message) }
-    const { error: err2 } = await supabase.from("productos").update({ variantes: payload.variantes }).eq("id", id)
-    if (err2) console.error("[updateStoreProduct] variantes-only update error:", err2)
-    const { data: verify } = await supabase.from("productos").select("variantes").eq("id", id).single()
-    console.log("[updateStoreProduct] VERIFY from DB:", verify?.variantes)
-    set(s => ({ products: s.products.map(p => p.id === id ? { ...p, ...rest } : p) }))
+    const { error } = await supabase.from("productos").update(payload).eq("id", id)
+    if (error) { console.error("[updateStoreProduct] error:", error); throw new Error(error.message) }
+    set(s => ({ products: s.products.map(p => p.id === id ? { ...p, ...form } : p) }))
   },
   removeStoreProduct: async (id) => {
     await supabase.from("productos").delete().eq("id", id)
@@ -216,7 +211,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   addCategory: async (nombre, tipo) => {
     const id = `cat-${Date.now()}`
     await supabase.from("categorias").insert({ id, nombre, tipo, orden: 0 })
-    set(s => ({ categories: [...s.categories, { id, nombre, tipo, subcategorias: [] }] }))
+    set(s => ({ categories: [...s.categories, { id, nombre, tipo: tipo as ProductType, subcategorias: [] }] }))
   },
 
   addFAQ: async (pregunta, respuesta) => {

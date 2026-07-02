@@ -26,15 +26,12 @@ function mapProducto(row: Record<string, unknown>): Product {
 
   const variantes = rawVariants.map((v: any) => {
     const hasAtributos = v.atributos && typeof v.atributos === "object" && Object.keys(v.atributos).length > 0
-    const hasOldFormat = v.talle !== undefined
-    const atributos = hasAtributos ? v.atributos
-      : hasOldFormat ? { Talle: v.talle, Color: v.color || "" }
-      : {}
-    const nombre = (v.nombre as string)
-      || Object.entries(atributos).map(([k, val]) => `${k}: ${val}`).join(" / ")
+    const talle = (v.talle as string) || (hasAtributos ? v.atributos.Talle || v.atributos.Tamaño || "" : "")
+    const color = (v.color as string) || (hasAtributos ? v.atributos.Color || "" : "")
     return {
-      nombre,
-      atributos,
+      id: (v.id as string) || Math.random().toString(36).slice(2, 8),
+      talle,
+      color,
       precio: v.precio ?? (Number(row.precio) || 0),
       stock: v.stock ?? 0,
       imagen: v.imagen || images[0] || "",
@@ -60,7 +57,7 @@ function mapProducto(row: Record<string, unknown>): Product {
       rating: 5.0,
       sales_count: 0,
     },
-    tipo: (row.tipo as "ropa" | "tienda") || "ropa",
+    tipo: (row.tipo as Product["tipo"]) || "ropa",
     accepts_offers: false,
     free_shipping: (row.envio_gratis as boolean) || false,
     created_at: (row.created_at as string) || new Date().toISOString(),

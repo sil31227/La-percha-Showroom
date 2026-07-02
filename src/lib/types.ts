@@ -1,12 +1,14 @@
 export type Condition = 'new_tag' | 'new' | 'like_new' | 'used'
 export type StoreType = 'oficial' | 'feria'
 export type SortOption = 'newest' | 'price_asc' | 'price_desc'
+export type ProductType = 'ropa' | 'regaleria' | 'bazar' | 'decoracion'
 export type Category = 'mujer' | 'hombre' | 'kids' | 'regaleria' | 'bazar' | 'decoracion'
 export type Subcategory = 'ropa' | 'calzado' | 'accesorios' | 'belleza' | 'bebes' | 'ninas' | 'ninos'
 
 export interface Variante {
-  nombre: string
-  atributos: Record<string, string>
+  id: string
+  talle: string
+  color: string
   precio: number
   stock: number
   imagen: string
@@ -33,9 +35,10 @@ export interface Product {
   category: Category
   subcategory?: Subcategory
   seller: Seller
-  tipo?: "ropa" | "tienda"
+  tipo?: ProductType
   accepts_offers: boolean
   free_shipping: boolean
+  material?: string
   stock?: number
   variantes?: Variante[]
   created_at: string
