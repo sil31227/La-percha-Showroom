@@ -1,16 +1,37 @@
 "use client"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { useAdminStore, type StoreProductForm, type AdminProduct } from "@/store/useAdminStore"
-import { Plus, X, Pencil, Trash2, ChevronLeft, Star, Truck, Upload, AlertCircle, Shirt, Store } from "lucide-react"
+import { Plus, X, Pencil, Trash2, ChevronLeft, Star, Truck, Upload, AlertCircle, Shirt, Store, GripVertical } from "lucide-react"
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core"
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 const CONDITIONS = [{ v: "new_tag", l: "Nuevo con etiqueta" }, { v: "new", l: "Nuevo" }, { v: "like_new", l: "Como nuevo" }, { v: "used", l: "Usado" }]
 const SIZES = ["XS","S","M","L","XL","Único"]
 const COLORES = ["Negro","Blanco","Beige","Gris","Verde","Azul","Rojo","Rosa","Amarillo","Marrón"]
 
+function SortableProductRow({ p, onEdit, onDelete }: { p: AdminProduct; onEdit: () => void; onDelete: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: p.id })
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }
+  return (
+    <div ref={setNodeRef} style={style} className="bg-surface-card rounded-xl border border-border-subtle p-3 flex items-center gap-3">
+      <button {...attributes} {...listeners} className="shrink-0 cursor-grab active:cursor-grabbing touch-none"><GripVertical className="w-4 h-4 text-text-muted" /></button>
+      <img src={p.imagenes?.[0] || ""} alt="" className="w-14 h-18 rounded-lg object-cover shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap"><p className="text-sm font-semibold text-text-strong truncate">{p.titulo}</p>{p.destacado && <Star className="w-3 h-3 text-chai-500 fill-chai-500" />}{p.envio_gratis && <Truck className="w-3 h-3 text-success-500" />}</div>
+        <p className="text-xs text-text-muted">{p.categoria_id}{p.subcategoria_id ? ` · ${p.subcategoria_id}` : ""}{p.marca ? ` · ${p.marca}` : ""}</p>
+        <div className="flex items-center gap-2 mt-0.5"><p className="text-sm font-bold text-price">${p.precio.toLocaleString("es-AR")}</p>{p.precio_anterior && <p className="text-[11px] text-text-muted line-through">${p.precio_anterior.toLocaleString("es-AR")}</p>}</div>
+        {p.talles && p.talles.length > 0 && <div className="flex gap-1 mt-1">{p.talles.map(s => <span key={s} className="px-1.5 py-0.5 rounded text-[9px] bg-surface-sunken text-text-muted">{s}</span>)}</div>}
+      </div>
+      <div className="flex gap-1 shrink-0"><button onClick={onEdit} className="w-7 h-7 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-matcha-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-text-muted" /></button><button onClick={onDelete} className="w-7 h-7 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-error-50 hover:text-error-500 transition-colors"><Trash2 className="w-3.5 h-3.5 text-text-muted" /></button></div>
+    </div>
+  )
+}
+
 const EMPTY: StoreProductForm = { titulo: "", precio: 0, descripcion: "", categoria_id: "", subcategoria_id: "", estado: "new_tag", talles: [], colores: [], imagenes: [], variantes: [], envio_gratis: false, destacado: false, tipo: "ropa" }
 
 export default function TiendaPage() {
-  const { products, loaded, categories, loadFromSupabase, addStoreProduct, updateStoreProduct, removeStoreProduct } = useAdminStore()
+  const { products, loaded, categories, loadFromSupabase, addStoreProduct, updateStoreProduct, removeStoreProduct, reorderProducts } = useAdminStore()
   const [view, setView] = useState<"list" | "type" | "form">("list")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<StoreProductForm>(EMPTY)
@@ -32,6 +53,21 @@ export default function TiendaPage() {
     if (filterType !== "all" && p.tipo !== filterType) return false
     return true
   })
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = storeProducts.findIndex(p => p.id === active.id)
+    const newIndex = storeProducts.findIndex(p => p.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const items = storeProducts.map((p, i) => ({ id: p.id, orden: i }))
+    const [moved] = items.splice(oldIndex, 1)
+    items.splice(newIndex, 0, moved)
+    const reordered = items.map((p, i) => ({ id: p.id, orden: i }))
+    reorderProducts(reordered)
+  }, [storeProducts, reorderProducts])
 
   function openNew() { setForm(EMPTY); setShowPrevPrice(false); setEditingId(null); setError(""); setView("type") }
   function selectType(t: "ropa" | "tienda") {
@@ -75,18 +111,15 @@ export default function TiendaPage() {
     <div className="p-5 lg:p-7 pt-20 lg:pt-7 space-y-5 max-w-4xl">
       <div className="flex items-center justify-between"><div><h1 className="font-display text-2xl text-text-strong">Tienda La Percha</h1><p className="text-sm text-text-muted mt-1">{storeProducts.length} productos</p></div><button onClick={openNew} className="flex items-center gap-1.5 bg-brand text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-brand-hover transition-colors"><Plus className="w-4 h-4" /> Nuevo</button></div>
       <div className="flex gap-2 overflow-x-auto pb-1">{[{ v: "all" as const, l: "Todos" }, { v: "ropa" as const, l: "Ropa" }, { v: "tienda" as const, l: "Tienda" }].map(f => <button key={f.v} onClick={() => setFilterType(f.v)} className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap transition-colors ${filterType === f.v ? 'bg-brand text-white' : 'bg-surface-sunken text-text-body'}`}>{f.l}</button>)}</div>
-      {storeProducts.length === 0 ? <div className="bg-surface-card rounded-xl border border-border-subtle px-4 py-16 text-center text-sm text-text-muted">No hay productos. Tocá "Nuevo" para agregar el primero.</div> : <div className="space-y-2">{storeProducts.map(p => (
-        <div key={p.id} className="bg-surface-card rounded-xl border border-border-subtle p-3 flex items-center gap-3">
-          <img src={p.imagenes?.[0] || ""} alt="" className="w-14 h-18 rounded-lg object-cover shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap"><p className="text-sm font-semibold text-text-strong truncate">{p.titulo}</p>{p.destacado && <Star className="w-3 h-3 text-chai-500 fill-chai-500" />}{p.envio_gratis && <Truck className="w-3 h-3 text-success-500" />}</div>
-            <p className="text-xs text-text-muted">{p.categoria_id}{p.subcategoria_id ? ` · ${p.subcategoria_id}` : ""}{p.marca ? ` · ${p.marca}` : ""}</p>
-            <div className="flex items-center gap-2 mt-0.5"><p className="text-sm font-bold text-price">${p.precio.toLocaleString("es-AR")}</p>{p.precio_anterior && <p className="text-[11px] text-text-muted line-through">${p.precio_anterior.toLocaleString("es-AR")}</p>}</div>
-            {p.talles && p.talles.length > 0 && <div className="flex gap-1 mt-1">{p.talles.map(s => <span key={s} className="px-1.5 py-0.5 rounded text-[9px] bg-surface-sunken text-text-muted">{s}</span>)}</div>}
-          </div>
-          <div className="flex gap-1 shrink-0"><button onClick={() => openEdit(p)} className="w-7 h-7 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-matcha-100 transition-colors"><Pencil className="w-3.5 h-3.5 text-text-muted" /></button><button onClick={() => setShowDelete(p.id)} className="w-7 h-7 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-error-50 hover:text-error-500 transition-colors"><Trash2 className="w-3.5 h-3.5 text-text-muted" /></button></div>
-        </div>
-      ))}</div>}
+      {storeProducts.length === 0 ? <div className="bg-surface-card rounded-xl border border-border-subtle px-4 py-16 text-center text-sm text-text-muted">No hay productos. Tocá "Nuevo" para agregar el primero.</div> : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={storeProducts.map(p => p.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {storeProducts.map(p => <SortableProductRow key={p.id} p={p} onEdit={() => openEdit(p)} onDelete={() => setShowDelete(p.id)} />)}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
       {showDelete && <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center"><div className="absolute inset-0 bg-carob-900/40 backdrop-blur-sm" onClick={() => setShowDelete(null)} /><div className="relative bg-surface-card rounded-t-2xl lg:rounded-2xl p-6 w-full lg:max-w-sm"><p className="font-semibold text-text-strong mb-2">¿Eliminar producto?</p><p className="text-sm text-text-muted mb-5">Esta acción no se puede deshacer.</p><div className="flex gap-3"><button onClick={() => setShowDelete(null)} className="flex-1 h-10 rounded-full border border-border-default text-sm font-semibold">Cancelar</button><button onClick={() => { removeStoreProduct(showDelete); setShowDelete(null) }} className="flex-1 h-10 rounded-full bg-error-500 text-white text-sm font-semibold">Eliminar</button></div></div></div>}
     </div>
   )

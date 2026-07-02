@@ -48,6 +48,7 @@ interface AdminState {
   addStoreProduct: (p: StoreProductForm) => Promise<void>
   updateStoreProduct: (id: string, p: Partial<StoreProductForm>) => Promise<void>
   removeStoreProduct: (id: string) => Promise<void>
+  reorderProducts: (items: { id: string; orden: number }[]) => Promise<void>
   markOrderShipped: (id: string) => Promise<void>
   markOrderDelivered: (id: string) => Promise<void>
   addSubcategory: (catId: string, nombre: string) => Promise<void>
@@ -153,6 +154,21 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   removeStoreProduct: async (id) => {
     await supabase.from("productos").delete().eq("id", id)
     set(s => ({ products: s.products.filter(p => p.id !== id) }))
+  },
+  reorderProducts: async (items) => {
+    set(s => {
+      const updated = [...s.products]
+      for (const item of items) {
+        const idx = updated.findIndex(p => p.id === item.id)
+        if (idx !== -1) updated[idx] = { ...updated[idx], orden: item.orden }
+      }
+      return { products: updated.sort((a, b) => (a.orden || 0) - (b.orden || 0)) }
+    })
+    await fetch("/api/productos/reordenar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    })
   },
 
   markOrderShipped: async (id) => {
