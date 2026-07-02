@@ -157,7 +157,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         balance: 0,
       })
 
-      fetch("/api/registros/crear", {
+      fetch("/api/email/registro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, name }),

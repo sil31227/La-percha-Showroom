@@ -34,7 +34,7 @@ function VerifyContent() {
         <h1 className="font-display text-xl text-text-strong mb-2">Verificación de email</h1>
         <p className="text-sm text-text-muted">{message}</p>
       </div>
-      <Link href="/home" className="inline-flex items-center gap-2 px-6 py-3 bg-brand text-white font-semibold rounded-full text-sm hover:bg-brand-hover transition-colors">Ir a la tienda</Link>
+      <Link href="/ingresar" className="inline-flex items-center gap-2 px-6 py-3 bg-brand text-white font-semibold rounded-full text-sm hover:bg-brand-hover transition-colors">Iniciar sesión</Link>
     </>
   )
 }
