@@ -18,7 +18,7 @@
 /* Mobile-first responsive overrides */
 @media (max-width: 1023px) {
   .admin-card-sm {
-    @apply rounded-xl;
+    border-radius: var(--radius-xl);
   }
 
   /* Make text more readable */
