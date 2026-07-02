@@ -100,19 +100,28 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   addStoreProduct: async (form) => {
     const id = `store-${Date.now()}`
-    const { data } = await supabase.from("productos").insert({
+    const payload: Record<string, unknown> = {
       id, titulo: form.titulo, precio: form.precio, precio_anterior: form.precio_anterior,
-      descripcion: form.descripcion, marca: form.marca, categoria_id: form.categoria_id,
-      subcategoria_id: form.subcategoria_id, estado: form.estado,
+      descripcion: form.descripcion, marca: form.marca,
       talles: form.talles, colores: form.colores, imagenes: form.imagenes,
       envio_gratis: form.envio_gratis, destacado: form.destacado,
       tipo: form.tipo, vendedor_nombre: "Tienda Oficial", vendedor_tipo: "oficial",
       status: "approved",
-    }).select().single()
+    }
+    if (form.estado) payload.estado = form.estado
+    if (form.categoria_id) payload.categoria_id = form.categoria_id
+    if (form.subcategoria_id) payload.subcategoria_id = form.subcategoria_id
+    const { data, error } = await supabase.from("productos").insert(payload).select().single()
+    if (error) throw new Error(error.message)
     if (data) set(s => ({ products: [data as AdminProduct, ...s.products] }))
   },
   updateStoreProduct: async (id, form) => {
-    await supabase.from("productos").update({ ...form, updated_at: new Date().toISOString() }).eq("id", id)
+    const payload: Record<string, unknown> = { ...form, updated_at: new Date().toISOString() }
+    if (!form.estado) delete payload.estado
+    if (!form.categoria_id) delete payload.categoria_id
+    if (!form.subcategoria_id) delete payload.subcategoria_id
+    const { error } = await supabase.from("productos").update(payload).eq("id", id)
+    if (error) throw new Error(error.message)
     set(s => ({ products: s.products.map(p => p.id === id ? { ...p, ...form } : p) }))
   },
   removeStoreProduct: async (id) => {

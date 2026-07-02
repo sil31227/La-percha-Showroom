@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useAdminStore, type StoreProductForm, type AdminProduct } from "@/store/useAdminStore"
 import { Plus, X, Pencil, Trash2, ChevronLeft, Star, Truck, Upload, AlertCircle, Shirt, Store } from "lucide-react"
 
@@ -22,8 +22,10 @@ export default function TiendaPage() {
   const [newColor, setNewColor] = useState("")
   const [error, setError] = useState("")
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [showDelete, setShowDelete] = useState<string | null>(null)
   const [filterType, setFilterType] = useState<"all" | "ropa" | "tienda">("all")
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { loadFromSupabase() }, [])
 
@@ -34,13 +36,27 @@ export default function TiendaPage() {
   })
 
   function openNew() { setForm(EMPTY); setShowPrevPrice(false); setEditingId(null); setError(""); setView("type") }
-  function selectType(t: "ropa" | "tienda") { setForm(f => ({ ...f, tipo: t, categoria_id: t === "ropa" ? "mujer" : "tienda", subcategoria_id: t === "ropa" ? "ropa" : "regaleria", estado: t === "ropa" ? "new_tag" : "", talles: [], marca: "", colores: [] })); setView("form") }
+  function selectType(t: "ropa" | "tienda") { setForm(f => ({ ...f, tipo: t, categoria_id: t === "ropa" ? "mujer" : "", subcategoria_id: t === "ropa" ? "ropa" : "", estado: t === "ropa" ? "new_tag" : "", talles: [], marca: "", colores: [] })); setView("form") }
   function openEdit(p: AdminProduct) { setForm({ titulo: p.titulo, precio: p.precio, precio_anterior: p.precio_anterior, descripcion: p.descripcion || "", marca: p.marca, categoria_id: p.categoria_id, subcategoria_id: p.subcategoria_id || "", estado: p.estado || "", talles: p.talles || [], colores: p.colores || [], imagenes: p.imagenes || [], envio_gratis: p.envio_gratis || false, destacado: p.destacado || false, tipo: p.tipo }); setShowPrevPrice(!!p.precio_anterior); setEditingId(p.id); setError(""); setView("form") }
   function addImage() { if (!newImage.trim()) return; setForm(f => ({ ...f, imagenes: [...f.imagenes, newImage.trim()] })); setNewImage("") }
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files; if (!files?.length) return
+    setUploading(true)
+    for (const file of Array.from(files)) {
+      const fd = new FormData(); fd.append("file", file)
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: fd })
+        const data = await res.json()
+        if (data.url) setForm(f => ({ ...f, imagenes: [...f.imagenes, data.url] }))
+      } catch { setError("Error al subir imagen") }
+    }
+    setUploading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
   function toggleSize(s: string) { setForm(f => ({ ...f, talles: f.talles.includes(s) ? f.talles.filter(z => z !== s) : [...f.talles, s] })) }
   function addColor() { if (!newColor.trim()) return; setForm(f => ({ ...f, colores: [...f.colores, newColor.trim()] })); setNewColor("") }
   function validate(): boolean { if (!form.titulo.trim()) { setError("El título es obligatorio"); return false }; if (!form.precio || form.precio <= 0) { setError("El precio debe ser mayor a 0"); return false }; if (form.imagenes.length === 0) { setError("Agregá al menos una imagen"); return false }; if (form.tipo === "ropa" && form.talles.length === 0) { setError("Seleccioná al menos un talle"); return false }; return true }
-  async function handleSubmit(e: React.FormEvent) { e.preventDefault(); if (!validate()) return; setSaving(true); const data = { ...form, precio_anterior: showPrevPrice ? form.precio_anterior : undefined }; if (editingId) await updateStoreProduct(editingId, data); else await addStoreProduct(data); setSaving(false); setView("list") }
+  async function handleSubmit(e: React.FormEvent) { e.preventDefault(); if (!validate()) return; setSaving(true); try { const data = { ...form, precio_anterior: showPrevPrice ? form.precio_anterior : undefined }; if (editingId) await updateStoreProduct(editingId, data); else await addStoreProduct(data); setView("list") } catch (err: unknown) { setError(err instanceof Error ? err.message : "Error al guardar el producto") } finally { setSaving(false) } }
 
   if (!loaded) return <div className="p-5 pt-20 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
@@ -88,13 +104,42 @@ export default function TiendaPage() {
         <div><button type="button" onClick={() => setShowPrevPrice(!showPrevPrice)} className={`flex items-center gap-2 text-xs font-semibold transition-colors ${showPrevPrice ? 'text-text-strong' : 'text-text-muted'}`}><div className={`w-9 h-5 rounded-full transition-colors ${showPrevPrice ? 'bg-matcha-500' : 'bg-border-default'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform mt-0.5 ${showPrevPrice ? 'ml-4' : 'ml-0.5'}`} /></div>Mostrar precio tachado</button>{showPrevPrice && <input type="number" value={form.precio_anterior || ""} onChange={e => setForm(f => ({ ...f, precio_anterior: Number(e.target.value) }))} placeholder="Precio anterior" className="w-full h-11 px-4 mt-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none" />}</div>
         {isRopa && <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Marca</label><input value={form.marca || ""} onChange={e => setForm(f => ({ ...f, marca: e.target.value }))} placeholder="ej: Zara, COS, Adidas" className="w-full h-11 px-4 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none" /></div>}
         <div className="grid grid-cols-2 gap-3">
-          <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Categoría</label><select value={form.categoria_id} onChange={e => setForm(f => ({ ...f, categoria_id: e.target.value, subcategoria_id: isRopa ? (SUBS_ROPA[e.target.value]?.[0] || "") : SUBS_TIENDA[0] }))} className="w-full h-11 px-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none">{catOpts.map(c => <option key={c.v} value={c.v}>{c.l}</option>)}</select></div>
-          <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Subcategoría</label><select value={form.subcategoria_id} onChange={e => setForm(f => ({ ...f, subcategoria_id: e.target.value }))} className="w-full h-11 px-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none">{subs.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}</select></div>
+          <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Categoría</label><select value={form.categoria_id} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, categoria_id: v, subcategoria_id: isRopa && v ? (SUBS_ROPA[v]?.[0] || "") : "" })) }} className="w-full h-11 px-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none"><option value="">Sin categoría</option>{catOpts.map(c => <option key={c.v} value={c.v}>{c.l}</option>)}</select></div>
+          <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Subcategoría</label><select value={form.subcategoria_id} onChange={e => setForm(f => ({ ...f, subcategoria_id: e.target.value }))} className="w-full h-11 px-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none"><option value="">Sin subcategoría</option>{subs.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}</select></div>
         </div>
         {isRopa && <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">Estado *</label><div className="flex flex-wrap gap-2">{CONDITIONS.map(c => <button key={c.v} type="button" onClick={() => setForm(f => ({ ...f, estado: c.v }))} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${form.estado === c.v ? 'bg-brand text-white border-brand' : 'bg-surface-sunken text-text-body border-transparent'}`}>{c.l}</button>)}</div></div>}
         {isRopa && <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">Talles *</label><div className="flex flex-wrap gap-2">{SIZES.map(s => <button key={s} type="button" onClick={() => toggleSize(s)} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${form.talles.includes(s) ? 'bg-brand text-white border-brand' : 'bg-surface-sunken text-text-body border-transparent'}`}>{s}</button>)}</div></div>}
         <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">Colores</label><div className="flex flex-wrap gap-2 mb-3">{COLORES.map(c => <button key={c} type="button" onClick={() => setForm(f => ({ ...f, colores: f.colores.includes(c) ? f.colores.filter(x => x !== c) : [...f.colores, c] }))} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${form.colores.includes(c) ? 'bg-surface-inverse text-white border-surface-inverse' : 'bg-surface-sunken text-text-body border-transparent'}`}>{c}</button>)}</div><div className="flex gap-2"><input value={newColor} onChange={e => setNewColor(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addColor() } }} placeholder="Agregar color..." className="flex-1 h-9 px-3 rounded-lg bg-surface-sunken text-xs border border-transparent focus:border-brand outline-none" /><button type="button" onClick={addColor} className="px-3 h-9 rounded-full bg-surface-sunken text-xs font-semibold hover:bg-matcha-100 transition-colors">+</button></div></div>
-        <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">Imágenes *</label>{form.imagenes.length > 0 && <div className="flex gap-2 overflow-x-auto pb-2 mb-3">{form.imagenes.map((url, i) => <div key={i} className="relative shrink-0"><img src={url} alt="" className="w-20 h-26 rounded-lg object-cover" /><button type="button" onClick={() => setForm(f => ({ ...f, imagenes: f.imagenes.filter((_, j) => j !== i) }))} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error-500 text-white flex items-center justify-center"><X className="w-3 h-3" /></button></div>)}</div>}<div className="flex gap-2"><input value={newImage} onChange={e => setNewImage(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addImage() } }} placeholder="URL de la imagen..." className="flex-1 h-11 px-4 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none" /><button type="button" onClick={addImage} className="h-11 px-4 rounded-full bg-surface-sunken flex items-center gap-1.5 text-sm font-semibold hover:bg-matcha-100 transition-colors"><Upload className="w-4 h-4" /> +</button></div></div>
+        <div>
+          <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">Imágenes *</label>
+          {form.imagenes.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
+              {form.imagenes.map((url, i) => (
+                <div key={i} className="relative shrink-0">
+                  <img src={url} alt="" className="w-20 h-26 rounded-lg object-cover" />
+                  <button type="button" onClick={() => setForm(f => ({ ...f, imagenes: f.imagenes.filter((_, j) => j !== i) }))} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error-500 text-white flex items-center justify-center"><X className="w-3 h-3" /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full h-24 rounded-xl border-2 border-dashed border-border-default bg-surface-sunken flex flex-col items-center justify-center gap-1.5 text-text-muted hover:border-brand hover:text-brand transition-colors disabled:opacity-50">
+            {uploading ? (
+              <span className="text-sm">Subiendo...</span>
+            ) : (
+              <>
+                <Upload className="w-5 h-5" />
+                <span className="text-xs font-semibold">Subir imágenes</span>
+                <span className="text-[10px]">JPG, PNG, WebP hasta 10MB</span>
+              </>
+            )}
+          </button>
+          <p className="text-[10px] text-text-muted mt-2 text-center">o pegá una URL</p>
+          <div className="flex gap-2 mt-2">
+            <input value={newImage} onChange={e => setNewImage(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addImage() } }} placeholder="URL de la imagen..." className="flex-1 h-11 px-4 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none" />
+            <button type="button" onClick={addImage} className="h-11 px-4 rounded-full bg-surface-sunken flex items-center gap-1.5 text-sm font-semibold hover:bg-matcha-100 transition-colors"><Upload className="w-4 h-4" /> +</button>
+          </div>
+        </div>
         <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Descripción</label><textarea value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} rows={3} placeholder="Describí el producto..." className="w-full px-4 py-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none resize-none" /></div>
         <div className="space-y-3"><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={form.envio_gratis} onChange={e => setForm(f => ({ ...f, envio_gratis: e.target.checked }))} className="accent-brand w-4 h-4 rounded" /><span className="flex items-center gap-1.5 text-sm text-text-body"><Truck className="w-4 h-4 text-success-500" /> Envío gratis</span></label><label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={form.destacado} onChange={e => setForm(f => ({ ...f, destacado: e.target.checked }))} className="accent-brand w-4 h-4 rounded" /><span className="flex items-center gap-1.5 text-sm text-text-body"><Star className="w-4 h-4 text-chai-500 fill-chai-500" /> Producto destacado</span></label></div>
         {error && <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-error-50 text-error-600 text-sm"><AlertCircle className="w-4 h-4 shrink-0" />{error}</div>}
