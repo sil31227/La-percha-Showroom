@@ -33,7 +33,7 @@ export default function VenderPage() {
   }, [user?.seller_status])
 
   useEffect(() => {
-    supabase.from("categorias").select("id, nombre").order("orden")
+    supabase.from("categorias").select("id, nombre").eq("tipo", "ropa").order("orden")
       .then(({ data }) => {
         if (data && data.length > 0) {
           setCategories(data)
@@ -55,6 +55,7 @@ export default function VenderPage() {
   const [uploading, setUploading] = useState(false)
   const [deletedImages, setDeletedImages] = useState<string[]>([])
   const [selectedColors, setSelectedColors] = useState<string[]>([])
+  const [newColor, setNewColor] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!user) {
@@ -235,6 +236,13 @@ export default function VenderPage() {
     if (url && url.includes("hvmctiqzjbqsghuwhquk.supabase.co")) {
       setDeletedImages(prev => [...prev, url])
     }
+  }
+
+  function addColor() {
+    if (!newColor.trim()) return
+    if (selectedColors.includes(newColor.trim())) return
+    setSelectedColors(prev => [...prev, newColor.trim()])
+    setNewColor("")
   }
 
   const [submitting, setSubmitting] = useState(false)
@@ -433,7 +441,7 @@ export default function VenderPage() {
         {/* Colores */}
         <div>
           <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Colores</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-3">
             {["Negro","Blanco","Beige","Gris","Verde","Azul","Rojo","Rosa","Amarillo","Marrón"].map(c => (
               <button key={c} type="button"
                 onClick={() => setSelectedColors(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
@@ -444,6 +452,16 @@ export default function VenderPage() {
                 {c}
               </button>
             ))}
+            {selectedColors.filter(c => !["Negro","Blanco","Beige","Gris","Verde","Azul","Rojo","Rosa","Amarillo","Marrón"].includes(c)).map(c => (
+              <span key={c} className="inline-flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-semibold bg-surface-inverse text-white">
+                {c}
+                <button type="button" onClick={() => setSelectedColors(prev => prev.filter(x => x !== c))} className="hover:text-error-200"><X className="w-3 h-3" /></button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input value={newColor} onChange={e => setNewColor(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addColor() } }} placeholder="Agregar color..." className="flex-1 h-9 px-3 rounded-lg bg-surface-sunken text-xs border border-transparent focus:border-brand outline-none" />
+            <button type="button" onClick={addColor} className="px-3 h-9 rounded-full bg-surface-sunken text-xs font-semibold hover:bg-matcha-100 transition-colors">+</button>
           </div>
         </div>
 
