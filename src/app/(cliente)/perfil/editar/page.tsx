@@ -31,6 +31,11 @@ export default function EditarPerfilPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    if (file.size > 4 * 1024 * 1024) {
+      alert("La foto es demasiado grande. El tamaño máximo es 4 MB.")
+      return
+    }
+
     setUploading(true)
     try {
       const formData = new FormData()
@@ -38,10 +43,16 @@ export default function EditarPerfilPage() {
       formData.append("folder", "avatars")
 
       const res = await fetch("/api/upload", { method: "POST", body: formData })
-      const data = await res.json()
+      const text = await res.text()
+      let data: { url?: string; error?: string } = {}
+      try {
+        data = JSON.parse(text)
+      } catch {
+        data = { error: "Error del servidor (" + res.status + ")" }
+      }
 
       if (data.url) {
-        setProfile(p => ({ ...p, avatar: data.url }))
+        setProfile(p => ({ ...p, avatar: data.url as string }))
       } else {
         alert("Error al subir la foto: " + (data.error || "Error desconocido"))
       }
