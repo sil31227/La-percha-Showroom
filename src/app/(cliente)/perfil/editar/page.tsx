@@ -1,5 +1,5 @@
 "use client"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { useAuthStore } from "@/store/useAuthStore"
 import { supabase } from "@/lib/supabase"
@@ -64,6 +64,21 @@ export default function EditarPerfilPage() {
     alias: "",
   })
 
+  useEffect(() => {
+    if (!user?.id) return
+    supabase.from("vendedores").select("cbu, banco, tipo_cuenta, alias, titular").eq("id", user.id).maybeSingle().then(({ data }) => {
+      if (data) {
+        setPayment({
+          fullName: (data.titular as string) || user.name || "",
+          bank: (data.banco as string) || "",
+          accountType: ((data.tipo_cuenta as string) || "caja_ahorro") as "caja_ahorro" | "cuenta_corriente",
+          cbu: (data.cbu as string) || "",
+          alias: (data.alias as string) || "",
+        })
+      }
+    })
+  }, [user?.id])
+
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -104,22 +119,42 @@ export default function EditarPerfilPage() {
 
     setSaving(true)
     try {
-      const { error } = await supabase
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({
           full_name: profile.name,
           avatar_url: profile.avatar,
+          phone: profile.phone,
         })
         .eq("id", user.id)
 
-      if (error) {
-        alert("Error al guardar perfil: " + error.message)
+      if (profileError) {
+        alert("Error al guardar perfil: " + profileError.message)
+        setSaving(false)
         return
+      }
+
+      const { error: vendorError } = await supabase
+        .from("vendedores")
+        .upsert({
+          id: user.id,
+          nombre: profile.name,
+          avatar: profile.avatar,
+          cbu: payment.cbu,
+          banco: payment.bank,
+          tipo_cuenta: payment.accountType,
+          alias: payment.alias,
+          titular: payment.fullName,
+        })
+
+      if (vendorError) {
+        console.error("Error al guardar datos de cobro:", vendorError)
       }
 
       updateProfile({
         name: profile.name,
         avatar: profile.avatar,
+        phone: profile.phone,
       })
 
       setSaved(true)
