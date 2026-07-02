@@ -39,6 +39,7 @@ function mapProducto(row: Record<string, unknown>): Product {
       rating: 5.0,
       sales_count: 0,
     },
+    tipo: (row.tipo as "ropa" | "tienda") || "ropa",
     accepts_offers: false,
     free_shipping: (row.envio_gratis as boolean) || false,
     created_at: (row.created_at as string) || new Date().toISOString(),

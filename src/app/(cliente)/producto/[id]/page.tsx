@@ -52,6 +52,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
   }
 
   const sizes = product.sizes?.length ? product.sizes : ["Único"]
+  const showSizeSelector = product.tipo !== "tienda" || sizes.length > 1 || sizes[0] !== "Único"
 
   const activeVariant = product.variantes?.[selectedVariant] || null
   const displayPrice = activeVariant ? activeVariant.precio : product.price
@@ -162,12 +163,14 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
           <p className="text-sm text-text-muted leading-relaxed">{product.description}</p>
 
           {/* Selector de talle */}
-          <SizeSelector
-            sizes={sizes}
-            selected={selectedSize}
-            onChange={(s) => { setSelectedSize(s); setSizeError(false) }}
-            error={sizeError}
-          />
+          {showSizeSelector && (
+            <SizeSelector
+              sizes={sizes}
+              selected={selectedSize}
+              onChange={(s) => { setSelectedSize(s); setSizeError(false) }}
+              error={sizeError}
+            />
+          )}
 
           {/* Selector de variante */}
           {product.variantes && product.variantes.length > 0 && (
@@ -207,10 +210,10 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
             lg:px-0 lg:max-w-full z-10">
             <button
               onClick={handleAddToCart}
-              disabled={!selectedSize}
+              disabled={showSizeSelector && !selectedSize}
               className={`flex items-center justify-center gap-2.5 w-full h-13
                 font-semibold rounded-lg transition-colors
-                ${!selectedSize
+                ${(showSizeSelector && !selectedSize)
                   ? 'bg-brand/40 text-text-on-brand cursor-not-allowed'
                   : 'bg-brand hover:bg-brand-hover text-text-on-brand cursor-pointer'}`}>
               <ShoppingBag className="w-5 h-5" />

@@ -33,6 +33,7 @@ export interface Product {
   category: Category
   subcategory?: Subcategory
   seller: Seller
+  tipo?: "ropa" | "tienda"
   accepts_offers: boolean
   free_shipping: boolean
   stock?: number
