@@ -24,8 +24,8 @@ export interface AdminOrder {
   talle?: string; direccion?: string; status: OrderStatus; created_at?: string
 }
 export interface FAQItem { id: string; pregunta: string; respuesta: string; orden?: number }
-export interface AdminCategory { id: string; nombre: string; subcategorias: AdminSubcategory[] }
-export interface AdminSubcategory { id: string; categoria_id: string; nombre: string }
+export interface AdminCategory { id: string; nombre: string; tipo?: string; destacada?: boolean; orden?: number; subcategorias: AdminSubcategory[] }
+export interface AdminSubcategory { id: string; categoria_id: string; nombre: string; orden?: number }
 
 export interface StoreProductForm {
   titulo: string; precio: number; precio_anterior?: number; descripcion: string
@@ -52,6 +52,7 @@ interface AdminState {
   renameSubcategory: (catId: string, subId: string, nombre: string) => Promise<void>
   deleteSubcategory: (catId: string, subId: string) => Promise<void>
   renameCategory: (catId: string, nombre: string) => Promise<void>
+  addCategory: (nombre: string, tipo: string) => Promise<void>
   addFAQ: (pregunta: string, respuesta: string) => Promise<void>
   updateFAQ: (id: string, pregunta: string, respuesta: string) => Promise<void>
   deleteFAQ: (id: string) => Promise<void>
@@ -180,6 +181,11 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   renameCategory: async (catId, nombre) => {
     await supabase.from("categorias").update({ nombre }).eq("id", catId)
     set(s => ({ categories: s.categories.map(c => c.id === catId ? { ...c, nombre } : c) }))
+  },
+  addCategory: async (nombre, tipo) => {
+    const id = `cat-${Date.now()}`
+    await supabase.from("categorias").insert({ id, nombre, tipo, orden: 0 })
+    set(s => ({ categories: [...s.categories, { id, nombre, tipo, subcategorias: [] }] }))
   },
 
   addFAQ: async (pregunta, respuesta) => {

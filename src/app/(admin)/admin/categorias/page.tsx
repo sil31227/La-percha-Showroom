@@ -4,11 +4,12 @@ import { useAdminStore } from "@/store/useAdminStore"
 import { ChevronDown, Pencil, Trash2, Plus, X, Check } from "lucide-react"
 
 export default function CategoriasPage() {
-  const { categories, loaded, loadFromSupabase, addSubcategory, renameSubcategory, deleteSubcategory, renameCategory } = useAdminStore()
+  const { categories, loaded, loadFromSupabase, addSubcategory, renameSubcategory, deleteSubcategory, renameCategory, addCategory } = useAdminStore()
   const [openCat, setOpenCat] = useState<string | null>(null)
   const [editing, setEditing] = useState<{ catId: string; subId?: string; nombre: string } | null>(null)
   const [adding, setAdding] = useState<{ catId: string; nombre: string } | null>(null)
   const [deleting, setDeleting] = useState<{ catId: string; subId: string; nombre: string } | null>(null)
+  const [newCat, setNewCat] = useState({ nombre: "", tipo: "ropa" as "ropa" | "tienda", open: false })
 
   useEffect(() => { loadFromSupabase() }, [])
 
@@ -41,6 +42,25 @@ export default function CategoriasPage() {
         ))}
       </div>
       {deleting && <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center"><div className="absolute inset-0 bg-carob-900/40 backdrop-blur-sm" onClick={() => setDeleting(null)} /><div className="relative bg-surface-card rounded-t-2xl lg:rounded-2xl p-6 w-full lg:max-w-sm"><p className="font-semibold text-text-strong mb-2">¿Eliminar "{deleting.nombre}"?</p><p className="text-sm text-text-muted mb-5">Los productos quedarán sin subcategoría.</p><div className="flex gap-3"><button onClick={() => setDeleting(null)} className="flex-1 h-10 rounded-full border border-border-default text-sm font-semibold">Cancelar</button><button onClick={() => { deleteSubcategory(deleting.catId, deleting.subId); setDeleting(null) }} className="flex-1 h-10 rounded-full bg-error-500 text-white text-sm font-semibold">Eliminar</button></div></div></div>}
+      <div className="bg-surface-card rounded-xl border border-border-subtle p-4">
+        {newCat.open ? (
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-text-strong">Nueva categoría</p>
+            <input value={newCat.nombre} onChange={e => setNewCat(s => ({ ...s, nombre: e.target.value }))} placeholder="Nombre de la categoría" className="w-full h-10 px-3 rounded-lg bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none" />
+            <div className="flex gap-2">
+              {(["ropa", "tienda"] as const).map(t => (
+                <button key={t} type="button" onClick={() => setNewCat(s => ({ ...s, tipo: t }))} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${newCat.tipo === t ? 'bg-brand text-white border-brand' : 'bg-surface-sunken text-text-body border-transparent'}`}>{t === "ropa" ? "Ropa" : "Tienda"}</button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { if (newCat.nombre.trim()) { addCategory(newCat.nombre.trim(), newCat.tipo); setNewCat({ nombre: "", tipo: "ropa", open: false }) } }} className="flex-1 h-10 rounded-full bg-brand text-white text-sm font-semibold">Crear</button>
+              <button onClick={() => setNewCat(s => ({ ...s, open: false }))} className="px-4 h-10 rounded-full border border-border-default text-sm font-semibold">Cancelar</button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setNewCat(s => ({ ...s, open: true }))} className="w-full flex items-center gap-2 py-2 text-sm text-matcha-600 font-medium justify-center hover:bg-matcha-50 rounded-lg transition-colors"><Plus className="w-4 h-4" /> Nueva categoría</button>
+        )}
+      </div>
     </div>
   )
 }

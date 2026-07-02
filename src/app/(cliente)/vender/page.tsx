@@ -1,7 +1,7 @@
 "use client"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { ArrowLeft, Camera, Plus, X, ShieldCheck, Package, BadgePercent, Truck, Clock, FileText, CheckCircle } from "lucide-react"
+import { ArrowLeft, Camera, Plus, X, ShieldCheck, Package, BadgePercent, Truck, Clock, FileText, CheckCircle, Upload } from "lucide-react"
 import { useAuthStore } from "@/store/useAuthStore"
 import { supabase } from "@/lib/supabase"
 
@@ -38,6 +38,10 @@ export default function VenderPage() {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [freeShipping, setFreeShipping] = useState(false)
   const [sent, setSent] = useState(false)
+  const [images, setImages] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [selectedColors, setSelectedColors] = useState<string[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!user) {
     return (
@@ -196,6 +200,21 @@ export default function VenderPage() {
     )
   }
 
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files; if (!files?.length) return
+    setUploading(true)
+    for (const file of Array.from(files)) {
+      const fd = new FormData(); fd.append("file", file)
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: fd })
+        const data = await res.json()
+        if (data.url) setImages(prev => [...prev, data.url])
+      } catch { /* ignore */ }
+    }
+    setUploading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -212,7 +231,8 @@ export default function VenderPage() {
       categoria_id: category,
       estado: condition,
       talles: selectedSizes,
-      imagenes: [],
+      colores: selectedColors,
+      imagenes: images,
       envio_gratis: freeShipping,
       tipo: "ropa",
       vendedor_nombre: user.name,
@@ -248,7 +268,7 @@ export default function VenderPage() {
               className="px-5 py-2.5 rounded-full border border-border-default text-text-body font-semibold text-sm hover:border-brand transition-colors">
               Volver al inicio
             </Link>
-            <button onClick={() => { setSent(false); setTitle(""); setDescription(""); setBrand(""); setPrice(""); setSelectedSizes([]) }}
+            <button onClick={() => { setSent(false); setTitle(""); setDescription(""); setBrand(""); setPrice(""); setSelectedSizes([]); setSelectedColors([]); setImages([]) }}
               className="px-5 py-2.5 rounded-full bg-brand text-text-on-brand font-semibold text-sm hover:bg-brand-hover transition-colors">
               Publicar otra
             </button>
@@ -272,21 +292,21 @@ export default function VenderPage() {
 
         {/* Fotos */}
         <div>
-          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Fotos</p>
-          <div className="flex gap-3">
-            <button type="button"
-              className="w-24 h-32 rounded-xl bg-surface-sunken border-2 border-dashed border-border-default
-                flex flex-col items-center justify-center gap-1 text-text-muted hover:border-brand transition-colors">
-              <Camera className="w-5 h-5" />
-              <span className="text-[10px]">Agregar</span>
-            </button>
-            <div className="w-24 h-32 rounded-xl bg-matcha-100 flex items-center justify-center text-2xl select-none">
-              👗
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Fotos *</p>
+          {images.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
+              {images.map((url, i) => (
+                <div key={i} className="relative shrink-0">
+                  <img src={url} alt="" className="w-24 h-32 rounded-lg object-cover" />
+                  <button type="button" onClick={() => setImages(prev => prev.filter((_, j) => j !== i))} className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error-500 text-white flex items-center justify-center"><X className="w-3 h-3" /></button>
+                </div>
+              ))}
             </div>
-            <div className="w-24 h-32 rounded-xl bg-pistache-100 flex items-center justify-center text-2xl select-none">
-              👚
-            </div>
-          </div>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileUpload} className="hidden" />
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="w-full h-24 rounded-xl border-2 border-dashed border-border-default bg-surface-sunken flex flex-col items-center justify-center gap-1 text-text-muted hover:border-brand hover:text-brand transition-colors disabled:opacity-50">
+            {uploading ? <span className="text-sm">Subiendo...</span> : <><Camera className="w-5 h-5" /><span className="text-xs font-semibold">Subir fotos</span><span className="text-[10px]">JPG, PNG, WebP hasta 10MB</span></>}
+          </button>
         </div>
 
         {/* Título */}
@@ -373,6 +393,23 @@ export default function VenderPage() {
                     ? 'bg-brand border-brand text-text-on-brand'
                     : 'border-border-default text-text-body hover:border-brand'}`}>
                 {s}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Colores */}
+        <div>
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wide mb-2">Colores</p>
+          <div className="flex flex-wrap gap-2">
+            {["Negro","Blanco","Beige","Gris","Verde","Azul","Rojo","Rosa","Amarillo","Marrón"].map(c => (
+              <button key={c} type="button"
+                onClick={() => setSelectedColors(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors
+                  ${selectedColors.includes(c)
+                    ? 'bg-surface-inverse text-white border-surface-inverse'
+                    : 'border-border-default text-text-body hover:border-brand'}`}>
+                {c}
               </button>
             ))}
           </div>

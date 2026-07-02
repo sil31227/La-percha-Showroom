@@ -3,17 +3,14 @@ import { useEffect, useRef, useState } from "react"
 import { useAdminStore, type StoreProductForm, type AdminProduct } from "@/store/useAdminStore"
 import { Plus, X, Pencil, Trash2, ChevronLeft, Star, Truck, Upload, AlertCircle, Shirt, Store } from "lucide-react"
 
-const CATS_ROPA = [{ v: "mujer", l: "Mujer" }, { v: "hombre", l: "Hombre" }, { v: "kids", l: "Kids" }]
-const SUBS_ROPA: Record<string, string[]> = { mujer: ["ropa","calzado","accesorios","belleza"], hombre: ["ropa","calzado","accesorios"], kids: ["bebes","ninas","ninos"] }
-const SUBS_TIENDA = ["regaleria","bazar","decoracion"]
 const CONDITIONS = [{ v: "new_tag", l: "Nuevo con etiqueta" }, { v: "new", l: "Nuevo" }, { v: "like_new", l: "Como nuevo" }, { v: "used", l: "Usado" }]
 const SIZES = ["XS","S","M","L","XL","Único"]
 const COLORES = ["Negro","Blanco","Beige","Gris","Verde","Azul","Rojo","Rosa","Amarillo","Marrón"]
 
-const EMPTY: StoreProductForm = { titulo: "", precio: 0, descripcion: "", categoria_id: "mujer", subcategoria_id: "ropa", estado: "new_tag", talles: [], colores: [], imagenes: [], envio_gratis: false, destacado: false, tipo: "ropa" }
+const EMPTY: StoreProductForm = { titulo: "", precio: 0, descripcion: "", categoria_id: "", subcategoria_id: "", estado: "new_tag", talles: [], colores: [], imagenes: [], envio_gratis: false, destacado: false, tipo: "ropa" }
 
 export default function TiendaPage() {
-  const { products, loaded, loadFromSupabase, addStoreProduct, updateStoreProduct, removeStoreProduct } = useAdminStore()
+  const { products, loaded, categories, loadFromSupabase, addStoreProduct, updateStoreProduct, removeStoreProduct } = useAdminStore()
   const [view, setView] = useState<"list" | "type" | "form">("list")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<StoreProductForm>(EMPTY)
@@ -36,7 +33,13 @@ export default function TiendaPage() {
   })
 
   function openNew() { setForm(EMPTY); setShowPrevPrice(false); setEditingId(null); setError(""); setView("type") }
-  function selectType(t: "ropa" | "tienda") { setForm(f => ({ ...f, tipo: t, categoria_id: t === "ropa" ? "mujer" : "", subcategoria_id: t === "ropa" ? "ropa" : "", estado: t === "ropa" ? "new_tag" : "", talles: [], marca: "", colores: [] })); setView("form") }
+  function selectType(t: "ropa" | "tienda") {
+    const matching = categories.filter(c => c.tipo === t)
+    const firstCat = matching[0]
+    const firstSub = firstCat?.subcategorias?.[0]
+    setForm(f => ({ ...f, tipo: t, categoria_id: firstCat?.id || "", subcategoria_id: firstSub?.id || "", estado: t === "ropa" ? "new_tag" : "", talles: [], marca: "", colores: [] }))
+    setView("form")
+  }
   function openEdit(p: AdminProduct) { setForm({ titulo: p.titulo, precio: p.precio, precio_anterior: p.precio_anterior, descripcion: p.descripcion || "", marca: p.marca, categoria_id: p.categoria_id, subcategoria_id: p.subcategoria_id || "", estado: p.estado || "", talles: p.talles || [], colores: p.colores || [], imagenes: p.imagenes || [], envio_gratis: p.envio_gratis || false, destacado: p.destacado || false, tipo: p.tipo }); setShowPrevPrice(!!p.precio_anterior); setEditingId(p.id); setError(""); setView("form") }
   function addImage() { if (!newImage.trim()) return; setForm(f => ({ ...f, imagenes: [...f.imagenes, newImage.trim()] })); setNewImage("") }
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -92,8 +95,8 @@ export default function TiendaPage() {
   )
 
   const isRopa = form.tipo === "ropa"
-  const catOpts = isRopa ? CATS_ROPA : [{ v: "tienda", l: "Tienda Percha" }]
-  const subs = isRopa ? SUBS_ROPA[form.categoria_id] || [] : SUBS_TIENDA
+  const catOpts = categories.filter(c => !c.tipo || c.tipo === form.tipo)
+  const subs = categories.find(c => c.id === form.categoria_id)?.subcategorias || []
 
   return (
     <div className="p-5 lg:p-7 pt-20 lg:pt-7 space-y-5 max-w-2xl mx-auto">
@@ -104,8 +107,8 @@ export default function TiendaPage() {
         <div><button type="button" onClick={() => setShowPrevPrice(!showPrevPrice)} className={`flex items-center gap-2 text-xs font-semibold transition-colors ${showPrevPrice ? 'text-text-strong' : 'text-text-muted'}`}><div className={`w-9 h-5 rounded-full transition-colors ${showPrevPrice ? 'bg-matcha-500' : 'bg-border-default'}`}><div className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform mt-0.5 ${showPrevPrice ? 'ml-4' : 'ml-0.5'}`} /></div>Mostrar precio tachado</button>{showPrevPrice && <input type="number" value={form.precio_anterior || ""} onChange={e => setForm(f => ({ ...f, precio_anterior: Number(e.target.value) }))} placeholder="Precio anterior" className="w-full h-11 px-4 mt-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none" />}</div>
         {isRopa && <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Marca</label><input value={form.marca || ""} onChange={e => setForm(f => ({ ...f, marca: e.target.value }))} placeholder="ej: Zara, COS, Adidas" className="w-full h-11 px-4 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none" /></div>}
         <div className="grid grid-cols-2 gap-3">
-          <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Categoría</label><select value={form.categoria_id} onChange={e => { const v = e.target.value; setForm(f => ({ ...f, categoria_id: v, subcategoria_id: isRopa && v ? (SUBS_ROPA[v]?.[0] || "") : "" })) }} className="w-full h-11 px-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none"><option value="">Sin categoría</option>{catOpts.map(c => <option key={c.v} value={c.v}>{c.l}</option>)}</select></div>
-          <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Subcategoría</label><select value={form.subcategoria_id} onChange={e => setForm(f => ({ ...f, subcategoria_id: e.target.value }))} className="w-full h-11 px-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none"><option value="">Sin subcategoría</option>{subs.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}</select></div>
+          <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Categoría</label><select value={form.categoria_id} onChange={e => { const v = e.target.value; const foundCat = categories.find(c => c.id === v); setForm(f => ({ ...f, categoria_id: v, subcategoria_id: foundCat?.subcategorias?.[0]?.id || "" })) }} className="w-full h-11 px-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none"><option value="">Sin categoría</option>{catOpts.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></div>
+          <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1">Subcategoría</label><select value={form.subcategoria_id} onChange={e => setForm(f => ({ ...f, subcategoria_id: e.target.value }))} className="w-full h-11 px-3 rounded-xl bg-surface-sunken text-sm border border-transparent focus:border-brand outline-none"><option value="">Sin subcategoría</option>{subs.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}</select></div>
         </div>
         {isRopa && <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">Estado *</label><div className="flex flex-wrap gap-2">{CONDITIONS.map(c => <button key={c.v} type="button" onClick={() => setForm(f => ({ ...f, estado: c.v }))} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${form.estado === c.v ? 'bg-brand text-white border-brand' : 'bg-surface-sunken text-text-body border-transparent'}`}>{c.l}</button>)}</div></div>}
         {isRopa && <div><label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">Talles *</label><div className="flex flex-wrap gap-2">{SIZES.map(s => <button key={s} type="button" onClick={() => toggleSize(s)} className={`px-3.5 py-1.5 rounded-full text-[11px] font-semibold border transition-colors ${form.talles.includes(s) ? 'bg-brand text-white border-brand' : 'bg-surface-sunken text-text-body border-transparent'}`}>{s}</button>)}</div></div>}

@@ -4,6 +4,15 @@ export type SortOption = 'newest' | 'price_asc' | 'price_desc'
 export type Category = 'mujer' | 'hombre' | 'kids' | 'regaleria' | 'bazar' | 'decoracion'
 export type Subcategory = 'ropa' | 'calzado' | 'accesorios' | 'belleza' | 'bebes' | 'ninas' | 'ninos'
 
+export interface Variante {
+  nombre: string
+  talle: string
+  color: string
+  precio: number
+  stock: number
+  imagen: string
+}
+
 export interface Seller {
   id: string
   name: string
@@ -27,6 +36,8 @@ export interface Product {
   seller: Seller
   accepts_offers: boolean
   free_shipping: boolean
+  stock?: number
+  variantes?: Variante[]
   created_at: string
 }
 
