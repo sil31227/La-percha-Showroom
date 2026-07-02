@@ -21,6 +21,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
   const { id } = use(params)
   const router = useRouter()
   const [selectedSize, setSelectedSize] = useState('')
+  const [selectedVariant, setSelectedVariant] = useState(-1)
   const [sizeError, setSizeError] = useState(false)
   const [toast, setToast] = useState(false)
 
@@ -50,16 +51,21 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
     )
   }
 
+  const activeVariant = product.variantes?.[selectedVariant] || null
+  const displayPrice = activeVariant ? activeVariant.precio : product.price
+
   const handleAddToCart = () => {
     if (!selectedSize) { setSizeError(true); return }
     setSizeError(false)
     addToCart({
       productId: product.id,
       title: product.title,
-      price: product.price,
+      price: displayPrice,
       image: product.images[0],
       size: selectedSize,
       store_type: product.store_type,
+      variantLabel: activeVariant ? activeVariant.nombre : undefined,
+      variantPrice: activeVariant ? activeVariant.precio : undefined,
     })
     setToast(true)
     setTimeout(() => router.push('/home'), 2100)
@@ -126,7 +132,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
               </button>
             </div>
             <p className="text-2xl font-bold text-price mt-1">
-              $ {product.price.toLocaleString('es-AR')}
+              $ {displayPrice.toLocaleString('es-AR')}
             </p>
           </div>
 
@@ -159,6 +165,37 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
             onChange={(s) => { setSelectedSize(s); setSizeError(false) }}
             error={sizeError}
           />
+
+          {/* Selector de variante */}
+          {product.variantes && product.variantes.length > 0 && (
+            <div>
+              <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
+                Variante
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {product.variantes.map((v, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedVariant(i)}
+                    className={`px-3.5 py-2 rounded-full text-[11px] font-semibold border transition-colors text-left
+                      ${selectedVariant === i
+                        ? 'bg-brand text-white border-brand'
+                        : 'bg-surface-sunken text-text-body border-transparent hover:border-brand'}`}
+                  >
+                    <span>{v.nombre}</span>
+                    {v.precio !== product.price && (
+                      <span className="ml-1 opacity-80">($ {v.precio.toLocaleString('es-AR')})</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              {activeVariant && activeVariant.stock > 0 && (
+                <p className="text-[10px] text-text-muted mt-1.5">
+                  Stock disponible: {activeVariant.stock} unidad{activeVariant.stock !== 1 ? 'es' : ''}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* CTA — fixed bottom mobile → inline desktop */}
           <div className="fixed bottom-20 inset-x-0 mx-auto w-full max-w-107.5

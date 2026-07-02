@@ -47,6 +47,8 @@ export interface CartItem {
   image: string
   size: string
   store_type: StoreType
+  variantLabel?: string
+  variantPrice?: number
 }
 
 export interface Filters {

@@ -18,6 +18,7 @@ export function CartItemRow({ item, onRemove }: Props) {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-text-strong truncate">{item.title}</p>
         <p className="text-xs text-text-muted mt-0.5">
+          {item.variantLabel && <span className="block">{item.variantLabel}</span>}
           Talle {item.size} · {item.store_type === 'oficial' ? 'Tienda Oficial' : 'Feria'}
         </p>
         <p className="text-sm font-bold text-price mt-1">

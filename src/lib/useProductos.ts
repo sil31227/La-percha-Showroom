@@ -6,6 +6,14 @@ import type { Product } from "@/lib/types"
 function mapProducto(row: Record<string, unknown>): Product {
   const sizes = (row.talles as string[]) || []
   const images = (row.imagenes as string[]) || []
+  const rawVariants = (row.variantes as any[]) || []
+  const variantes = rawVariants.map((v: any) => ({
+    nombre: v.nombre || "",
+    atributos: v.atributos || (v.talle !== undefined ? { Talle: v.talle, Color: v.color || "" } : {}),
+    precio: v.precio ?? (Number(row.precio) || 0),
+    stock: v.stock ?? 0,
+    imagen: v.imagen || images[0] || "",
+  }))
 
   return {
     id: row.id as string,
@@ -15,6 +23,7 @@ function mapProducto(row: Record<string, unknown>): Product {
     price: Number(row.precio) || 0,
     images,
     sizes,
+    variantes,
     condition: ((row.estado as string) || "") as Product["condition"],
     store_type: (row.vendedor_tipo === "oficial" ? "oficial" : "feria") as Product["store_type"],
     category: (row.categoria_id as Product["category"]) || "mujer",
