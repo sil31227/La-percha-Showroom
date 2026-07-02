@@ -61,28 +61,43 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
 
   console.log("[producto page]", product.id, "tipo:", product.tipo, "variantes:", product.variantes?.length, product.variantes)
 
-  const activeVariant = product.variantes?.[selectedVariantIdx[0] ?? -1] ?? null
-  const displayPrice = activeVariant ? activeVariant.precio : product.price
+  const isMultiVariant = product.store_type === "oficial" && product.tipo !== "ropa" && (product.variantes?.length || 0) > 0
+  const hasVariants = (product.variantes?.length || 0) > 0
   const showQuantity = product.store_type === "oficial" && product.tipo !== "ropa"
+  const selectedVariants = hasVariants ? selectedVariantIdx.filter(i => product.variantes![i]) : []
+  const activeVariant = selectedVariants.length === 1 ? product.variantes![selectedVariants[0]] : null
+  const displayPrice = activeVariant ? activeVariant.precio : product.price
   const maxStock = activeVariant ? (activeVariant.stock || 0) : (product.stock || 0)
+
+  function toggleVariant(i: number) {
+    setSelectedVariantIdx(prev => {
+      if (prev.includes(i)) return prev.filter(x => x !== i)
+      if (isMultiVariant) return [...prev, i]
+      return [i]
+    })
+  }
 
   const handleAddToCart = () => {
     const size = selectedSize || (sizes.length === 1 ? sizes[0] : "")
     if (!size) { setSizeError(true); return }
     setSizeError(false)
-    addToCart({
-      productId: product.id,
-      title: product.title,
-      price: displayPrice,
-      image: activeVariant?.imagen || product.images[0],
-      size,
-      quantity: quantity,
-      store_type: product.store_type,
-      variantLabel: activeVariant ? variantLabel(activeVariant) : undefined,
-      variantPrice: activeVariant ? activeVariant.precio : undefined,
-      variantAttributes: activeVariant ? { Talle: activeVariant.talle, Color: activeVariant.color } : undefined,
-      variantStock: activeVariant ? activeVariant.stock : undefined,
-    })
+    if (hasVariants && selectedVariants.length === 0) return
+    const targets = hasVariants ? selectedVariants.map(i => product.variantes![i]) : [null]
+    for (const v of targets) {
+      addToCart({
+        productId: product.id,
+        title: product.title,
+        price: v ? v.precio : product.price,
+        image: v?.imagen || product.images[0],
+        size,
+        quantity: quantity,
+        store_type: product.store_type,
+        variantLabel: v ? variantLabel(v) : undefined,
+        variantPrice: v ? v.precio : undefined,
+        variantAttributes: v ? { Talle: v.talle, Color: v.color } : undefined,
+        variantStock: v ? v.stock : undefined,
+      })
+    }
     setToast(true)
     setTimeout(() => router.push('/home'), 2100)
   }
@@ -185,16 +200,16 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
           )}
 
           {/* Selector de variante */}
-          {product.variantes && product.variantes.length > 0 && (
+          {hasVariants && (
             <div>
               <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
-                Variante
+                {isMultiVariant ? "Sabores / Variantes (elegí uno o más)" : "Variante"}
               </label>
               <div className="flex flex-wrap gap-2">
-                {product.variantes.map((v, i) => (
+                {product.variantes!.map((v, i) => (
                   <button
                     key={i}
-                    onClick={() => setSelectedVariantIdx(prev => prev.includes(i) ? [] : [i])}
+                    onClick={() => toggleVariant(i)}
                     className={`px-3.5 py-2 rounded-full text-[11px] font-semibold border transition-colors text-left
                       ${selectedVariantIdx.includes(i)
                         ? 'bg-brand text-white border-brand'
@@ -204,12 +219,20 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
                     {v.precio !== product.price && (
                       <span className="ml-1 opacity-80">($ {v.precio.toLocaleString('es-AR')})</span>
                     )}
+                    {v.stock > 0 && (
+                      <span className="ml-1 text-[9px] opacity-60">· {v.stock}u</span>
+                    )}
                   </button>
                 ))}
               </div>
+              {isMultiVariant && selectedVariants.length > 0 && (
+                <p className="text-[10px] text-text-muted mt-1.5">
+                  {selectedVariants.length} seleccionado{selectedVariants.length !== 1 ? 's' : ''}
+                </p>
+              )}
               {activeVariant && activeVariant.stock > 0 && (
                 <p className="text-[10px] text-text-muted mt-1.5">
-                  Stock disponible: {activeVariant.stock} unidad{activeVariant.stock !== 1 ? 'es' : ''}
+                  Stock: {activeVariant.stock} unid.
                 </p>
               )}
             </div>
