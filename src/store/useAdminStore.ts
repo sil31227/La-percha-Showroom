@@ -49,6 +49,7 @@ interface AdminState {
   addStoreProduct: (p: StoreProductForm) => Promise<void>
   updateStoreProduct: (id: string, p: Partial<StoreProductForm>) => Promise<void>
   removeStoreProduct: (id: string) => Promise<void>
+  updateProductStock: (id: string, stock?: number, variantes?: Variante[]) => Promise<void>
   reorderProducts: (items: { id: string; orden: number }[]) => Promise<void>
   markOrderShipped: (id: string) => Promise<void>
   markOrderDelivered: (id: string) => Promise<void>
@@ -179,6 +180,22 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }
 
     set(s => ({ products: s.products.filter(p => p.id !== id) }))
+  },
+  updateProductStock: async (id, stock, variantes) => {
+    const payload: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (stock !== undefined) payload.stock = stock
+    if (variantes !== undefined) payload.variantes = JSON.parse(JSON.stringify(variantes))
+    const { error } = await supabase.from("productos").update(payload).eq("id", id)
+    if (error) throw new Error(error.message)
+    set(s => ({
+      products: s.products.map(p => {
+        if (p.id !== id) return p
+        const updates: Partial<AdminProduct> = {}
+        if (stock !== undefined) updates.stock = stock
+        if (variantes !== undefined) updates.variantes = variantes
+        return { ...p, ...updates }
+      })
+    }))
   },
   reorderProducts: async (items) => {
     set(s => {
