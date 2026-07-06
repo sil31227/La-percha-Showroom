@@ -1,12 +1,13 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useAdminStore, type AdminProduct } from "@/store/useAdminStore"
-import { Check, X } from "lucide-react"
+import { Check, X, Trash2 } from "lucide-react"
 
 export default function ModeracionPage() {
-  const { products, loaded, loadFromSupabase, approveProduct, rejectProduct } = useAdminStore()
+  const { products, loaded, loadFromSupabase, approveProduct, rejectProduct, removeStoreProduct } = useAdminStore()
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending")
   const [selected, setSelected] = useState<AdminProduct | null>(null)
+  const [showDelete, setShowDelete] = useState<string | null>(null)
 
   useEffect(() => { loadFromSupabase() }, [])
 
@@ -37,16 +38,32 @@ export default function ModeracionPage() {
                   {p.status === "pending" ? <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-warning-50 text-warning-600">Pendiente</span> : p.status === "approved" ? <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-success-50 text-success-600">Aprobada</span> : <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-error-50 text-error-500">Rechazada</span>}
                 </div>
               </div>
-              {p.status === "pending" && (
-                <div className="flex gap-1.5 shrink-0">
-                  <button onClick={() => approveProduct(p.id)} className="w-8 h-8 rounded-full bg-success-50 text-success-600 flex items-center justify-center hover:bg-success-500 hover:text-white transition-colors"><Check className="w-4 h-4" /></button>
-                  <button onClick={() => rejectProduct(p.id)} className="w-8 h-8 rounded-full bg-error-50 text-error-500 flex items-center justify-center hover:bg-error-500 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
-                </div>
-              )}
+              <div className="flex gap-1.5 shrink-0">
+                {p.status === "pending" && (
+                  <>
+                    <button onClick={() => approveProduct(p.id)} className="w-8 h-8 rounded-full bg-success-50 text-success-600 flex items-center justify-center hover:bg-success-500 hover:text-white transition-colors"><Check className="w-4 h-4" /></button>
+                    <button onClick={() => rejectProduct(p.id)} className="w-8 h-8 rounded-full bg-error-50 text-error-500 flex items-center justify-center hover:bg-error-500 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
+                  </>
+                )}
+                <button onClick={() => setShowDelete(p.id)} className="w-8 h-8 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-error-50 hover:text-error-500 transition-colors"><Trash2 className="w-3.5 h-3.5 text-text-muted" /></button>
+              </div>
             </div>
           </div>
         ))}
       </div>
+      {showDelete && (
+        <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center">
+          <div className="absolute inset-0 bg-carob-900/40 backdrop-blur-sm" onClick={() => setShowDelete(null)} />
+          <div className="relative bg-surface-card rounded-t-2xl lg:rounded-2xl p-6 w-full lg:max-w-sm">
+            <p className="font-semibold text-text-strong mb-2">¿Eliminar publicación?</p>
+            <p className="text-sm text-text-muted mb-5">Esta acción no se puede deshacer. También se eliminarán las imágenes del producto.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDelete(null)} className="flex-1 h-10 rounded-full border border-border-default text-sm font-semibold">Cancelar</button>
+              <button onClick={() => { removeStoreProduct(showDelete); setShowDelete(null) }} className="flex-1 h-10 rounded-full bg-error-500 text-white text-sm font-semibold">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
