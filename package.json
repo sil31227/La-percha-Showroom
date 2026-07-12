@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "env:encrypt": "sops -e --input-type dotenv --output-type dotenv .env.local > .env.enc.yml",
+    "env:decrypt": "sops -d --input-type dotenv --output-type dotenv .env.enc.yml > .env.local"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
