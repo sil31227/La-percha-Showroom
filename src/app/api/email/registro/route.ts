@@ -29,18 +29,25 @@ export async function POST(req: NextRequest) {
     const verifyUrl = `${SITE_URL}/verificar-email?token=${token}`
 
     if (resend) {
-      await resend.emails.send({
+      const { error } = await resend.emails.send({
         from: FROM,
         to: email,
         subject: "¡Bienvenida a La Percha Showroom!",
         html: welcomeEmail(name || email, verifyUrl),
       })
+      if (error) {
+        console.error("Error enviando email de registro (Resend):", error)
+        return NextResponse.json({ ok: false, error: error.message || "No se pudo enviar el email" }, { status: 502 })
+      }
+    } else {
+      console.warn("RESEND_API_KEY no configurada: no se envió email de verificación")
     }
 
     return NextResponse.json({ ok: true })
-  } catch (e: any) {
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Error inesperado"
     console.error("Error email registro:", e)
-    return NextResponse.json({ error: e.message }, { status: 500 })
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
