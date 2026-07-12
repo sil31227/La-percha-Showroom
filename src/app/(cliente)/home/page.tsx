@@ -123,6 +123,7 @@ export default function HomePage() {
             <div className="flex gap-2 overflow-x-auto pb-1">
               {CAT_CHIPS.map(c => (
                 <button key={c.value}
+                  data-testid={`cat-chip-${c.value}`}
                   onClick={() => setFilter('category', c.value)}
                   className={`shrink-0 px-3.5 py-1.5 rounded-full text-[11px] font-semibold
                     whitespace-nowrap transition-colors
@@ -137,6 +138,7 @@ export default function HomePage() {
               <div className="flex gap-2 overflow-x-auto pt-2 pb-1">
                 {SUBS_MAP[filters.category].map(c => (
                   <button key={c.value}
+                    data-testid={`subcat-chip-${c.value || 'ver-todo'}`}
                     onClick={() => filters.category === 'tienda_percha'
                       ? setFilter('category', c.value)
                       : setFilter('subcategory', c.value)}
@@ -269,13 +271,14 @@ export default function HomePage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setSheetOpen(true)}
+                    data-testid="filter-trigger"
                     className="lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg
                       border border-border-default text-sm text-text-body
                       hover:border-brand transition-colors bg-surface-card">
                     <SlidersHorizontal className="w-3.5 h-3.5" />
                     Filtros
                   </button>
-                  <p className="text-xs text-text-muted">
+                  <p className="text-xs text-text-muted" data-testid="product-count">
                     {filteredProducts.length} prenda{filteredProducts.length !== 1 ? 's' : ''}
                   </p>
                 </div>
@@ -293,18 +296,19 @@ export default function HomePage() {
               <div className="mx-4 lg:mx-6 h-px bg-border-subtle" />
 
               {filteredProducts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 gap-3">
+                <div className="flex flex-col items-center justify-center py-20 gap-3" data-testid="empty-state">
                   <p className="text-4xl">🪣</p>
                   <p className="text-text-muted text-sm">No hay prendas con esos filtros</p>
                   <button
                     onClick={() => useShopStore.getState().resetFilters()}
+                    data-testid="clear-filters"
                     className="text-brand text-sm font-semibold hover:underline">
                     Limpiar filtros
                   </button>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5
-                  gap-3 p-4 lg:p-6 pb-24 lg:pb-10">
+                  gap-3 p-4 lg:p-6 pb-24 lg:pb-10" data-testid="product-grid">
                   {filteredProducts.map(p => (
                     <ProductCard key={p.id} product={p} />
                   ))}

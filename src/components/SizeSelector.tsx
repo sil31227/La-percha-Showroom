@@ -7,7 +7,7 @@ interface Props {
 
 export function SizeSelector({ sizes, selected, onChange, error }: Props) {
   return (
-    <div>
+    <div data-testid="size-selector">
       <p className="text-sm font-semibold text-text-strong mb-2">
         Talle <span className="text-error-500">*</span>
       </p>
@@ -15,6 +15,7 @@ export function SizeSelector({ sizes, selected, onChange, error }: Props) {
         {sizes.map(s => (
           <button
             key={s}
+            data-testid="size-option"
             onClick={() => onChange(s)}
             className={`min-w-[44px] h-11 px-3 rounded-lg border text-sm font-semibold
               transition-colors

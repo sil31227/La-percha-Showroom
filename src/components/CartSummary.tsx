@@ -11,7 +11,8 @@ export function CartSummary({ total, itemCount }: Props) {
       bg-surface-card border-t border-border-subtle
       lg:static lg:bottom-auto lg:w-80 lg:shrink-0
       lg:rounded-xl lg:border lg:border-border-subtle
-      lg:sticky lg:top-[calc(var(--nav-h)+1.5rem)]">
+      lg:sticky lg:top-[calc(var(--nav-h)+1.5rem)]"
+      data-testid="cart-summary">
       <div className="px-4 py-3 space-y-2 lg:px-5 lg:py-4">
         <div className="flex justify-between text-sm">
           <span className="text-text-muted">Subtotal ({itemCount} producto{itemCount !== 1 ? 's' : ''})</span>
