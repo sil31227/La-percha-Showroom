@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 const SHARED = {
   display: "standalone" as const, background_color: "#faf7f2", theme_color: "#faf7f2",
   icons: [
-    { src: "/icon-192x192.png", sizes: "192x192", type: "image/png" as const },
-    { src: "/icon-512x512.png", sizes: "512x512", type: "image/png" as const },
+    { src: "/logo.jpg", sizes: "192x192", type: "image/jpeg" as const },
+    { src: "/logo.jpg", sizes: "512x512", type: "image/jpeg" as const },
   ],
 };
 export async function GET(req: NextRequest) {
