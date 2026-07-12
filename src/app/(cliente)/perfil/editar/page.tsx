@@ -215,6 +215,7 @@ export default function EditarPerfilPage() {
           <div>
             <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">Nombre</label>
             <input type="text" value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
+              data-testid="profile-name"
               className="w-full h-11 px-4 rounded-lg bg-surface-sunken text-sm text-text-body border border-transparent focus:border-brand outline-none" />
           </div>
 
@@ -296,6 +297,7 @@ export default function EditarPerfilPage() {
         </div>
 
         <button type="submit" disabled={saving || uploading}
+          data-testid="profile-save"
           className="w-full h-12 bg-brand hover:bg-brand-hover text-white font-semibold rounded-full transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed">
           {saving ? (
             <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</span>

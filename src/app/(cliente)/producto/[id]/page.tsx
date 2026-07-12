@@ -113,6 +113,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
         <div className="flex-1" />
         <button
           onClick={() => toggleFavorite(product.id)}
+          data-testid="detail-fav"
           className="w-9 h-9 rounded-full bg-surface-sunken flex items-center justify-center">
           <Heart className={`w-4.5 h-4.5 ${isFav ? 'fill-error-500 text-error-500' : 'text-text-muted'}`} />
         </button>
@@ -205,7 +206,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
               <label className="block text-[11px] font-semibold text-text-muted uppercase tracking-wide mb-1.5">
                 {isMultiVariant ? "Sabores / Variantes (elegí uno o más)" : "Variante"}
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" data-testid="variant-selector">
                 {product.variantes!.map((v, i) => (
                   <button
                     key={i}
@@ -275,6 +276,7 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
             <button
               onClick={handleAddToCart}
               disabled={showSizeSelector && !selectedSize}
+              data-testid="add-to-cart"
               className={`flex items-center justify-center gap-2.5 w-full h-13
                 font-semibold rounded-lg transition-colors
                 ${(showSizeSelector && !selectedSize)

@@ -103,7 +103,7 @@ export default function FavoritosPage() {
           <Loader2 className="w-8 h-8 text-brand animate-spin" />
         </div>
       ) : favProducts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 gap-3">
+        <div className="flex flex-col items-center justify-center py-32 gap-3" data-testid="fav-empty">
           <p className="text-5xl">♡</p>
           <p className="text-text-muted text-sm">Todavía no guardaste prendas favoritas</p>
           <Link href="/home"
@@ -112,7 +112,7 @@ export default function FavoritosPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-4 lg:p-6 pb-24 lg:pb-10">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 p-4 lg:p-6 pb-24 lg:pb-10" data-testid="fav-grid">
           {favProducts.map(p => (
             <ProductCard key={p.id} product={p} />
           ))}

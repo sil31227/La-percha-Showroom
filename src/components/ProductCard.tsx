@@ -55,8 +55,8 @@ export function ProductCard({ product }: { product: Product }) {
   const fallbackSrc = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='533' fill='%23f2efe8'%3E%3Crect width='400' height='533'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23c4baac' font-size='14' font-family='sans-serif'%3ESin imagen%3C/text%3E%3C/svg%3E"
 
   return (
-    <div className="relative group">
-      <Link href={`/producto/${product.id}`} className="block">
+    <div className="relative group" data-testid="product-card" data-product-id={product.id}>
+      <Link href={`/producto/${product.id}`} className="block" data-testid="product-card-link">
         <div className="relative aspect-[3/4] rounded-lg bg-surface-sunken overflow-hidden">
           <img
             src={imgError[imgIdx] ? fallbackSrc : (images[imgIdx] || fallbackSrc)}
@@ -138,6 +138,7 @@ export function ProductCard({ product }: { product: Product }) {
 
           {/* Quick add to cart button */}
           <button onClick={handleAddToCart}
+            data-testid="quick-add-cart"
             className={`absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center
               transition-all duration-200 shadow-md z-20
               lg:opacity-0 lg:group-hover:opacity-100 lg:translate-y-2 lg:group-hover:translate-y-0
@@ -164,6 +165,7 @@ export function ProductCard({ product }: { product: Product }) {
 
       <button
         onClick={(e) => { e.preventDefault(); toggleFavorite(product.id) }}
+        data-testid="fav-toggle"
         aria-label={isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}
         className="absolute top-2 right-2 w-7 h-7 rounded-full bg-surface-card/80
           backdrop-blur-sm flex items-center justify-center transition-transform

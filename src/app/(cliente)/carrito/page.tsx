@@ -20,7 +20,7 @@ export default function CarritoPage() {
       </div>
 
       {cart.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4 px-6">
+        <div className="flex flex-col items-center justify-center py-20 gap-4 px-6" data-testid="cart-empty">
           <div className="w-20 h-20 rounded-full bg-surface-sunken flex items-center justify-center">
             <ShoppingBag className="w-9 h-9 text-text-muted" />
           </div>

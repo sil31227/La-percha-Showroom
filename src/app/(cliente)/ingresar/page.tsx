@@ -94,10 +94,6 @@ export default function IngresarPage() {
             </Link>
           </p>
         </div>
-
-        <p className="text-[10px] text-text-subtle text-center mt-5 max-w-xs leading-relaxed">
-          Demo: usá <strong>maria@email.com</strong> / <strong>123456</strong>
-        </p>
       </div>
     </div>
   )
