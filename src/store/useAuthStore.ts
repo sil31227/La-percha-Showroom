@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { supabase } from "@/lib/supabase"
-import type { Session, User as SupabaseUser } from "@supabase/supabase-js"
+import type { Session } from "@supabase/supabase-js"
 
 export interface VentaRecord {
   id: string
@@ -29,7 +29,7 @@ interface AuthStore {
   initialized: boolean
   initialize: () => Promise<void>
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
-  register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string }>
+  register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean }>
   requestSeller: () => Promise<void>
   refreshProfile: () => Promise<void>
   updateProfile: (data: { name?: string; avatar?: string; phone?: string }) => void
@@ -114,6 +114,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       if (error.message.includes("Invalid login credentials")) {
         return { ok: false, error: "Email o contraseña incorrectos" }
       }
+      if (error.message.includes("Email not confirmed") || (error as { code?: string }).code === "email_not_confirmed") {
+        return { ok: false, error: "Tenés que confirmar tu email antes de ingresar. Revisá tu casilla (y la carpeta de spam)." }
+      }
       return { ok: false, error: error.message }
     }
     if (data.user) {
@@ -137,59 +140,26 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       return { ok: false, error: "La contraseña debe tener al menos 6 caracteres" }
     }
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/ingresar`,
-      },
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
     })
+    const result = await res.json().catch(() => ({}))
 
-    if (error) {
+    if (!res.ok) {
       set({ isLoading: false })
-      if (error.message.includes("already registered")) {
-        return { ok: false, error: "Ya existe una cuenta con ese email" }
-      }
-      return { ok: false, error: error.message }
+      return { ok: false, error: result.error || "Error al crear la cuenta" }
     }
 
-    if (data.user) {
-      await supabase.from("profiles").upsert({
-        id: data.user.id,
-        full_name: name,
-        avatar_url: `https://i.pravatar.cc/80?u=${encodeURIComponent(email)}`,
-        is_seller: false,
-        seller_status: "none",
-        balance: 0,
-      })
-
-      fetch("/api/email/registro", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name }),
-      }).catch(() => {})
-
-      set({
-        session: data.session,
-        user: {
-          id: data.user.id,
-          name,
-          email,
-          avatar: `https://i.pravatar.cc/80?u=${encodeURIComponent(email)}`,
-          phone: "",
-          is_seller: false,
-          seller_status: "none",
-          balance: 0,
-          ventas: [],
-        },
-        isLoading: false,
-      })
-      return { ok: true }
-    }
+    await fetch("/api/email/registro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, name }),
+    }).catch(() => {})
 
     set({ isLoading: false })
-    return { ok: false, error: "Error al crear la cuenta" }
+    return { ok: true, needsConfirmation: true }
   },
 
   requestSeller: async () => {

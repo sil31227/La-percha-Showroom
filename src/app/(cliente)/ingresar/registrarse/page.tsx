@@ -2,7 +2,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Eye, EyeOff } from "lucide-react"
+import { ArrowLeft, Eye, EyeOff, MailCheck } from "lucide-react"
 import { useAuthStore } from "@/store/useAuthStore"
 
 export default function RegistrarsePage() {
@@ -13,16 +13,49 @@ export default function RegistrarsePage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
+  const [sent, setSent] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
     const result = await register(name, email, password)
     if (result.ok) {
-      router.push("/home")
+      if (result.needsConfirmation) {
+        setSent(true)
+      } else {
+        router.push("/home")
+      }
     } else {
       setError(result.error ?? "Error al registrarse")
     }
+  }
+
+  if (sent) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <header className="h-16 flex items-center gap-3 px-5 bg-bg-page border-b border-border-subtle sticky top-0 z-10 lg:top-16">
+          <Link href="/ingresar" className="w-9 h-9 rounded-full bg-surface-sunken flex items-center justify-center shrink-0">
+            <ArrowLeft className="w-4 h-4 text-text-muted" />
+          </Link>
+          <h1 className="font-display text-xl text-text-strong">Confirmá tu email</h1>
+        </header>
+        <div className="flex-1 flex flex-col items-center justify-center px-5 py-10 max-w-md mx-auto w-full text-center">
+          <div className="w-16 h-16 rounded-full bg-success-50 flex items-center justify-center mb-5">
+            <MailCheck className="w-8 h-8 text-success-500" />
+          </div>
+          <h2 className="font-display text-2xl text-text-strong mb-2">¡Casi listo!</h2>
+          <p className="text-sm text-text-muted leading-relaxed mb-6">
+            Te enviamos un email a <strong className="text-text-body">{email}</strong> con un link para
+            confirmar tu cuenta. Revisá tu casilla (y la carpeta de spam) y después ingresá.
+          </p>
+          <Link href="/ingresar"
+            className="w-full max-w-xs h-11 bg-brand hover:bg-brand-hover text-text-on-brand
+              font-semibold rounded-lg transition-colors flex items-center justify-center">
+            Ir a ingresar
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
