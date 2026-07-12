@@ -7,8 +7,9 @@ const inter = Inter({ variable: "--font-ui", subsets: ["latin"], weight: ["300",
 
 export const metadata: Metadata = {
   title: "La Percha Showroom", description: "Moda Circular · Comunidad · Confianza",
-  icons: { apple: "/apple-touch-icon.png" },
-  appleWebApp: { capable: true, statusBarStyle: "default" },
+  manifest: "/api/manifest",
+  icons: { icon: "/logo.jpg", apple: "/logo.jpg" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "La Percha" },
 };
 export const viewport: Viewport = {
   themeColor: "#f8f6f2", width: "device-width", initialScale: 1, maximumScale: 1,
