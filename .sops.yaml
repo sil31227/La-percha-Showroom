@@ -1,0 +1,5 @@
+creation_rules:
+  - path_regex: \.env(\.local)?(\.enc\.yml)?$
+    age:
+      - age1qr5j7n4wweajvc2hhepyapcczvhnv2x74n63qul7lw7a77d6zegs6sggpj
+      - age1dpm0ptg6n4yzq8ezxlzye2epttcv8uyazw67d85l525eg7y5g53s7rnyyf
