@@ -30,7 +30,7 @@ const EMPTY: StoreProductForm = {
   titulo: "", precio: 0, descripcion: "", marca: "", material: "",
   categoria_id: "", subcategoria_id: "", estado: "",
   talles: [], colores: [], imagenes: [], variantes: [],
-  envio_gratis: false, destacado: false, tipo: "ropa",
+  envio_gratis: false, destacado: false, retiro_local: true, tipo: "ropa",
 }
 
 function SortableProductRow({ p, onEdit, onDelete }: { p: AdminProduct; onEdit: () => void; onDelete: () => void }) {
@@ -172,6 +172,7 @@ export default function TiendaPage() {
       estado: p.estado || "", talles: p.talles || [], colores: p.colores || [],
       imagenes: p.imagenes || [], variantes,
       envio_gratis: p.envio_gratis || false, destacado: p.destacado || false,
+      retiro_local: p.retiro_local ?? true,
       tipo: p.tipo,
     })
     setShowPrevPrice(!!p.precio_anterior)
@@ -844,6 +845,10 @@ export default function TiendaPage() {
           <label className="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" checked={form.destacado} onChange={e => setForm(f => ({ ...f, destacado: e.target.checked }))} className="accent-brand w-4 h-4 rounded" />
             <span className="flex items-center gap-1.5 text-sm text-text-body"><Star className="w-4 h-4 text-chai-500 fill-chai-500" /> Producto destacado</span>
+          </label>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={form.retiro_local} onChange={e => setForm(f => ({ ...f, retiro_local: e.target.checked }))} className="accent-brand w-4 h-4 rounded" />
+            <span className="flex items-center gap-1.5 text-sm text-text-body"><Truck className="w-4 h-4 text-brand" /> Permitir retiro en local</span>
           </label>
         </div>
 

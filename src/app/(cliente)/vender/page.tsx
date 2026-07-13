@@ -50,6 +50,7 @@ export default function VenderPage() {
   const [condition, setCondition] = useState("like_new")
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
   const [freeShipping, setFreeShipping] = useState(false)
+  const [retiroLocal, setRetiroLocal] = useState(false)
   const [sent, setSent] = useState(false)
   const [images, setImages] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
@@ -264,6 +265,7 @@ export default function VenderPage() {
       colores: selectedColors,
       imagenes: images,
       envio_gratis: freeShipping,
+      retiro_local: retiroLocal,
       tipo: "ropa",
       vendedor_nombre: user.name,
       vendedor_id: user.id,
@@ -505,6 +507,32 @@ export default function VenderPage() {
               <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-sm
                 transition-transform duration-200
                 ${freeShipping ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Retiro en local */}
+        <div className="bg-surface-card rounded-xl border border-border-subtle p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="w-8 h-8 rounded-lg bg-matcha-50 flex items-center justify-center">
+                <Truck className="w-4 h-4 text-brand" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-text-strong">Permitir retiro en local</p>
+                <p className="text-[11px] text-text-muted">
+                  {retiroLocal
+                    ? 'La compradora puede retirar y pagar en efectivo coordinando con La Percha.'
+                    : 'Solo envío. Sin retiro en local.'}
+                </p>
+              </div>
+            </div>
+            <button type="button"
+              onClick={() => setRetiroLocal(o => !o)}
+              className={`relative w-12 h-7 rounded-full transition-colors duration-200
+                ${retiroLocal ? 'bg-success-500' : 'bg-border-default'}`}>
+              <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white transition-transform duration-200
+                ${retiroLocal ? 'translate-x-5.5' : 'translate-x-0.5'}`} />
             </button>
           </div>
         </div>
