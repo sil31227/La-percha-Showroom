@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { ArrowLeft, Camera, Plus, X, ShieldCheck, Package, BadgePercent, Truck, Clock, FileText, CheckCircle, Upload } from "lucide-react"
 import { useAuthStore } from "@/store/useAuthStore"
+import { EnableSellerPush } from "./EnableSellerPush"
 import { supabase } from "@/lib/supabase"
 
 const CONDITIONS = [
@@ -330,6 +331,10 @@ export default function VenderPage() {
         </Link>
         <h1 className="font-display text-xl text-text-strong">Publicar prenda</h1>
       </header>
+
+      <div className="px-5 pt-4">
+        <EnableSellerPush />
+      </div>
 
       <form onSubmit={handleSubmit}
         className="flex-1 max-w-2xl mx-auto w-full px-4 lg:px-6 py-6 space-y-6 pb-24 lg:pb-10">
