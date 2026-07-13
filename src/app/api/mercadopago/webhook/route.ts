@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { MercadoPagoConfig, Payment } from "mercadopago"
 import { createAdminClient } from "@/lib/supabase-admin"
-import { sendAdminPush } from "@/lib/push"
+import { sendAdminPush, sendSellerPush } from "@/lib/push"
 
 export async function POST(req: Request) {
   const supabase = createAdminClient()
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
 
     const { data: pedidos } = await supabase
       .from("pedidos")
-      .select("id, comprador_email, producto_titulo, talle, precio, direccion, metodo_envio, costo_envio, mail_pago_enviado")
+      .select("id, comprador_email, producto_titulo, talle, precio, direccion, metodo_envio, costo_envio, mail_pago_enviado, vendedor_id")
       .like("id", `${externalReference}%`)
 
     if (pedidos?.length) {
@@ -79,6 +79,19 @@ export async function POST(req: Request) {
           url: "/admin/pedidos",
           tag: `pago-${externalReference}`,
         }).catch(() => {})
+
+        const sellersNotified = new Set<string>()
+        for (const p of pedidos) {
+          if (p.vendedor_id && !sellersNotified.has(p.vendedor_id)) {
+            sellersNotified.add(p.vendedor_id)
+            sendSellerPush(p.vendedor_id, {
+              title: "✅ Pago confirmado",
+              body: `Recibiste el pago por "${p.producto_titulo}".`,
+              url: "/perfil/saldo",
+              tag: `pago-${externalReference}-${p.vendedor_id}`,
+            }).catch(() => {})
+          }
+        }
       }
     }
 
