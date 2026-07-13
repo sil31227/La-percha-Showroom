@@ -22,6 +22,7 @@ function calcularCostoEnvio(
   cfg: { sucursal_price: number; domicilio_price: number; free_threshold: number; domicilio_surcharge: number }
 ): number {
   if (metodo === "arreglar_vendedor") return 0
+  if (metodo === "retiro_local") return 0
   if (subtotal >= cfg.free_threshold) {
     if (metodo === "correo_sucursal") return 0
     if (metodo === "correo_domicilio") return cfg.domicilio_surcharge
