@@ -5,6 +5,7 @@ import { ShoppingBag, Home, User, Heart, Search, ChevronDown, Plus } from "lucid
 import { useEffect, useRef, useState } from "react"
 import { useShopStore } from "@/store/useShopStore"
 import { useAuthStore } from "@/store/useAuthStore"
+import { useNotificationsStore } from "@/store/useNotificationsStore"
 
 const NAV_CATS = [
   { value: 'mujer', label: 'Mujer' },
@@ -63,6 +64,7 @@ export default function ClienteNavbar() {
   const isVender = pathname === '/vender'
   const isPerfil = pathname === '/perfil'
   const favCount = useShopStore(s => s.favorites.length)
+  const unread = useNotificationsStore(s => s.unreadCount())
 
   useEffect(() => { setHidratado(true) }, [])
 
@@ -132,9 +134,12 @@ export default function ClienteNavbar() {
             </Link>
             {user ? (
               <Link href="/perfil"
-                className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-surface-sunken transition-colors">
+                className="relative flex items-center gap-2 px-2 py-1 rounded-full hover:bg-surface-sunken transition-colors">
                 <img src={user.avatar} alt={user.name}
                   className="w-7 h-7 rounded-full object-cover ring-2 ring-matcha-100" />
+                {hidratado && unread > 0 && (
+                  <span className="absolute -top-0.5 left-6 w-3 h-3 rounded-full bg-error-500 ring-2 ring-bg-page" />
+                )}
                 <span className="text-sm font-semibold text-text-body hidden xl:inline">{user.name}</span>
               </Link>
             ) : (
@@ -324,8 +329,11 @@ export default function ClienteNavbar() {
         </Link>
 
         <Link href="/perfil"
-          className="flex flex-col items-center gap-0.5 w-14 h-14 justify-center">
+          className="relative flex flex-col items-center gap-0.5 w-14 h-14 justify-center">
           <User className={`w-5.5 h-5.5 ${isPerfil ? 'text-text-strong' : 'text-text-muted'}`} />
+          {hidratado && unread > 0 && (
+            <span className="absolute top-1.5 right-3 w-2.5 h-2.5 rounded-full bg-error-500" />
+          )}
           <span className={`text-[10px] ${isPerfil ? 'text-text-strong font-semibold' : 'text-text-muted'}`}>
             Perfil
           </span>

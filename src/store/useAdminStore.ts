@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { supabase } from "@/lib/supabase"
-import type { Variante, ProductType, ShippingConfig } from "@/lib/types"
+import type { Variante, ProductType, ShippingConfig, NotificationType } from "@/lib/types"
 
 export type ProductStatus = "pending" | "approved" | "rejected"
 export type VendorStatus = "pending" | "approved" | "rejected"
@@ -11,7 +11,7 @@ export interface AdminProduct {
   estado?: string; talles?: string[]; colores?: string[]; imagenes: string[]
   stock?: number; variantes?: Variante[]
   envio_gratis?: boolean; destacado?: boolean; tipo: ProductType
-  vendedor_nombre: string; vendedor_tipo: "oficial" | "feria"
+  vendedor_nombre: string; vendedor_id?: string; vendedor_tipo: "oficial" | "feria"
   status: ProductStatus; orden?: number; created_at?: string
 }
 
@@ -68,6 +68,15 @@ interface AdminState {
   updateTerms: (contenido: string) => Promise<void>
 }
 
+async function createNotification(userId: string | undefined, type: NotificationType, title: string, body: string, link: string | null) {
+  if (!userId) return
+  const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  await supabase.from("notifications").insert({ id, user_id: userId, type, title, body, link, read: false }).then(
+    () => {},
+    () => {}
+  )
+}
+
 export const useAdminStore = create<AdminState>((set, get) => ({
   products: [], vendors: [], orders: [], categories: [], faq: [], terms: "", shippingConfig: null, loaded: false,
 
@@ -92,41 +101,55 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   approveProduct: async (id) => {
+    const product = get().products.find(p => p.id === id)
     await supabase.from("productos").update({ status: "approved" }).eq("id", id)
+    createNotification(
+      product?.vendedor_id,
+      "product_approved",
+      "¡Tu prenda fue publicada!",
+      `"${product?.titulo || "Tu prenda"}" ya está publicada y a la venta en La Percha.`,
+      `/producto/${id}`
+    )
     set(s => ({ products: s.products.map(p => p.id === id ? { ...p, status: "approved" as const } : p) }))
   },
   rejectProduct: async (id) => {
+    const product = get().products.find(p => p.id === id)
     await supabase.from("productos").update({ status: "rejected" }).eq("id", id)
+    createNotification(
+      product?.vendedor_id,
+      "product_rejected",
+      "Tu prenda no fue aprobada",
+      `"${product?.titulo || "Tu prenda"}" no pasó la moderación esta vez. Podés revisarla y volver a publicarla.`,
+      null
+    )
     set(s => ({ products: s.products.map(p => p.id === id ? { ...p, status: "rejected" as const } : p) }))
   },
   approveVendor: async (id) => {
-    const vendor = get().vendors.find(v => v.id === id)
     await Promise.all([
       supabase.from("vendedores").update({ status: "approved" }).eq("id", id),
       supabase.from("profiles").update({ seller_status: "approved", is_seller: true }).eq("id", id),
     ])
-    if (vendor?.email) {
-      fetch("/api/email/vendor-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: vendor.email, name: vendor.nombre, status: "approved" }),
-      }).catch(() => {})
-    }
+    createNotification(
+      id,
+      "seller_approved",
+      "¡Ya podés vender en La Percha!",
+      "Tu solicitud fue aprobada. Publicá tus prendas y empezá a vender.",
+      "/vender"
+    )
     set(s => ({ vendors: s.vendors.map(v => v.id === id ? { ...v, status: "approved" as const } : v) }))
   },
   rejectVendor: async (id) => {
-    const vendor = get().vendors.find(v => v.id === id)
     await Promise.all([
       supabase.from("vendedores").update({ status: "rejected" }).eq("id", id),
       supabase.from("profiles").update({ seller_status: "rejected", is_seller: false }).eq("id", id),
     ])
-    if (vendor?.email) {
-      fetch("/api/email/vendor-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: vendor.email, name: vendor.nombre, status: "rejected" }),
-      }).catch(() => {})
-    }
+    createNotification(
+      id,
+      "seller_rejected",
+      "Actualización de tu solicitud",
+      "Tu solicitud para vender no fue aprobada en esta ocasión.",
+      null
+    )
     set(s => ({ vendors: s.vendors.map(v => v.id === id ? { ...v, status: "rejected" as const } : v) }))
   },
 
