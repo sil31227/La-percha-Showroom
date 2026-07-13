@@ -34,9 +34,9 @@ self.addEventListener("notificationclick", (event) => {
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
         if (client.url.includes("/admin") && "focus" in client) {
-          client.focus();
-          if ("navigate" in client) client.navigate(targetUrl);
-          return;
+          return client.focus().then((focused) => {
+            if (focused && "navigate" in focused) return focused.navigate(targetUrl);
+          });
         }
       }
       if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
