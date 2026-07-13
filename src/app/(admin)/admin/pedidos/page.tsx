@@ -16,6 +16,21 @@ const METODO_LABEL: Record<string, string> = {
   arreglar_vendedor: "Arreglar con el vendedor",
 }
 
+type ParsedAddress = { nombre?: string; email?: string; provincia?: string; ciudad?: string; cp?: string; direccion?: string }
+
+function parseDireccion(raw?: string | null): ParsedAddress {
+  if (!raw) return {}
+  try {
+    const d = JSON.parse(raw)
+    if (d && typeof d === "object") return d as ParsedAddress
+  } catch {}
+  return { direccion: raw }
+}
+
+function formatDireccion(a: ParsedAddress): string {
+  return [a.direccion, a.ciudad, a.provincia, a.cp && `CP ${a.cp}`].filter(Boolean).join(", ")
+}
+
 export default function PedidosPage() {
   const { orders, loaded, loadFromSupabase, markOrderShipped, markOrderDelivered } = useAdminStore()
   const [filter, setFilter] = useState<"all" | "pending_shipment" | "shipped" | "delivered">("pending_shipment")
@@ -37,6 +52,9 @@ export default function PedidosPage() {
       <div className="space-y-3">
         {filtered.length === 0 ? <div className="bg-surface-card rounded-xl border border-border-subtle px-4 py-12 text-center text-sm text-text-muted">No hay pedidos</div> : filtered.map(o => {
           const isOpen = expanded === o.id; const st = STATUS_LABEL[o.status]
+          const addr = parseDireccion(o.direccion)
+          const compradorNombre = addr.nombre || o.comprador_nombre
+          const compradorEmail = addr.email || o.comprador_email
           return (
             <div key={o.id} className="bg-surface-card rounded-xl border border-border-subtle overflow-hidden">
               <div className="p-4">
@@ -44,7 +62,7 @@ export default function PedidosPage() {
                   <img src={o.producto_imagen || ""} alt="" className="w-14 h-18 rounded-lg object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5"><p className="text-sm font-semibold text-text-strong truncate">{o.producto_titulo}</p><span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold shrink-0 ${st.className}`}>{st.label}</span></div>
-                    <p className="text-xs text-text-muted">Comprador: {o.comprador_nombre} · {o.comprador_email}</p>
+                    <p className="text-xs text-text-muted">Comprador: {compradorNombre} · {compradorEmail}</p>
                     <p className="text-xs text-text-muted">Vendedor: {o.vendedor_nombre} · Talle {o.talle}</p>
                     <div className="flex items-center gap-3 mt-1.5"><p className="text-sm font-bold text-price">${o.precio.toLocaleString("es-AR")}</p></div>
                   </div>
@@ -54,7 +72,7 @@ export default function PedidosPage() {
                     <button onClick={() => setExpanded(isOpen ? null : o.id)} className="px-3 py-1.5 rounded-full text-[11px] font-medium text-text-muted hover:bg-surface-sunken transition-colors">{isOpen ? "Menos" : "Detalles"}</button>
                   </div>
                 </div>
-                {isOpen && <div className="mt-4 pt-4 border-t border-border-subtle space-y-2"><div className="flex items-center gap-2 text-xs text-text-muted"><MapPin className="w-3.5 h-3.5" />{o.direccion}</div>{o.metodo_envio && <div className="flex items-center gap-2 text-xs text-text-muted"><Truck className="w-3.5 h-3.5" />{METODO_LABEL[o.metodo_envio] || o.metodo_envio}{o.costo_envio != null && <span className="ml-1 font-semibold text-price">· ${o.costo_envio.toLocaleString("es-AR")}</span>}</div>}<div className="flex items-center gap-2 text-xs text-text-muted"><Mail className="w-3.5 h-3.5" />Comprador: {o.comprador_email} · Vendedor: {o.vendedor_email}</div></div>}
+                {isOpen && <div className="mt-4 pt-4 border-t border-border-subtle space-y-2"><div className="flex items-center gap-2 text-xs text-text-muted"><MapPin className="w-3.5 h-3.5" />{formatDireccion(addr)}</div>{o.metodo_envio && <div className="flex items-center gap-2 text-xs text-text-muted"><Truck className="w-3.5 h-3.5" />{METODO_LABEL[o.metodo_envio] || o.metodo_envio}{o.costo_envio != null && <span className="ml-1 font-semibold text-price">· ${o.costo_envio.toLocaleString("es-AR")}</span>}</div>}<div className="flex items-center gap-2 text-xs text-text-muted"><Mail className="w-3.5 h-3.5" />Comprador: {compradorEmail} · Vendedor: {o.vendedor_email}</div></div>}
               </div>
             </div>
           )

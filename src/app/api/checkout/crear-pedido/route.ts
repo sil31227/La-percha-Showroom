@@ -90,14 +90,18 @@ export async function POST(req: Request) {
     const orderId = `LP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
     const now = new Date().toISOString()
 
+    const addr = (direccion && typeof direccion === "object" ? direccion : {}) as { nombre?: string; email?: string }
+    const compradorNombre = addr.nombre || email || "Comprador"
+    const compradorEmail = addr.email || email || ""
+
     for (const item of validItems) {
       await supabase.from("pedidos").insert({
         id: `${orderId}-${item.productId.slice(-4)}`,
         producto_titulo: item.title,
         producto_imagen: item.image,
         precio: item.price,
-        comprador_nombre: email || "Comprador",
-        comprador_email: email || "",
+        comprador_nombre: compradorNombre,
+        comprador_email: compradorEmail,
         vendedor_nombre: item.vendedor_nombre,
         vendedor_email: "",
         talle: item.size,
