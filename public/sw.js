@@ -11,16 +11,16 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (e) {
-    data = { title: "La Percha Admin", body: event.data ? event.data.text() : "" };
+    data = { title: "La Percha", body: event.data ? event.data.text() : "" };
   }
 
-  const title = data.title || "La Percha Admin";
+  const title = data.title || "La Percha";
   const options = {
     body: data.body || "",
     icon: "/logo.jpg",
     badge: "/logo.jpg",
     tag: data.tag || undefined,
-    data: { url: data.url || "/admin/pedidos" },
+    data: { url: data.url || "/perfil" },
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
@@ -28,12 +28,12 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) || "/admin/pedidos";
+  const targetUrl = (event.notification.data && event.notification.data.url) || "/perfil";
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url.includes("/admin") && "focus" in client) {
+        if ("focus" in client) {
           return client.focus().then((focused) => {
             if (focused && "navigate" in focused) return focused.navigate(targetUrl);
           });
