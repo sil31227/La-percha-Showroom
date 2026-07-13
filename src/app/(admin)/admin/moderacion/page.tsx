@@ -290,8 +290,8 @@ function ProductDetailModal({ product, onClose, onApprove, onReject, onDelete }:
 }
 
 export default function ModeracionPage() {
-  const { products, loaded, loadFromSupabase, approveProduct, rejectProduct, removeStoreProduct } = useAdminStore()
-  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending")
+  const { products, loaded, loadFromSupabase, updateProductStatus, removeStoreProduct } = useAdminStore()
+  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected" | "changes_requested">("pending")
   const [detailProduct, setDetailProduct] = useState<AdminProduct | null>(null)
   const [showDelete, setShowDelete] = useState<string | null>(null)
 
@@ -300,8 +300,8 @@ export default function ModeracionPage() {
   if (!loaded) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
   const filtered = products.filter(p => filter === "all" ? true : p.status === filter)
-  const counts = { all: products.length, pending: products.filter(p => p.status === "pending").length, approved: products.filter(p => p.status === "approved").length, rejected: products.filter(p => p.status === "rejected").length }
-  const FILTERS = [{ v: "pending" as const, l: "Pendientes", c: counts.pending }, { v: "approved" as const, l: "Aprobadas", c: counts.approved }, { v: "rejected" as const, l: "Rechazadas", c: counts.rejected }, { v: "all" as const, l: "Todas", c: counts.all }]
+  const counts = { all: products.length, pending: products.filter(p => p.status === "pending").length, approved: products.filter(p => p.status === "approved").length, rejected: products.filter(p => p.status === "rejected").length, changes_requested: products.filter(p => p.status === "changes_requested").length }
+  const FILTERS = [{ v: "pending" as const, l: "Pendientes", c: counts.pending }, { v: "approved" as const, l: "Aprobadas", c: counts.approved }, { v: "changes_requested" as const, l: "Cambios pedidos", c: counts.changes_requested }, { v: "rejected" as const, l: "Rechazadas", c: counts.rejected }, { v: "all" as const, l: "Todas", c: counts.all }]
 
   return (
     <div className="p-5 lg:p-7 lg:pt-7 space-y-5 max-w-4xl">
@@ -325,14 +325,14 @@ export default function ModeracionPage() {
                 <p className="text-xs text-text-muted">{p.vendedor_nombre} · {p.vendedor_tipo === "oficial" ? "Tienda Oficial" : "Feria"}</p>
                 <div className="flex items-center gap-3 mt-1.5">
                   <p className="text-sm font-bold text-price">${p.precio.toLocaleString("es-AR")}</p>
-                  {p.status === "pending" ? <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-warning-50 text-warning-600">Pendiente</span> : p.status === "approved" ? <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-success-50 text-success-600">Aprobada</span> : <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-error-50 text-error-500">Rechazada</span>}
+                  {p.status === "pending" ? <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-warning-50 text-warning-600">Pendiente</span> : p.status === "approved" ? <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-success-50 text-success-600">Aprobada</span> : p.status === "changes_requested" ? <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-warning-50 text-warning-600">Cambios pedidos</span> : <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-error-50 text-error-500">Rechazada</span>}
                 </div>
               </div>
               <div className="flex gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
                 {p.status === "pending" && (
                   <>
-                    <button onClick={() => approveProduct(p.id)} className="w-8 h-8 rounded-full bg-success-50 text-success-600 flex items-center justify-center hover:bg-success-500 hover:text-white transition-colors"><Check className="w-4 h-4" /></button>
-                    <button onClick={() => rejectProduct(p.id)} className="w-8 h-8 rounded-full bg-error-50 text-error-500 flex items-center justify-center hover:bg-error-500 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
+                    <button onClick={() => updateProductStatus(p.id, "approved")} className="w-8 h-8 rounded-full bg-success-50 text-success-600 flex items-center justify-center hover:bg-success-500 hover:text-white transition-colors"><Check className="w-4 h-4" /></button>
+                    <button onClick={() => updateProductStatus(p.id, "rejected")} className="w-8 h-8 rounded-full bg-error-50 text-error-500 flex items-center justify-center hover:bg-error-500 hover:text-white transition-colors"><X className="w-4 h-4" /></button>
                   </>
                 )}
                 <button onClick={() => setShowDelete(p.id)} className="w-8 h-8 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-error-50 hover:text-error-500 transition-colors"><Trash2 className="w-3.5 h-3.5 text-text-muted" /></button>
@@ -346,8 +346,8 @@ export default function ModeracionPage() {
         <ProductDetailModal
           product={detailProduct}
           onClose={() => setDetailProduct(null)}
-          onApprove={approveProduct}
-          onReject={rejectProduct}
+          onApprove={(id) => updateProductStatus(id, "approved")}
+          onReject={(id) => updateProductStatus(id, "rejected")}
           onDelete={removeStoreProduct}
         />
       )}
