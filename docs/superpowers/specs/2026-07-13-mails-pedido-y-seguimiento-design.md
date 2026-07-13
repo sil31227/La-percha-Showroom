@@ -1,4 +1,4 @@
-# Mails de pedido y seguimiento de envío — Diseño
+# Mails de pedido, seguimiento de envío y retiro en local — Diseño
 
 Fecha: 2026-07-13
 
@@ -8,6 +8,8 @@ Fecha: 2026-07-13
    no recibe ningún mail con los detalles del pedido/envío.
 2. Cuando la admin marca un pedido como "Enviado", la clienta no recibe aviso ni ve
    que fue enviado por Correo Argentino, ni tiene el número de seguimiento.
+3. No existe opción de "retiro en local" ni pago en efectivo para productos que se
+   pueden retirar coordinando con La Percha.
 
 ## Alcance
 
@@ -53,6 +55,38 @@ Fecha: 2026-07-13
 - Cuando `status === 'shipped'` y método es Correo Argentino: mostrar
   "Enviado por Correo Argentino" + número de seguimiento + link de rastreo.
 
+## Funcionalidad 3 — Retiro en local + pago en efectivo
+
+### Base de datos
+- Columna nueva `retiro_local BOOLEAN DEFAULT false` en `productos`.
+
+### Quién habilita el retiro
+- **Feria** (`/vender`): toggle "Permitir retiro en local" al publicar; guarda
+  `retiro_local`.
+- **Tienda oficial** (`store_type = 'oficial'`): default `retiro_local = true`,
+  editable desde el panel admin de productos.
+
+### Checkout paso-1 (envío)
+- Se agrega el valor `retiro_local` a `ShippingMethod` y `METODO_LABEL`.
+- La opción "Retiro en local (coordinar con La Percha)" aparece **solo si TODOS** los
+  productos del carrito tienen `retiro_local = true`. Costo $0.
+- Al elegir retiro en local, se ocultan los campos de dirección; solo se piden nombre
+  y email. `validate()` omite provincia/ciudad/cp/dirección en ese caso.
+
+### Checkout paso-2 (pago)
+- Cuando el método de envío es `retiro_local`, además de Mercado Pago y transferencia,
+  se muestra **"Pago en efectivo"** ("Coordinás el pago en efectivo al retirar").
+- Efectivo NO está disponible para métodos de envío que no sean retiro en local.
+- `crear-pedido` y `crear-preferencia`: `calcularCostoEnvio('retiro_local', ...) => 0`.
+
+### Flujo (paso-3)
+- Si `metodo_envio === 'retiro_local'`, tras registrar el pedido se muestra un
+  **botón de WhatsApp** para coordinar la cita previa de retiro en el local
+  (para cualquier medio de pago). Mensaje: coordinar retiro del pedido #orden.
+- Con **efectivo**: título "¡Pedido registrado!"; el pago se hace en el local.
+- Con **Mercado Pago + retiro**: sigue aplicando el mail de pago confirmado (Func. 1).
+- En "Mis compras" y admin el método se muestra como "Retiro en local".
+
 ## Migración
 
 Nuevo archivo `supabase/migration-mails-seguimiento.sql`:
@@ -60,10 +94,12 @@ Nuevo archivo `supabase/migration-mails-seguimiento.sql`:
 ```sql
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS mail_pago_enviado BOOLEAN DEFAULT false;
 ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS seguimiento TEXT;
+ALTER TABLE productos ADD COLUMN IF NOT EXISTS retiro_local BOOLEAN DEFAULT false;
 ```
 
 ## Fuera de alcance
 
-- Mails para transferencia u otros medios de pago.
+- Mails para transferencia u otros medios de pago (salvo el de pago confirmado de MP).
 - Notificaciones in-app del envío (los pedidos guardan email, no `user_id`).
 - Estados de tracking en tiempo real (solo se guarda el número que carga la admin).
+- Seguimiento de Correo Argentino para retiro en local (no aplica).
