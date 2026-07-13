@@ -1,8 +1,8 @@
 import { create } from "zustand"
 import { supabase } from "@/lib/supabase"
-import type { Variante, ProductType, ShippingConfig, NotificationType } from "@/lib/types"
+import type { Variante, ProductType, ShippingConfig, NotificationType, ModerationNote } from "@/lib/types"
 
-export type ProductStatus = "pending" | "approved" | "rejected"
+export type ProductStatus = "pending" | "approved" | "rejected" | "changes_requested"
 export type VendorStatus = "pending" | "approved" | "rejected"
 
 export interface AdminProduct {
@@ -44,6 +44,7 @@ interface AdminState {
   shippingConfig: ShippingConfig | null
   shippingConfigLoaded: boolean
   loaded: boolean
+  moderationNotes: Record<string, ModerationNote[]>
   loadFromSupabase: () => Promise<void>
   loadShippingConfig: () => Promise<void>
   updateShippingConfig: (config: ShippingConfig) => Promise<void>
@@ -80,7 +81,7 @@ async function createNotification(userId: string | undefined, type: Notification
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
-  products: [], vendors: [], orders: [], categories: [], faq: [], terms: "", shippingConfig: null, shippingConfigLoaded: false, loaded: false,
+  products: [], vendors: [], orders: [], categories: [], faq: [], terms: "", shippingConfig: null, shippingConfigLoaded: false, loaded: false, moderationNotes: {},
 
   loadFromSupabase: async () => {
     const [pRes, vRes, oRes, cRes, fRes, tRes] = await Promise.all([

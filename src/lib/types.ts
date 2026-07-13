@@ -80,8 +80,20 @@ export interface ShippingConfig {
 export type NotificationType =
   | "product_approved"
   | "product_rejected"
+  | "product_changes_requested"
   | "seller_approved"
   | "seller_rejected"
+
+export type ModerationActionType = 'approved' | 'rejected' | 'changes_requested'
+
+export interface ModerationNote {
+  id: string
+  producto_id: string
+  admin_id: string
+  tipo_accion: ModerationActionType
+  texto: string | null
+  created_at: string
+}
 
 export interface Notification {
   id: string
