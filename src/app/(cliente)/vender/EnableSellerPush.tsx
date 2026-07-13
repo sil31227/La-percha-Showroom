@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { Bell, BellOff, BellRing, Loader2 } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
@@ -13,7 +14,7 @@ function urlBase64ToUint8Array(base64String: string) {
 
 type PushState = "loading" | "unsupported" | "default" | "granted" | "denied" | "subscribing"
 
-export function EnableSellerPush({ userId }: { userId: string }) {
+export function EnableSellerPush() {
   const [state, setState] = useState<PushState>("loading")
 
   useEffect(() => {
@@ -48,10 +49,16 @@ export function EnableSellerPush({ userId }: { userId: string }) {
           applicationServerKey: urlBase64ToUint8Array(vapidKey) as Uint8Array<ArrayBuffer>,
         }))
 
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        alert("Debés iniciar sesión para activar notificaciones.")
+        return
+      }
+
       const res = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...sub.toJSON(), audience: "seller", user_id: userId }),
+        body: JSON.stringify({ ...sub.toJSON(), audience: "seller", access_token: session.access_token }),
       })
       if (!res.ok) throw new Error("No se pudo guardar la suscripción")
 

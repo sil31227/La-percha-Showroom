@@ -333,7 +333,7 @@ export default function VenderPage() {
       </header>
 
       <div className="px-5 pt-4">
-        <EnableSellerPush userId={user.id} />
+        <EnableSellerPush />
       </div>
 
       <form onSubmit={handleSubmit}
