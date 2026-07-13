@@ -28,7 +28,7 @@ CREATE POLICY "notifications_select_own" ON notifications
   FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "notifications_update_own" ON notifications
   FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "admin_all_notifications" ON notifications
-  FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "notifications_insert_any" ON notifications
+  FOR INSERT WITH CHECK (true);
 
 COMMIT;

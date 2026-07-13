@@ -19,25 +19,24 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
 
   load: async (userId) => {
     if (!userId) return
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-    set({ items: (data || []) as Notification[], loaded: true })
+    if (!error) set({ items: (data || []) as Notification[], loaded: true })
   },
 
   markAllRead: async (userId) => {
     if (!userId) return
     const hasUnread = get().items.some(n => !n.read)
-    set(s => ({ items: s.items.map(n => ({ ...n, read: true })) }))
-    if (hasUnread) {
-      await supabase
-        .from("notifications")
-        .update({ read: true })
-        .eq("user_id", userId)
-        .eq("read", false)
-    }
+    if (!hasUnread) return
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("user_id", userId)
+      .eq("read", false)
+    if (!error) set(s => ({ items: s.items.map(n => ({ ...n, read: true })) }))
   },
 
   clear: () => set({ items: [], loaded: false }),

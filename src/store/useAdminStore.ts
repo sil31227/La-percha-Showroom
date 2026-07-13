@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { supabase } from "@/lib/supabase"
-import type { Variante, ProductType, ShippingConfig } from "@/lib/types"
+import type { Variante, ProductType, ShippingConfig, NotificationType } from "@/lib/types"
 
 export type ProductStatus = "pending" | "approved" | "rejected"
 export type VendorStatus = "pending" | "approved" | "rejected"
@@ -68,7 +68,7 @@ interface AdminState {
   updateTerms: (contenido: string) => Promise<void>
 }
 
-async function createNotification(userId: string | undefined, type: string, title: string, body: string, link: string | null) {
+async function createNotification(userId: string | undefined, type: NotificationType, title: string, body: string, link: string | null) {
   if (!userId) return
   const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
   await supabase.from("notifications").insert({ id, user_id: userId, type, title, body, link, read: false }).then(
