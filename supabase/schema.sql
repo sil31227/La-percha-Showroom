@@ -50,6 +50,7 @@ CREATE TABLE productos (
   variantes JSONB DEFAULT '[]',
   envio_gratis BOOLEAN DEFAULT false,
   destacado BOOLEAN DEFAULT false,
+  retiro_local BOOLEAN DEFAULT true,
   tipo TEXT CHECK (tipo IN ('ropa','tienda')) DEFAULT 'ropa',
   vendedor_nombre TEXT NOT NULL DEFAULT 'Tienda Oficial',
   vendedor_tipo TEXT CHECK (vendedor_tipo IN ('oficial','feria')) DEFAULT 'oficial',
