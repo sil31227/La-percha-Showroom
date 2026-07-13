@@ -1,8 +1,8 @@
 import { create } from "zustand"
 import { supabase } from "@/lib/supabase"
-import type { Variante, ProductType, ShippingConfig, NotificationType } from "@/lib/types"
+import type { Variante, ProductType, ShippingConfig, NotificationType, ModerationNote } from "@/lib/types"
 
-export type ProductStatus = "pending" | "approved" | "rejected"
+export type ProductStatus = "pending" | "approved" | "rejected" | "changes_requested"
 export type VendorStatus = "pending" | "approved" | "rejected"
 
 export interface AdminProduct {
@@ -44,11 +44,11 @@ interface AdminState {
   shippingConfig: ShippingConfig | null
   shippingConfigLoaded: boolean
   loaded: boolean
+  moderationNotes: Record<string, ModerationNote[]>
   loadFromSupabase: () => Promise<void>
   loadShippingConfig: () => Promise<void>
   updateShippingConfig: (config: ShippingConfig) => Promise<void>
-  approveProduct: (id: string) => Promise<void>
-  rejectProduct: (id: string) => Promise<void>
+  updateProductStatus: (id: string, status: ProductStatus, texto?: string) => Promise<void>
   approveVendor: (id: string) => Promise<void>
   rejectVendor: (id: string) => Promise<void>
   addStoreProduct: (p: StoreProductForm) => Promise<void>
@@ -80,7 +80,7 @@ async function createNotification(userId: string | undefined, type: Notification
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
-  products: [], vendors: [], orders: [], categories: [], faq: [], terms: "", shippingConfig: null, shippingConfigLoaded: false, loaded: false,
+  products: [], vendors: [], orders: [], categories: [], faq: [], terms: "", shippingConfig: null, shippingConfigLoaded: false, loaded: false, moderationNotes: {},
 
   loadFromSupabase: async () => {
     const [pRes, vRes, oRes, cRes, fRes, tRes] = await Promise.all([
@@ -91,6 +91,22 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       supabase.from("faq").select("*").order("orden"),
       supabase.from("terminos").select("*").single(),
     ])
+    let moderationNotes: Record<string, ModerationNote[]> = {}
+    const productIds = (pRes.data || []).map((p: { id: string }) => p.id)
+    if (productIds.length > 0) {
+      const { data: notes } = await supabase
+        .from("comentarios_moderacion")
+        .select("*")
+        .in("producto_id", productIds)
+        .order("created_at", { ascending: false })
+      if (notes) {
+        for (const note of notes) {
+          const pid = note.producto_id
+          if (!moderationNotes[pid]) moderationNotes[pid] = []
+          moderationNotes[pid].push(note as ModerationNote)
+        }
+      }
+    }
     set({
       products: (pRes.data || []) as AdminProduct[],
       vendors: (vRes.data || []) as VendorRequest[],
@@ -98,53 +114,97 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       categories: (cRes.data || []) as unknown as AdminCategory[],
       faq: (fRes.data || []) as FAQItem[],
       terms: tRes.data?.contenido || "",
+      moderationNotes,
       loaded: true,
     })
   },
 
-  approveProduct: async (id) => {
+  updateProductStatus: async (id, status, texto) => {
     const product = get().products.find(p => p.id === id)
-    await supabase.from("productos").update({ status: "approved" }).eq("id", id)
-    createNotification(
-      product?.vendedor_id,
-      "product_approved",
-      "¡Tu prenda fue publicada!",
-      `"${product?.titulo || "Tu prenda"}" ya está publicada y a la venta en La Percha.`,
-      `/producto/${id}`
-    )
-    fetch("/api/push/notify-seller", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: product?.vendedor_id,
-        title: "¡Tu prenda fue publicada!",
-        body: `"${product?.titulo || "Tu prenda"}" ya está publicada y a la venta.`,
-        url: "/perfil/publicaciones",
-      }),
-    }).catch(() => {})
-    set(s => ({ products: s.products.map(p => p.id === id ? { ...p, status: "approved" as const } : p) }))
-  },
-  rejectProduct: async (id) => {
-    const product = get().products.find(p => p.id === id)
-    await supabase.from("productos").update({ status: "rejected" }).eq("id", id)
-    createNotification(
-      product?.vendedor_id,
-      "product_rejected",
-      "Tu prenda no fue aprobada",
-      `"${product?.titulo || "Tu prenda"}" no pasó la moderación esta vez. Podés revisarla y volver a publicarla.`,
-      null
-    )
-    fetch("/api/push/notify-seller", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: product?.vendedor_id,
-        title: "Tu prenda no fue aprobada",
-        body: `"${product?.titulo || "Tu prenda"}" no pasó la moderación. Podés revisarla y volver a publicarla.`,
-        url: "/perfil/publicaciones",
-      }),
-    }).catch(() => {})
-    set(s => ({ products: s.products.map(p => p.id === id ? { ...p, status: "rejected" as const } : p) }))
+
+    const { data: note, error: insertError } = await supabase
+      .from("comentarios_moderacion")
+      .insert({
+        producto_id: id,
+        admin_id: "00000000-0000-0000-0000-000000000000",
+        tipo_accion: status,
+        texto: texto || null,
+      })
+      .select()
+      .single()
+    if (insertError) {
+      console.error("[updateProductStatus] error insertando nota:", insertError)
+    }
+
+    const { error: updateError } = await supabase.from("productos").update({ status }).eq("id", id)
+    if (updateError) {
+      console.error("[updateProductStatus] error actualizando status:", updateError)
+      return
+    }
+
+    if (status !== "approved" && product?.vendedor_id) {
+      const title =
+        status === "rejected"
+          ? "Tu prenda no fue aprobada"
+          : "Tu prenda necesita cambios"
+      const body =
+        status === "rejected"
+          ? `"${product.titulo}" no paso la moderacion.${texto ? " Motivo: " + texto : ""} Podes revisarla y volver a publicarla.`
+          : `"${product.titulo}" necesita algunos cambios antes de publicarse.${texto ? " Motivo: " + texto : ""}`
+
+      createNotification(
+        product.vendedor_id,
+        status === "rejected" ? "product_rejected" : "product_changes_requested",
+        title,
+        body,
+        null
+      )
+
+      fetch("/api/push/notify-seller", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: product.vendedor_id,
+          title,
+          body,
+          url: "/perfil/publicaciones",
+        }),
+      }).catch(() => {})
+    }
+
+    if (status === "approved" && product?.vendedor_id) {
+      createNotification(
+        product.vendedor_id,
+        "product_approved",
+        "¡Tu prenda fue publicada!",
+        `"${product.titulo}" ya está publicada y a la venta en La Percha.`,
+        `/producto/${id}`
+      )
+      fetch("/api/push/notify-seller", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: product.vendedor_id,
+          title: "¡Tu prenda fue publicada!",
+          body: `"${product.titulo}" ya está publicada y a la venta.`,
+          url: "/perfil/publicaciones",
+        }),
+      }).catch(() => {})
+    }
+
+    if (note) {
+      set(s => ({
+        products: s.products.map(p => p.id === id ? { ...p, status: status as ProductStatus } : p),
+        moderationNotes: {
+          ...s.moderationNotes,
+          [id]: [note as ModerationNote, ...(s.moderationNotes[id] || [])],
+        },
+      }))
+    } else {
+      set(s => ({
+        products: s.products.map(p => p.id === id ? { ...p, status: status as ProductStatus } : p),
+      }))
+    }
   },
   approveVendor: async (id) => {
     await Promise.all([

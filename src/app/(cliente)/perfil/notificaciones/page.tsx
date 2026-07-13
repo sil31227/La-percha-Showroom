@@ -1,7 +1,7 @@
 "use client"
 import { useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, CheckCircle, XCircle, Bell, Loader2 } from "lucide-react"
+import { ArrowLeft, CheckCircle, XCircle, Bell, Loader2, Edit3 } from "lucide-react"
 import { useAuthStore } from "@/store/useAuthStore"
 import { useNotificationsStore } from "@/store/useNotificationsStore"
 import type { NotificationType } from "@/lib/types"
@@ -11,6 +11,7 @@ const ICONS: Record<NotificationType, { icon: typeof CheckCircle; className: str
   seller_approved: { icon: CheckCircle, className: "bg-success-50 text-success-600" },
   product_rejected: { icon: XCircle, className: "bg-error-50 text-error-500" },
   seller_rejected: { icon: XCircle, className: "bg-error-50 text-error-500" },
+  product_changes_requested: { icon: Edit3, className: "bg-warning-50 text-warning-600" },
 }
 
 export default function NotificacionesPage() {
