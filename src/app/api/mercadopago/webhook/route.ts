@@ -73,12 +73,12 @@ export async function POST(req: Request) {
           .update({ mail_pago_enviado: true })
           .like("id", `${externalReference}%`)
 
-        await sendAdminPush({
+        sendAdminPush({
           title: "✅ Pago confirmado",
           body: `Pedido #${externalReference} · $${(subtotal + costoEnvio).toLocaleString("es-AR")}`,
           url: "/admin/pedidos",
           tag: `pago-${externalReference}`,
-        })
+        }).catch(() => {})
       }
     }
 

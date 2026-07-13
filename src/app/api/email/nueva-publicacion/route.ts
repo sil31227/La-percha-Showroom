@@ -43,11 +43,11 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    await sendAdminPush({
+    sendAdminPush({
       title: "🔔 Nueva prenda para moderar",
       body: `${titulo} · ${vendedora} · $${Number(precio).toLocaleString("es-AR")}`,
       url: "/admin/moderacion",
-    })
+    }).catch(() => {})
 
     return NextResponse.json({ ok: true })
   } catch (e: any) {

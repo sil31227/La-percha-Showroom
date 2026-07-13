@@ -20,11 +20,11 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ email, name: name || email, token: crypto.randomUUID(), verified: false }),
     })
 
-    await sendAdminPush({
+    sendAdminPush({
       title: "👤 Nueva vendedora registrada",
       body: `${name || email}`,
       url: "/admin/registros",
-    })
+    }).catch(() => {})
 
     return NextResponse.json({ ok: true })
   } catch (e: any) {

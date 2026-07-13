@@ -177,12 +177,12 @@ export async function POST(req: Request) {
     }
 
     const totalPush = subtotal + shipping
-    await sendAdminPush({
+    sendAdminPush({
       title: "🛍️ Nuevo pedido",
       body: `${compradorNombre} · $${totalPush.toLocaleString("es-AR")} · #${orderId}`,
       url: "/admin/pedidos",
       tag: `pedido-${orderId}`,
-    })
+    }).catch(() => {})
 
     return NextResponse.json({
       ok: true,
