@@ -76,11 +76,11 @@ export default function PedidosPage() {
                         return <button onClick={() => { setTrackingId(o.id); setTrackingValue("") }} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-info-50 text-info-600 hover:bg-info-500 hover:text-white transition-colors"><Truck className="w-3 h-3" /> Enviar</button>
                       }
                       if (!esCorreo) {
-                        return <button onClick={() => markOrderShipped(o.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-info-50 text-info-600 hover:bg-info-500 hover:text-white transition-colors"><Truck className="w-3 h-3" /> Enviar</button>
+                        return <button onClick={() => markOrderShipped(o.id).catch(() => alert("Error al actualizar el pedido. Reintentá."))} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-info-50 text-info-600 hover:bg-info-500 hover:text-white transition-colors"><Truck className="w-3 h-3" /> Enviar</button>
                       }
                       return null
                     })()}
-                    {o.status === "shipped" && <button onClick={() => markOrderDelivered(o.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-success-50 text-success-600 hover:bg-success-500 hover:text-white transition-colors"><PackageCheck className="w-3 h-3" /> Entregado</button>}
+                    {o.status === "shipped" && <button onClick={() => markOrderDelivered(o.id).catch(() => alert("Error al actualizar el pedido. Reintentá."))} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-success-50 text-success-600 hover:bg-success-500 hover:text-white transition-colors"><PackageCheck className="w-3 h-3" /> Entregado</button>}
                     <button onClick={() => setExpanded(isOpen ? null : o.id)} className="px-3 py-1.5 rounded-full text-[11px] font-medium text-text-muted hover:bg-surface-sunken transition-colors">{isOpen ? "Menos" : "Detalles"}</button>
                   </div>
                 </div>
@@ -93,7 +93,7 @@ export default function PedidosPage() {
                       className="w-full h-10 rounded-lg border border-border-default px-3 text-sm text-text-strong bg-surface-card focus:outline-none focus:border-brand" />
                     <div className="flex gap-2">
                       <button
-                        onClick={() => { if (trackingValue.trim()) { markOrderShipped(o.id, trackingValue.trim()); setTrackingId(null) } }}
+                        onClick={() => { if (trackingValue.trim()) { markOrderShipped(o.id, trackingValue.trim()).then(() => setTrackingId(null)).catch(() => alert("Error al actualizar el pedido. Reintentá.")) } }}
                         disabled={!trackingValue.trim()}
                         className={`flex-1 h-10 rounded-full text-[12px] font-semibold transition-colors ${trackingValue.trim() ? "bg-info-500 text-white hover:bg-info-600" : "bg-info-50 text-info-600/50 cursor-not-allowed"}`}>
                         Confirmar envío
