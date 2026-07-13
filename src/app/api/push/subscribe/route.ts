@@ -29,6 +29,16 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "No autenticado" }, { status: 401 })
       }
       userId = user.id
+
+      const { data: profile } = await supabaseAuth
+        .from("profiles")
+        .select("seller_status")
+        .eq("id", user.id)
+        .single()
+
+      if (!profile || profile.seller_status !== "approved") {
+        return NextResponse.json({ error: "Solo vendedoras aprobadas pueden suscribirse" }, { status: 403 })
+      }
     }
 
     const supabase = createAdminClient()
