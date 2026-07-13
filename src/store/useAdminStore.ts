@@ -160,7 +160,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       id, titulo: form.titulo, precio: form.precio, precio_anterior: form.precio_anterior,
       descripcion: form.descripcion, marca: form.marca, material: form.material,
       talles: form.talles, colores: form.colores, imagenes: form.imagenes,
-      stock: form.variantes.length > 0 ? form.variantes.reduce((s, v) => s + (v.stock || 0), 0) : (form.talles?.length ? 0 : 1),
+      stock: form.variantes.length > 0 ? form.variantes.reduce((s, v) => s + (v.stock || 0), 0) : 1,
       variantes: JSON.parse(JSON.stringify(form.variantes || [])),
       envio_gratis: form.envio_gratis, destacado: form.destacado, retiro_local: form.retiro_local,
       tipo: form.tipo, vendedor_nombre: "Tienda Oficial", vendedor_tipo: "oficial",
