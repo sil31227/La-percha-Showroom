@@ -31,21 +31,46 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
-    const now = new Date().toISOString()
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 
     const { data: pedidos } = await supabase
       .from("pedidos")
-      .select("id")
+      .select("id, comprador_email, producto_titulo, talle, precio, direccion, metodo_envio, costo_envio, mail_pago_enviado")
       .like("id", `${externalReference}%`)
 
     if (pedidos?.length) {
-      for (const pedido of pedidos) {
+      const yaEnviado = pedidos.some(p => p.mail_pago_enviado)
+
+      if (!yaEnviado) {
+        const email = pedidos.find(p => p.comprador_email)?.comprador_email || ""
+        const costoEnvio = Number(pedidos[0].costo_envio) || 0
+        const subtotal = pedidos.reduce((s, p) => s + Number(p.precio), 0)
+
+        if (email) {
+          try {
+            await fetch(`${siteUrl}/api/email/pedido-confirmado`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email,
+                orderId: externalReference,
+                items: pedidos.map(p => ({ titulo: p.producto_titulo, talle: p.talle, precio: Number(p.precio) })),
+                direccion: pedidos[0].direccion,
+                metodo_envio: pedidos[0].metodo_envio,
+                costo_envio: costoEnvio,
+                subtotal,
+                total: subtotal + costoEnvio,
+              }),
+            })
+          } catch (mailErr) {
+            console.error("Error disparando mail pago confirmado:", mailErr)
+          }
+        }
+
         await supabase
           .from("pedidos")
-          .update({
-            status: "pending_shipment",
-          })
-          .eq("id", pedido.id)
+          .update({ mail_pago_enviado: true })
+          .like("id", `${externalReference}%`)
       }
     }
 
