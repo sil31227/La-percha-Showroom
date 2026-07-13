@@ -170,6 +170,8 @@ export async function POST(req: Request) {
         id: `${orderId}-${item.productId.slice(-4)}`,
         producto_titulo: item.title,
         producto_imagen: item.image,
+        producto_id: item.productId,
+        vendedor_id: (productMap.get(item.productId) as Record<string, unknown>)?.vendedor_id as string | undefined,
         precio: item.price,
         comprador_nombre: compradorNombre,
         comprador_email: compradorEmail,
