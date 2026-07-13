@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { sendSellerPush } from "@/lib/push"
 import { MercadoPagoConfig, Preference } from "mercadopago"
 import { createAdminClient } from "@/lib/supabase-admin"
 
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
 
     const { data: products, error: productError } = await supabase
       .from("productos")
-      .select("id, titulo, precio, imagenes, vendedor_nombre, vendedor_tipo, status, variantes, stock")
+      .select("id, titulo, precio, imagenes, vendedor_nombre, vendedor_id, vendedor_tipo, status, variantes, stock")
       .in("id", ids)
 
     if (productError || !products) {
@@ -183,6 +184,23 @@ export async function POST(req: Request) {
         costo_envio: shipping,
         created_at: now,
       })
+    }
+
+    const vendedoresNotificados = new Set<string>()
+    for (const item of validItems) {
+      const prod = productMap.get(item.productId)
+      if (prod && (prod as Record<string, unknown>).vendedor_id) {
+        const vid = (prod as Record<string, unknown>).vendedor_id as string
+        if (!vendedoresNotificados.has(vid)) {
+          vendedoresNotificados.add(vid)
+          sendSellerPush(vid, {
+            title: "¡Vendiste un producto!",
+            body: `Alguien compró "${prod.titulo}". Revisá tus publicaciones.`,
+            url: "/perfil/publicaciones",
+            tag: `venta-${orderId}-${vid}`,
+          }).catch(() => {})
+        }
+      }
     }
 
     const mpClient = new MercadoPagoConfig({ accessToken })
