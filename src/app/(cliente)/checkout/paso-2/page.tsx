@@ -114,7 +114,7 @@ export default function CheckoutPaso2() {
                 <span className="font-bold text-price">$ {total.toLocaleString("es-AR")}</span>
               </div>
               <p className="text-xs text-text-muted bg-warning-50 rounded-lg p-2.5 mt-1">
-                Envianos el comprobante a <strong>pagos@lapercha.com.ar</strong> con el número de orden
+                Envianos el comprobante a <strong>sil31227@gmail.com</strong> con el número de orden
               </p>
             </div>
           </PaymentMethodCard>
