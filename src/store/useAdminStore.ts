@@ -242,7 +242,10 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   markOrderShipped: async (id, seguimiento) => {
-    await supabase.from("pedidos").update({ status: "shipped", seguimiento: seguimiento || null }).eq("id", id)
+    const payload: Record<string, unknown> = { status: "shipped" }
+    if (seguimiento) payload.seguimiento = seguimiento
+    const { error } = await supabase.from("pedidos").update(payload).eq("id", id)
+    if (error) throw new Error(error.message)
     const order = get().orders.find(o => o.id === id)
     set(s => ({ orders: s.orders.map(o => o.id === id ? { ...o, status: "shipped" as const, seguimiento } : o) }))
     if (order?.comprador_email) {
@@ -260,7 +263,8 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }
   },
   markOrderDelivered: async (id) => {
-    await supabase.from("pedidos").update({ status: "delivered" }).eq("id", id)
+    const { error } = await supabase.from("pedidos").update({ status: "delivered" }).eq("id", id)
+    if (error) throw new Error(error.message)
     set(s => ({ orders: s.orders.map(o => o.id === id ? { ...o, status: "delivered" as const } : o) }))
   },
 
