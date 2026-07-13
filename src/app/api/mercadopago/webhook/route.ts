@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { MercadoPagoConfig, Payment } from "mercadopago"
 import { createAdminClient } from "@/lib/supabase-admin"
+import { sendAdminPush } from "@/lib/push"
 
 export async function POST(req: Request) {
   const supabase = createAdminClient()
@@ -71,6 +72,13 @@ export async function POST(req: Request) {
           .from("pedidos")
           .update({ mail_pago_enviado: true })
           .like("id", `${externalReference}%`)
+
+        await sendAdminPush({
+          title: "✅ Pago confirmado",
+          body: `Pedido #${externalReference} · $${(subtotal + costoEnvio).toLocaleString("es-AR")}`,
+          url: "/admin/pedidos",
+          tag: `pago-${externalReference}`,
+        })
       }
     }
 
