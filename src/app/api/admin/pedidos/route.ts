@@ -29,3 +29,24 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { id } = await request.json()
+
+    if (!id) {
+      return NextResponse.json({ error: "Falta id" }, { status: 400 })
+    }
+
+    const supabase = createAdminClient()
+    const { error } = await supabase.from("pedidos").delete().eq("id", id)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch {
+    return NextResponse.json({ error: "Error interno" }, { status: 500 })
+  }
+}
