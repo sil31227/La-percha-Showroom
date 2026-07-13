@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase-admin"
 import { NextResponse } from "next/server"
+import { sendAdminPush } from "@/lib/push"
 
 interface CheckoutItem {
   productId: string
@@ -174,6 +175,14 @@ export async function POST(req: Request) {
         created_at: now,
       })
     }
+
+    const totalPush = subtotal + shipping
+    await sendAdminPush({
+      title: "🛍️ Nuevo pedido",
+      body: `${compradorNombre} · $${totalPush.toLocaleString("es-AR")} · #${orderId}`,
+      url: "/admin/pedidos",
+      tag: `pedido-${orderId}`,
+    })
 
     return NextResponse.json({
       ok: true,
