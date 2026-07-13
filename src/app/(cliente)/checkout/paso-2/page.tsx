@@ -131,6 +131,20 @@ export default function CheckoutPaso2() {
               </p>
             </div>
           </PaymentMethodCard>
+
+          {shippingMethod === "retiro_local" && (
+            <PaymentMethodCard
+              id="efectivo"
+              value="efectivo"
+              selected={method}
+              onChange={(v) => { setMethod(v); setError(false); setApiError("") }}
+              label="Pago en efectivo"
+              description="Coordinás el pago al retirar en el local">
+              <p className="text-xs text-text-muted bg-matcha-50 rounded-lg p-2.5">
+                Total a pagar: <strong>$ {totalConEnvio.toLocaleString("es-AR")}</strong>. Coordinás la cita previa por WhatsApp para retirar y pagar en efectivo.
+              </p>
+            </PaymentMethodCard>
+          )}
         </div>
 
         {error && (

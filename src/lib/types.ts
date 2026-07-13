@@ -68,7 +68,7 @@ export interface Filters {
   search: string
 }
 
-export type ShippingMethod = 'correo_sucursal' | 'correo_domicilio' | 'arreglar_vendedor'
+export type ShippingMethod = 'correo_sucursal' | 'correo_domicilio' | 'arreglar_vendedor' | 'retiro_local'
 
 export interface ShippingConfig {
   sucursal_price: number

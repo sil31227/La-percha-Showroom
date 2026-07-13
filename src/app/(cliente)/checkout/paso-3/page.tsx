@@ -28,6 +28,11 @@ function buildTransferWhatsAppUrl(orderNumber: string): string {
   return `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(text)}`
 }
 
+function buildRetiroWhatsAppUrl(orderNumber: string): string {
+  const text = `Hola La Percha! Quiero coordinar el retiro en local de mi pedido #${orderNumber}.`
+  return `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(text)}`
+}
+
 function Paso3Content() {
   const searchParams = useSearchParams()
   const cart = useShopStore(s => s.cart)
@@ -38,6 +43,7 @@ function Paso3Content() {
   const [items, setItems] = useState<CartItem[]>([])
   const [shippingCost, setShippingCost] = useState(0)
   const [shippingMethodLabel, setShippingMethodLabel] = useState("")
+  const [shippingMethodRaw, setShippingMethodRaw] = useState("")
   const [status, setStatus] = useState<"loading" | "success" | "pending" | "error">("loading")
   const [errorMsg, setErrorMsg] = useState("")
 
@@ -48,6 +54,7 @@ function Paso3Content() {
   useEffect(() => {
     const shipMethod = sessionStorage.getItem("checkout_shipping_method") || ""
     const shipCost = Number(sessionStorage.getItem("checkout_shipping_cost")) || 0
+    setShippingMethodRaw(shipMethod)
     setShippingCost(shipCost)
     setShippingMethodLabel(METODO_LABEL[shipMethod] || shipMethod)
 
@@ -131,6 +138,7 @@ function Paso3Content() {
   const subtotal = items.reduce((s, i) => s + i.price, 0)
   const orderTotal = subtotal + shippingCost
   const isTransfer = !isFromMP && paymentMethod === "transferencia"
+  const isRetiroLocal = shippingMethodRaw === "retiro_local"
 
   if (status === "loading") {
     return (
@@ -210,12 +218,16 @@ function Paso3Content() {
 
         <div className="text-center">
           <h1 className="font-display text-2xl text-text-strong">
-            {isFromMP ? "¡Pago confirmado!" : isTransfer ? "¡Pedido registrado!" : "¡Pedido confirmado!"}
+            {isFromMP ? "¡Pago confirmado!" : isRetiroLocal ? "¡Pedido registrado!" : isTransfer ? "¡Pedido registrado!" : "¡Pedido confirmado!"}
           </h1>
           <p className="text-text-muted text-sm mt-1">
             Orden <span className="font-mono font-semibold text-text-strong">#{orderNumber}</span>
           </p>
-          {isTransfer ? (
+          {isRetiroLocal ? (
+            <p className="text-text-muted text-sm mt-1">
+              Coordiná tu cita previa por WhatsApp para retirar en el local
+            </p>
+          ) : isTransfer ? (
             <p className="text-text-muted text-sm mt-1">
               Para continuar con tu pedido, escribinos por WhatsApp
             </p>
@@ -234,6 +246,17 @@ function Paso3Content() {
               bg-[#25D366] hover:bg-[#20bd5a] text-white
               font-semibold rounded-lg transition-colors">
             Continuar por WhatsApp
+          </a>
+        )}
+
+        {isRetiroLocal && (
+          <a href={buildRetiroWhatsAppUrl(orderNumber)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full h-13 flex items-center justify-center gap-2
+              bg-[#25D366] hover:bg-[#20bd5a] text-white
+              font-semibold rounded-lg transition-colors">
+            Coordinar retiro por WhatsApp
           </a>
         )}
 

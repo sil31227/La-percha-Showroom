@@ -14,6 +14,7 @@ const METODO_LABEL: Record<string, string> = {
   correo_sucursal: "Correo Argentino (sucursal)",
   correo_domicilio: "Correo Argentino (domicilio)",
   arreglar_vendedor: "Arreglar con el vendedor",
+  retiro_local: "Retiro en local",
 }
 
 type ParsedAddress = { nombre?: string; email?: string; provincia?: string; ciudad?: string; cp?: string; direccion?: string }
@@ -35,6 +36,8 @@ export default function PedidosPage() {
   const { orders, loaded, loadFromSupabase, markOrderShipped, markOrderDelivered } = useAdminStore()
   const [filter, setFilter] = useState<"all" | "pending_shipment" | "shipped" | "delivered">("pending_shipment")
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [trackingId, setTrackingId] = useState<string | null>(null)
+  const [trackingValue, setTrackingValue] = useState("")
 
   useEffect(() => { loadFromSupabase() }, [])
 
@@ -67,12 +70,38 @@ export default function PedidosPage() {
                     <div className="flex items-center gap-3 mt-1.5"><p className="text-sm font-bold text-price">${o.precio.toLocaleString("es-AR")}</p></div>
                   </div>
                   <div className="flex flex-col gap-1.5 shrink-0">
-                    {o.status === "pending_shipment" && <button onClick={() => markOrderShipped(o.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-info-50 text-info-600 hover:bg-info-500 hover:text-white transition-colors"><Truck className="w-3 h-3" /> Enviar</button>}
+                    {o.status === "pending_shipment" && (() => {
+                      const esCorreo = o.metodo_envio === "correo_sucursal" || o.metodo_envio === "correo_domicilio"
+                      if (esCorreo && trackingId !== o.id) {
+                        return <button onClick={() => { setTrackingId(o.id); setTrackingValue("") }} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-info-50 text-info-600 hover:bg-info-500 hover:text-white transition-colors"><Truck className="w-3 h-3" /> Enviar</button>
+                      }
+                      if (!esCorreo) {
+                        return <button onClick={() => markOrderShipped(o.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-info-50 text-info-600 hover:bg-info-500 hover:text-white transition-colors"><Truck className="w-3 h-3" /> Enviar</button>
+                      }
+                      return null
+                    })()}
                     {o.status === "shipped" && <button onClick={() => markOrderDelivered(o.id)} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-success-50 text-success-600 hover:bg-success-500 hover:text-white transition-colors"><PackageCheck className="w-3 h-3" /> Entregado</button>}
                     <button onClick={() => setExpanded(isOpen ? null : o.id)} className="px-3 py-1.5 rounded-full text-[11px] font-medium text-text-muted hover:bg-surface-sunken transition-colors">{isOpen ? "Menos" : "Detalles"}</button>
                   </div>
                 </div>
                 {isOpen && <div className="mt-4 pt-4 border-t border-border-subtle space-y-2"><div className="flex items-center gap-2 text-xs text-text-muted"><MapPin className="w-3.5 h-3.5" />{formatDireccion(addr)}</div>{o.metodo_envio && <div className="flex items-center gap-2 text-xs text-text-muted"><Truck className="w-3.5 h-3.5" />{METODO_LABEL[o.metodo_envio] || o.metodo_envio}{o.costo_envio != null && <span className="ml-1 font-semibold text-price">· ${o.costo_envio.toLocaleString("es-AR")}</span>}</div>}<div className="flex items-center gap-2 text-xs text-text-muted"><Mail className="w-3.5 h-3.5" />Comprador: {compradorEmail} · Vendedor: {o.vendedor_email}</div></div>}
+                {trackingId === o.id && (
+                  <div className="mt-4 pt-4 border-t border-border-subtle space-y-2">
+                    <label className="block text-xs font-semibold text-text-strong">Número de seguimiento (Correo Argentino)</label>
+                    <input value={trackingValue} onChange={e => setTrackingValue(e.target.value)}
+                      placeholder="Ej: CA123456789AR"
+                      className="w-full h-10 rounded-lg border border-border-default px-3 text-sm text-text-strong bg-surface-card focus:outline-none focus:border-brand" />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { if (trackingValue.trim()) { markOrderShipped(o.id, trackingValue.trim()); setTrackingId(null) } }}
+                        disabled={!trackingValue.trim()}
+                        className={`flex-1 h-10 rounded-full text-[12px] font-semibold transition-colors ${trackingValue.trim() ? "bg-info-500 text-white hover:bg-info-600" : "bg-info-50 text-info-600/50 cursor-not-allowed"}`}>
+                        Confirmar envío
+                      </button>
+                      <button onClick={() => setTrackingId(null)} className="px-4 h-10 rounded-full text-[12px] font-medium text-text-muted hover:bg-surface-sunken transition-colors">Cancelar</button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )

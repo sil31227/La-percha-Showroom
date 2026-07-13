@@ -13,6 +13,8 @@ interface Pedido {
   status: string
   talle: string
   created_at: string
+  metodo_envio: string | null
+  seguimiento: string | null
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -29,6 +31,12 @@ const STATUS_STYLE: Record<string, string> = {
   cancelled: "bg-error-50 text-error-500",
 }
 
+const TRACKING_URL = "https://www.correoargentino.com.ar/formularios/e-commerce"
+
+function esCorreoArgentino(metodo: string | null) {
+  return metodo === "correo_sucursal" || metodo === "correo_domicilio"
+}
+
 export default function ComprasPage() {
   const user = useAuthStore(s => s.user)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
@@ -38,7 +46,7 @@ export default function ComprasPage() {
     if (!user?.email) { setLoading(false); return }
     supabase
       .from("pedidos")
-      .select("id, producto_titulo, producto_imagen, precio, status, talle, created_at")
+      .select("id, producto_titulo, producto_imagen, precio, status, talle, created_at, metodo_envio, seguimiento")
       .eq("comprador_email", user.email)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -98,8 +106,19 @@ export default function ComprasPage() {
                 </div>
               </div>
 
-              <div className="px-4 py-2.5 bg-surface-sunken">
-                <span className="text-[10px] text-text-muted">Orden #{pedido.id}</span>
+              <div className="px-4 py-2.5 bg-surface-sunken space-y-1">
+                <span className="block text-[10px] text-text-muted">Orden #{pedido.id}</span>
+                {pedido.status === "shipped" && esCorreoArgentino(pedido.metodo_envio) && (
+                  <div className="text-[11px] text-info-600">
+                    <span className="font-semibold">Enviado por Correo Argentino</span>
+                    {pedido.seguimiento && (
+                      <>
+                        {" · "}Seguimiento: <span className="font-mono">{pedido.seguimiento}</span>
+                        {" · "}<a href={TRACKING_URL} target="_blank" rel="noopener noreferrer" className="underline">Rastrear</a>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))
