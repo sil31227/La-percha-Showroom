@@ -67,3 +67,12 @@ export interface Filters {
   sort: SortOption
   search: string
 }
+
+export type ShippingMethod = 'correo_sucursal' | 'correo_domicilio' | 'arreglar_vendedor'
+
+export interface ShippingConfig {
+  sucursal_price: number
+  domicilio_price: number
+  free_threshold: number
+  domicilio_surcharge: number
+}

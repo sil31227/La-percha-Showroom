@@ -43,6 +43,10 @@ interface ShopStore {
   cartCount: () => number
   cartTotal: () => number
 
+  shippingMethod: string | null
+  shippingCost: number
+  setShipping: (method: string, cost: number) => void
+
   favorites: string[]
   toggleFavorite: (productId: string) => void
   isFavorite: (productId: string) => boolean
@@ -64,6 +68,8 @@ const DEFAULT_FILTERS: Filters = {
 
 export const useShopStore = create<ShopStore>()((set, get) => ({
   cart: [],
+  shippingMethod: null,
+  shippingCost: 0,
   addToCart: (item) =>
     set((s) => {
       const key = (i: CartItem) => `${i.productId}||${i.size}||${i.variantLabel || ""}`
@@ -104,6 +110,8 @@ export const useShopStore = create<ShopStore>()((set, get) => ({
   },
   cartCount: () => get().cart.reduce((sum, i) => sum + (i.quantity || 1), 0),
   cartTotal: () => get().cart.reduce((sum, i) => sum + i.price * (i.quantity || 1), 0),
+
+  setShipping: (method, cost) => set({ shippingMethod: method, shippingCost: cost }),
 
   favorites: [],
   toggleFavorite: (productId) =>

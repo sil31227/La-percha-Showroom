@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { supabase } from "@/lib/supabase"
-import type { Variante, ProductType } from "@/lib/types"
+import type { Variante, ProductType, ShippingConfig } from "@/lib/types"
 
 export type ProductStatus = "pending" | "approved" | "rejected"
 export type VendorStatus = "pending" | "approved" | "rejected"
@@ -24,6 +24,7 @@ export interface AdminOrder {
   id: string; producto_titulo: string; producto_imagen?: string; precio: number
   comprador_nombre?: string; comprador_email?: string; vendedor_nombre?: string; vendedor_email?: string
   talle?: string; direccion?: string; status: OrderStatus; created_at?: string
+  metodo_envio?: string; costo_envio?: number
 }
 export interface FAQItem { id: string; pregunta: string; respuesta: string; orden?: number }
 export interface AdminCategory { id: string; nombre: string; tipo?: ProductType; destacada?: boolean; orden?: number; subcategorias: AdminSubcategory[] }
@@ -39,9 +40,12 @@ export interface StoreProductForm {
 
 interface AdminState {
   products: AdminProduct[]; vendors: VendorRequest[]; orders: AdminOrder[]
-  categories: AdminCategory[]; faq: FAQItem[]; terms: string
+  categories: AdminCategory[]; faq: FAQItem[];   terms: string
+  shippingConfig: ShippingConfig | null
   loaded: boolean
   loadFromSupabase: () => Promise<void>
+  loadShippingConfig: () => Promise<void>
+  updateShippingConfig: (config: ShippingConfig) => Promise<void>
   approveProduct: (id: string) => Promise<void>
   rejectProduct: (id: string) => Promise<void>
   approveVendor: (id: string) => Promise<void>
@@ -65,7 +69,7 @@ interface AdminState {
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
-  products: [], vendors: [], orders: [], categories: [], faq: [], terms: "", loaded: false,
+  products: [], vendors: [], orders: [], categories: [], faq: [], terms: "", shippingConfig: null, loaded: false,
 
   loadFromSupabase: async () => {
     const [pRes, vRes, oRes, cRes, fRes, tRes] = await Promise.all([
@@ -265,5 +269,14 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   updateTerms: async (contenido) => {
     await supabase.from("terminos").upsert({ id: 1, contenido })
     set({ terms: contenido })
+  },
+
+  loadShippingConfig: async () => {
+    const { data } = await supabase.from("configuracion_envio").select("*").single()
+    if (data) set({ shippingConfig: data as ShippingConfig })
+  },
+  updateShippingConfig: async (config) => {
+    await supabase.from("configuracion_envio").upsert({ id: 1, ...config, updated_at: new Date().toISOString() })
+    set({ shippingConfig: config })
   },
 }))

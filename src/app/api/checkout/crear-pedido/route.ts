@@ -10,12 +10,34 @@ interface CheckoutItem {
   store_type: string
 }
 
+function calcularCostoEnvio(
+  metodo: string,
+  subtotal: number,
+  cfg: { sucursal_price: number; domicilio_price: number; free_threshold: number; domicilio_surcharge: number }
+): number {
+  if (metodo === "arreglar_vendedor") return 0
+  if (subtotal >= cfg.free_threshold) {
+    if (metodo === "correo_sucursal") return 0
+    if (metodo === "correo_domicilio") return cfg.domicilio_surcharge
+  }
+  if (metodo === "correo_sucursal") return cfg.sucursal_price
+  if (metodo === "correo_domicilio") return cfg.domicilio_price
+  return 0
+}
+
 export async function POST(req: Request) {
   const supabase = createAdminClient()
 
   try {
-    const body: { items: CheckoutItem[]; direccion: unknown; email?: string; paymentMethod?: string } = await req.json()
-    const { items, direccion, email, paymentMethod } = body
+    const body: {
+      items: CheckoutItem[]
+      direccion: unknown
+      email?: string
+      paymentMethod?: string
+      metodo_envio?: string
+      costo_envio?: number
+    } = await req.json()
+    const { items, direccion, email, paymentMethod, metodo_envio, costo_envio } = body
 
     if (!items?.length) {
       return NextResponse.json({ error: "El carrito está vacío" }, { status: 400 })
@@ -50,10 +72,22 @@ export async function POST(req: Request) {
       }
     })
 
-    const orderId = `LP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
-    const total = validItems.reduce((sum, i) => sum + i.price, 0)
-    const shipping = total >= 25000 ? 0 : 4500
+    const subtotal = validItems.reduce((sum, i) => sum + i.price, 0)
 
+    const { data: cfgData } = await supabase.from("configuracion_envio").select("*").single()
+    const metodo = metodo_envio || "arreglar_vendedor"
+    let shipping = 0
+
+    if (cfgData) {
+      shipping = calcularCostoEnvio(metodo, subtotal, cfgData)
+      if (costo_envio !== undefined && costo_envio !== shipping) {
+        return NextResponse.json({ error: "El costo de envío no coincide con la configuración actual" }, { status: 400 })
+      }
+    } else if (costo_envio !== undefined) {
+      shipping = costo_envio
+    }
+
+    const orderId = `LP-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
     const now = new Date().toISOString()
 
     for (const item of validItems) {
@@ -69,6 +103,8 @@ export async function POST(req: Request) {
         talle: item.size,
         direccion: typeof direccion === "object" ? JSON.stringify(direccion) : String(direccion || ""),
         status: "pending_shipment",
+        metodo_envio: metodo,
+        costo_envio: shipping,
         created_at: now,
       })
     }
@@ -76,9 +112,10 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       orderId,
-      total: total + shipping,
-      subtotal: total,
+      total: subtotal + shipping,
+      subtotal,
       shipping,
+      metodo_envio: metodo,
       paymentMethod: paymentMethod || "mercadopago",
     })
   } catch (err) {
