@@ -1,5 +1,6 @@
 import { Resend } from "resend"
 import { NextRequest, NextResponse } from "next/server"
+import { sendAdminPush } from "@/lib/push"
 
 const RESEND_KEY = process.env.RESEND_API_KEY
 const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null
@@ -41,6 +42,12 @@ export async function POST(req: NextRequest) {
 </table></body></html>`
       })
     }
+
+    sendAdminPush({
+      title: "🔔 Nueva prenda para moderar",
+      body: `${titulo} · ${vendedora} · $${Number(precio).toLocaleString("es-AR")}`,
+      url: "/admin/moderacion",
+    }).catch(() => {})
 
     return NextResponse.json({ ok: true })
   } catch (e: any) {

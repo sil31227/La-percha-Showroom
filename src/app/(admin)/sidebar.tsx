@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import { LayoutDashboard, ShieldCheck, Users, Store, Package, ShoppingBag, Tags, HelpCircle, UserPlus, Menu, X, LogOut, MoreHorizontal, Truck } from "lucide-react"
 import { useAdminStore } from "@/store/useAdminStore"
+import { EnableAdminPush } from "./EnableAdminPush"
 
 const NAV = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -99,7 +100,10 @@ export function AdminSidebar() {
                 )
               })}
             </nav>
-            <Link href="/" className="flex items-center gap-2 px-3 py-3 rounded-lg text-xs text-text-muted hover:bg-surface-sunken transition-colors mt-2">
+            <div className="mt-2 mb-1">
+              <EnableAdminPush />
+            </div>
+            <Link href="/" className="flex items-center gap-2 px-3 py-3 rounded-lg text-xs text-text-muted hover:bg-surface-sunken transition-colors">
               <LogOut className="w-3.5 h-3.5" />
               Salir del admin
             </Link>
@@ -126,6 +130,9 @@ export function AdminSidebar() {
             )
           })}
         </nav>
+        <div className="mb-2">
+          <EnableAdminPush />
+        </div>
         <Link href="/" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs text-text-muted hover:bg-surface-sunken transition-colors">
           <LogOut className="w-3.5 h-3.5" />
           Salir del admin
