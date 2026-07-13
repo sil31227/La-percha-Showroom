@@ -58,6 +58,7 @@ interface AdminState {
   reorderProducts: (items: { id: string; orden: number }[]) => Promise<void>
   markOrderShipped: (id: string, seguimiento?: string) => Promise<void>
   markOrderDelivered: (id: string) => Promise<void>
+  deleteOrder: (id: string) => Promise<void>
   addSubcategory: (catId: string, nombre: string) => Promise<void>
   renameSubcategory: (catId: string, subId: string, nombre: string) => Promise<void>
   deleteSubcategory: (catId: string, subId: string) => Promise<void>
@@ -278,6 +279,18 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       throw new Error(body.error || "Error al actualizar el pedido")
     }
     set(s => ({ orders: s.orders.map(o => o.id === id ? { ...o, status: "delivered" as const } : o) }))
+  },
+  deleteOrder: async (id) => {
+    const res = await fetch("/api/admin/pedidos", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || "Error al eliminar el pedido")
+    }
+    set(s => ({ orders: s.orders.filter(o => o.id !== id) }))
   },
 
   addSubcategory: async (catId, nombre) => {

@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useAdminStore } from "@/store/useAdminStore"
-import { Truck, PackageCheck, Mail, MapPin } from "lucide-react"
+import { Truck, PackageCheck, Mail, MapPin, Trash2 } from "lucide-react"
 
 const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   pending_shipment: { label: "Pendiente de envío", className: "bg-warning-50 text-warning-600" },
@@ -33,7 +33,7 @@ function formatDireccion(a: ParsedAddress): string {
 }
 
 export default function PedidosPage() {
-  const { orders, loaded, loadFromSupabase, markOrderShipped, markOrderDelivered } = useAdminStore()
+  const { orders, loaded, loadFromSupabase, markOrderShipped, markOrderDelivered, deleteOrder } = useAdminStore()
   const [filter, setFilter] = useState<"all" | "pending_shipment" | "shipped" | "delivered">("pending_shipment")
   const [expanded, setExpanded] = useState<string | null>(null)
   const [trackingId, setTrackingId] = useState<string | null>(null)
@@ -80,6 +80,14 @@ export default function PedidosPage() {
                       }
                       return null
                     })()}
+                    {o.status === "pending_shipment" && trackingId !== o.id && (
+                      <button
+                        onClick={() => { if (confirm("¿Eliminar este pedido?")) { deleteOrder(o.id).catch(() => alert("Error al eliminar el pedido. Reintentá.")) } }}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-error-50 text-error-500 hover:bg-error-500 hover:text-white transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" /> Eliminar
+                      </button>
+                    )}
                     {o.status === "shipped" && <button onClick={() => markOrderDelivered(o.id).catch(() => alert("Error al actualizar el pedido. Reintentá."))} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-success-50 text-success-600 hover:bg-success-500 hover:text-white transition-colors"><PackageCheck className="w-3 h-3" /> Entregado</button>}
                     <button onClick={() => setExpanded(isOpen ? null : o.id)} className="px-3 py-1.5 rounded-full text-[11px] font-medium text-text-muted hover:bg-surface-sunken transition-colors">{isOpen ? "Menos" : "Detalles"}</button>
                   </div>
