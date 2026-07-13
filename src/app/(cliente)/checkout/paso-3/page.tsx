@@ -21,12 +21,20 @@ const METODO_LABEL: Record<string, string> = {
   arreglar_vendedor: "Arreglar con el vendedor",
 }
 
+const ADMIN_WHATSAPP = "5492494371107"
+
+function buildTransferWhatsAppUrl(orderNumber: string): string {
+  const text = `Hola La Percha! Quiero continuar con mi pedido #${orderNumber}. Elegí pagar con transferencia bancaria.`
+  return `https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(text)}`
+}
+
 function Paso3Content() {
   const searchParams = useSearchParams()
   const cart = useShopStore(s => s.cart)
   const clearCart = useShopStore(s => s.clearCart)
   const [orderNumber, setOrderNumber] = useState("")
   const [email, setEmail] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState("")
   const [items, setItems] = useState<CartItem[]>([])
   const [shippingCost, setShippingCost] = useState(0)
   const [shippingMethodLabel, setShippingMethodLabel] = useState("")
@@ -85,6 +93,7 @@ function Paso3Content() {
     } catch {}
 
     setEmail(checkoutEmail)
+    setPaymentMethod(paymentMethod)
     setShippingCost(shippingCost)
     setShippingMethodLabel(METODO_LABEL[shippingMethod] || shippingMethod)
 
@@ -121,6 +130,7 @@ function Paso3Content() {
 
   const subtotal = items.reduce((s, i) => s + i.price, 0)
   const orderTotal = subtotal + shippingCost
+  const isTransfer = !isFromMP && paymentMethod === "transferencia"
 
   if (status === "loading") {
     return (
@@ -200,17 +210,32 @@ function Paso3Content() {
 
         <div className="text-center">
           <h1 className="font-display text-2xl text-text-strong">
-            {isFromMP ? "¡Pago confirmado!" : "¡Pedido confirmado!"}
+            {isFromMP ? "¡Pago confirmado!" : isTransfer ? "¡Pedido registrado!" : "¡Pedido confirmado!"}
           </h1>
           <p className="text-text-muted text-sm mt-1">
             Orden <span className="font-mono font-semibold text-text-strong">#{orderNumber}</span>
           </p>
-          {email && (
+          {isTransfer ? (
+            <p className="text-text-muted text-sm mt-1">
+              Para continuar con tu pedido, escribinos por WhatsApp
+            </p>
+          ) : email && (
             <p className="text-text-muted text-sm mt-1">
               Te enviamos los detalles a <strong>{email}</strong>
             </p>
           )}
         </div>
+
+        {isTransfer && (
+          <a href={buildTransferWhatsAppUrl(orderNumber)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full h-13 flex items-center justify-center gap-2
+              bg-[#25D366] hover:bg-[#20bd5a] text-white
+              font-semibold rounded-lg transition-colors">
+            Continuar por WhatsApp
+          </a>
+        )}
 
         {items.length > 0 && (
           <div className="w-full bg-surface-card rounded-xl border border-border-subtle overflow-hidden">
