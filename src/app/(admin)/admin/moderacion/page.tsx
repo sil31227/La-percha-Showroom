@@ -312,7 +312,7 @@ export default function ModeracionPage() {
         ))}
       </div>
       <div className="bg-surface-card rounded-xl border border-border-subtle divide-y divide-border-subtle">
-        {filtered.length === 0 ? <div className="px-4 py-12 text-center text-sm text-text-muted">No hay publicaciones {filter === "pending" ? "pendientes" : filter === "approved" ? "aprobadas" : filter === "rejected" ? "rechazadas" : ""}</div> : filtered.map(p => (
+        {filtered.length === 0 ? <div className="px-4 py-12 text-center text-sm text-text-muted">No hay publicaciones {filter === "pending" ? "pendientes" : filter === "approved" ? "aprobadas" : filter === "rejected" ? "rechazadas" : filter === "changes_requested" ? "con cambios pedidos" : ""}</div> : filtered.map(p => (
           <div
             key={p.id}
             onClick={() => setDetailProduct(p)}

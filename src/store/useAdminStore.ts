@@ -122,7 +122,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   updateProductStatus: async (id, status, texto) => {
     const product = get().products.find(p => p.id === id)
 
-    const { data: note } = await supabase
+    const { data: note, error: insertError } = await supabase
       .from("comentarios_moderacion")
       .insert({
         producto_id: id,
@@ -132,8 +132,15 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       })
       .select()
       .single()
+    if (insertError) {
+      console.error("[updateProductStatus] error insertando nota:", insertError)
+    }
 
-    await supabase.from("productos").update({ status }).eq("id", id)
+    const { error: updateError } = await supabase.from("productos").update({ status }).eq("id", id)
+    if (updateError) {
+      console.error("[updateProductStatus] error actualizando status:", updateError)
+      return
+    }
 
     if (status !== "approved" && product?.vendedor_id) {
       const title =
@@ -160,6 +167,26 @@ export const useAdminStore = create<AdminState>((set, get) => ({
           userId: product.vendedor_id,
           title,
           body,
+          url: "/perfil/publicaciones",
+        }),
+      }).catch(() => {})
+    }
+
+    if (status === "approved" && product?.vendedor_id) {
+      createNotification(
+        product.vendedor_id,
+        "product_approved",
+        "¡Tu prenda fue publicada!",
+        `"${product.titulo}" ya está publicada y a la venta en La Percha.`,
+        `/producto/${id}`
+      )
+      fetch("/api/push/notify-seller", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: product.vendedor_id,
+          title: "¡Tu prenda fue publicada!",
+          body: `"${product.titulo}" ya está publicada y a la venta.`,
           url: "/perfil/publicaciones",
         }),
       }).catch(() => {})
