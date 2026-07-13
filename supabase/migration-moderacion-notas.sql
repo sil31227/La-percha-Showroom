@@ -16,5 +16,14 @@ CREATE TABLE IF NOT EXISTS comentarios_moderacion (
 CREATE INDEX IF NOT EXISTS idx_comentarios_producto ON comentarios_moderacion(producto_id, created_at DESC);
 
 ALTER TABLE comentarios_moderacion ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'admin_full_access' AND tablename = 'comentarios_moderacion'
+  ) THEN
+    DROP POLICY "admin_full_access" ON comentarios_moderacion;
+  END IF;
+END $$;
+
 CREATE POLICY "admin_full_access" ON comentarios_moderacion
   FOR ALL USING (true);
