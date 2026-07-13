@@ -10,7 +10,7 @@ export interface AdminProduct {
   descripcion?: string; marca?: string; material?: string; categoria_id: string; subcategoria_id?: string
   estado?: string; talles?: string[]; colores?: string[]; imagenes: string[]
   stock?: number; variantes?: Variante[]
-  envio_gratis?: boolean; destacado?: boolean; tipo: ProductType
+  envio_gratis?: boolean; destacado?: boolean; tipo: ProductType; retiro_local?: boolean
   vendedor_nombre: string; vendedor_id?: string; vendedor_tipo: "oficial" | "feria"
   status: ProductStatus; orden?: number; created_at?: string
 }
@@ -24,7 +24,7 @@ export interface AdminOrder {
   id: string; producto_titulo: string; producto_imagen?: string; precio: number
   comprador_nombre?: string; comprador_email?: string; vendedor_nombre?: string; vendedor_email?: string
   talle?: string; direccion?: string; status: OrderStatus; created_at?: string
-  metodo_envio?: string; costo_envio?: number
+  metodo_envio?: string; costo_envio?: number; seguimiento?: string
 }
 export interface FAQItem { id: string; pregunta: string; respuesta: string; orden?: number }
 export interface AdminCategory { id: string; nombre: string; tipo?: ProductType; destacada?: boolean; orden?: number; subcategorias: AdminSubcategory[] }
@@ -35,7 +35,7 @@ export interface StoreProductForm {
   marca?: string; material?: string; categoria_id: string; subcategoria_id: string; estado: string
   talles: string[]; colores: string[]; imagenes: string[]
   variantes: Variante[]
-  envio_gratis: boolean; destacado: boolean; tipo: ProductType
+  envio_gratis: boolean; destacado: boolean; tipo: ProductType; retiro_local: boolean
 }
 
 interface AdminState {
@@ -162,7 +162,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       talles: form.talles, colores: form.colores, imagenes: form.imagenes,
       stock: form.variantes.length > 0 ? form.variantes.reduce((s, v) => s + (v.stock || 0), 0) : (form.talles?.length ? 0 : 1),
       variantes: JSON.parse(JSON.stringify(form.variantes || [])),
-      envio_gratis: form.envio_gratis, destacado: form.destacado,
+      envio_gratis: form.envio_gratis, destacado: form.destacado, retiro_local: form.retiro_local,
       tipo: form.tipo, vendedor_nombre: "Tienda Oficial", vendedor_tipo: "oficial",
       status: "approved",
     }
