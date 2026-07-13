@@ -8,6 +8,8 @@ interface CheckoutItem {
   image: string
   size: string
   store_type: string
+  variantLabel?: string
+  variantPrice?: number
 }
 
 function calcularCostoEnvio(
@@ -48,7 +50,7 @@ export async function POST(req: Request) {
 
     const { data: products, error: productError } = await supabase
       .from("productos")
-      .select("id, titulo, precio, imagenes, vendedor_nombre, vendedor_tipo, status")
+      .select("id, titulo, precio, imagenes, vendedor_nombre, vendedor_tipo, status, variantes, stock")
       .in("id", ids)
 
     if (productError || !products) {
@@ -60,6 +62,65 @@ export async function POST(req: Request) {
     }
 
     const productMap = new Map(products.map(p => [p.id, p]))
+
+    for (const item of items) {
+      const prod = productMap.get(item.productId)!
+      if (item.variantLabel) {
+        const variantes = (prod.variantes as Array<Record<string, unknown>>) || []
+        const variant = variantes.find(
+          (v: Record<string, unknown>) => v.nombre === item.variantLabel
+        )
+        if (!variant) {
+          return NextResponse.json(
+            { error: `Variante "${item.variantLabel}" no encontrada para "${prod.titulo}"` },
+            { status: 400 }
+          )
+        }
+        const variantStock = Number(variant.stock)
+        if (isNaN(variantStock) || variantStock < 1) {
+          return NextResponse.json(
+            { error: `Sin stock de "${item.variantLabel}" para "${prod.titulo}"` },
+            { status: 400 }
+          )
+        }
+      } else {
+        const generalStock = Number(prod.stock)
+        if (isNaN(generalStock) || generalStock < 1) {
+          return NextResponse.json(
+            { error: `Sin stock para "${prod.titulo}"` },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
+    for (const item of items) {
+      const prod = productMap.get(item.productId)!
+      if (item.variantLabel) {
+        const variantes = (prod.variantes as Array<Record<string, unknown>>) || []
+        const variantIdx = variantes.findIndex(
+          (v: Record<string, unknown>) => v.nombre === item.variantLabel
+        )
+        if (variantIdx !== -1) {
+          const updatedVariants = [...variantes]
+          const oldStock = Number(updatedVariants[variantIdx].stock)
+          updatedVariants[variantIdx] = {
+            ...updatedVariants[variantIdx],
+            stock: Math.max(0, oldStock - 1),
+          }
+          await supabase
+            .from("productos")
+            .update({ variantes: updatedVariants })
+            .eq("id", item.productId)
+        }
+      } else {
+        const newStock = Math.max(0, Number(prod.stock) - 1)
+        await supabase
+          .from("productos")
+          .update({ stock: newStock })
+          .eq("id", item.productId)
+      }
+    }
 
     const validItems = items.map(item => {
       const prod = productMap.get(item.productId)!
