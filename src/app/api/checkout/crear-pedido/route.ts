@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase-admin"
 import { NextResponse } from "next/server"
-import { sendAdminPush } from "@/lib/push"
+import { sendAdminPush, sendSellerPush } from "@/lib/push"
 
 interface CheckoutItem {
   productId: string
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
     const { data: products, error: productError } = await supabase
       .from("productos")
-      .select("id, titulo, precio, imagenes, vendedor_nombre, vendedor_tipo, status, variantes, stock")
+      .select("id, titulo, precio, imagenes, vendedor_nombre, vendedor_id, vendedor_tipo, status, variantes, stock")
       .in("id", ids)
 
     if (productError || !products) {
@@ -183,6 +183,23 @@ export async function POST(req: Request) {
       url: "/admin/pedidos",
       tag: `pedido-${orderId}`,
     }).catch(() => {})
+
+    const vendedoresNotificados = new Set<string>()
+    for (const item of validItems) {
+      const prod = productMap.get(item.productId)
+      if (prod && (prod as Record<string, unknown>).vendedor_id) {
+        const vid = (prod as Record<string, unknown>).vendedor_id as string
+        if (!vendedoresNotificados.has(vid)) {
+          vendedoresNotificados.add(vid)
+          sendSellerPush(vid, {
+            title: "¡Vendiste un producto!",
+            body: `Alguien compró "${prod.titulo}". Revisá tus publicaciones.`,
+            url: "/perfil/publicaciones",
+            tag: `venta-${orderId}-${vid}`,
+          }).catch(() => {})
+        }
+      }
+    }
 
     return NextResponse.json({
       ok: true,
