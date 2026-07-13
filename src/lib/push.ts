@@ -1,7 +1,7 @@
 import webpush from "web-push"
 import { createAdminClient } from "@/lib/supabase-admin"
 
-export interface AdminPushPayload {
+export interface PushPayload {
   title: string
   body: string
   url?: string
@@ -29,22 +29,31 @@ function ensureConfigured(): boolean {
   return true
 }
 
-export async function sendAdminPush(payload: AdminPushPayload): Promise<void> {
+async function sendPush(
+  opts: { audience: string; userId?: string },
+  payload: PushPayload
+): Promise<void> {
   try {
     if (!ensureConfigured()) return
 
     const supabase = createAdminClient()
-    const { data: subs, error } = await supabase
+    let query = supabase
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth")
-      .eq("audience", "admin")
+      .eq("audience", opts.audience)
+
+    if (opts.userId) {
+      query = query.eq("user_id", opts.userId)
+    }
+
+    const { data: subs, error } = await query
 
     if (error || !subs?.length) return
 
     const body = JSON.stringify({
       title: payload.title,
       body: payload.body,
-      url: payload.url || "/admin/pedidos",
+      url: payload.url || (opts.audience === "admin" ? "/admin/pedidos" : "/perfil"),
       tag: payload.tag,
     })
 
@@ -66,6 +75,14 @@ export async function sendAdminPush(payload: AdminPushPayload): Promise<void> {
       })
     )
   } catch (err) {
-    console.error("[push] Error inesperado en sendAdminPush:", err)
+    console.error("[push] Error inesperado en sendPush:", err)
   }
+}
+
+export async function sendAdminPush(payload: PushPayload): Promise<void> {
+  await sendPush({ audience: "admin" }, payload)
+}
+
+export async function sendSellerPush(userId: string, payload: PushPayload): Promise<void> {
+  await sendPush({ audience: "seller", userId }, payload)
 }
