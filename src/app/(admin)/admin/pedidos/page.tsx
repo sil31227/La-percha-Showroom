@@ -1,13 +1,19 @@
 "use client"
 import { useEffect, useState } from "react"
 import { useAdminStore } from "@/store/useAdminStore"
-import { Truck, PackageCheck, MapPin, Mail } from "lucide-react"
+import { Truck, PackageCheck, Mail, MapPin } from "lucide-react"
 
 const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   pending_shipment: { label: "Pendiente de envío", className: "bg-warning-50 text-warning-600" },
   shipped: { label: "Enviado", className: "bg-info-50 text-info-600" },
   delivered: { label: "Entregado", className: "bg-success-50 text-success-600" },
   cancelled: { label: "Cancelado", className: "bg-error-50 text-error-500" },
+}
+
+const METODO_LABEL: Record<string, string> = {
+  correo_sucursal: "Correo Argentino (sucursal)",
+  correo_domicilio: "Correo Argentino (domicilio)",
+  arreglar_vendedor: "Arreglar con el vendedor",
 }
 
 export default function PedidosPage() {
@@ -48,7 +54,7 @@ export default function PedidosPage() {
                     <button onClick={() => setExpanded(isOpen ? null : o.id)} className="px-3 py-1.5 rounded-full text-[11px] font-medium text-text-muted hover:bg-surface-sunken transition-colors">{isOpen ? "Menos" : "Detalles"}</button>
                   </div>
                 </div>
-                {isOpen && <div className="mt-4 pt-4 border-t border-border-subtle space-y-2"><div className="flex items-center gap-2 text-xs text-text-muted"><MapPin className="w-3.5 h-3.5" />{o.direccion}</div><div className="flex items-center gap-2 text-xs text-text-muted"><Mail className="w-3.5 h-3.5" />Comprador: {o.comprador_email} · Vendedor: {o.vendedor_email}</div></div>}
+                {isOpen && <div className="mt-4 pt-4 border-t border-border-subtle space-y-2"><div className="flex items-center gap-2 text-xs text-text-muted"><MapPin className="w-3.5 h-3.5" />{o.direccion}</div>{o.metodo_envio && <div className="flex items-center gap-2 text-xs text-text-muted"><Truck className="w-3.5 h-3.5" />{METODO_LABEL[o.metodo_envio] || o.metodo_envio}{o.costo_envio != null && <span className="ml-1 font-semibold text-price">· ${o.costo_envio.toLocaleString("es-AR")}</span>}</div>}<div className="flex items-center gap-2 text-xs text-text-muted"><Mail className="w-3.5 h-3.5" />Comprador: {o.comprador_email} · Vendedor: {o.vendedor_email}</div></div>}
               </div>
             </div>
           )

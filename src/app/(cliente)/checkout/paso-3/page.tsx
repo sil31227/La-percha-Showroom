@@ -15,15 +15,21 @@ interface CartItem {
   store_type: string
 }
 
+const METODO_LABEL: Record<string, string> = {
+  correo_sucursal: "Correo Argentino (sucursal)",
+  correo_domicilio: "Correo Argentino (domicilio)",
+  arreglar_vendedor: "Arreglar con el vendedor",
+}
+
 function Paso3Content() {
   const searchParams = useSearchParams()
   const cart = useShopStore(s => s.cart)
-  const total = useShopStore(s => s.cartTotal())
   const clearCart = useShopStore(s => s.clearCart)
   const [orderNumber, setOrderNumber] = useState("")
   const [email, setEmail] = useState("")
   const [items, setItems] = useState<CartItem[]>([])
-  const [orderTotal, setOrderTotal] = useState(total)
+  const [shippingCost, setShippingCost] = useState(0)
+  const [shippingMethodLabel, setShippingMethodLabel] = useState("")
   const [status, setStatus] = useState<"loading" | "success" | "pending" | "error">("loading")
   const [errorMsg, setErrorMsg] = useState("")
 
@@ -32,28 +38,22 @@ function Paso3Content() {
   const isFromMP = !!mpStatus
 
   useEffect(() => {
+    const shipMethod = sessionStorage.getItem("checkout_shipping_method") || ""
+    const shipCost = Number(sessionStorage.getItem("checkout_shipping_cost")) || 0
+    setShippingCost(shipCost)
+    setShippingMethodLabel(METODO_LABEL[shipMethod] || shipMethod)
+
     if (isFromMP) {
       if (mpStatus === "approved" || mpStatus === "pending") {
-        const capturedItems = [...cart]
-        if (capturedItems.length > 0) {
-          setItems(capturedItems)
-          setOrderTotal(total)
-          setOrderNumber(mpOrderId || "")
-          setStatus(mpStatus as "success" | "pending")
-          try {
-            const addrRaw = sessionStorage.getItem("checkout_address")
-            if (addrRaw) setEmail(JSON.parse(addrRaw).email || "")
-          } catch {}
-          clearCart()
-          sessionStorage.removeItem("checkout_order_id")
-          sessionStorage.removeItem("checkout_address")
-          sessionStorage.removeItem("checkout_payment")
-        } else {
-          setOrderNumber(mpOrderId || "")
-          setStatus("success")
-          setItems([])
-          setOrderTotal(0)
-        }
+        setItems([...cart])
+        setOrderNumber(mpOrderId || "")
+        setStatus(mpStatus as "success" | "pending")
+        try {
+          const addrRaw = sessionStorage.getItem("checkout_address")
+          if (addrRaw) setEmail(JSON.parse(addrRaw).email || "")
+        } catch {}
+        clearCart()
+        ;["checkout_order_id", "checkout_address", "checkout_payment", "checkout_shipping_method", "checkout_shipping_cost"].forEach(k => sessionStorage.removeItem(k))
         return
       }
 
@@ -65,13 +65,13 @@ function Paso3Content() {
     }
 
     const capturedItems = [...cart]
-    const capturedTotal = total
     setItems(capturedItems)
-    setOrderTotal(capturedTotal)
 
     let checkoutEmail = ""
     let address: unknown = null
     let paymentMethod = ""
+    let shippingMethod = ""
+    let shippingCost = 0
 
     try {
       const addrRaw = sessionStorage.getItem("checkout_address")
@@ -80,9 +80,13 @@ function Paso3Content() {
         checkoutEmail = (address as Record<string, string>).email || ""
       }
       paymentMethod = sessionStorage.getItem("checkout_payment") || ""
+      shippingMethod = sessionStorage.getItem("checkout_shipping_method") || ""
+      shippingCost = Number(sessionStorage.getItem("checkout_shipping_cost")) || 0
     } catch {}
 
     setEmail(checkoutEmail)
+    setShippingCost(shippingCost)
+    setShippingMethodLabel(METODO_LABEL[shippingMethod] || shippingMethod)
 
     fetch("/api/checkout/crear-pedido", {
       method: "POST",
@@ -92,6 +96,8 @@ function Paso3Content() {
         direccion: address,
         email: checkoutEmail,
         paymentMethod,
+        metodo_envio: shippingMethod,
+        costo_envio: shippingCost,
       }),
     })
       .then(res => res.json())
@@ -100,8 +106,7 @@ function Paso3Content() {
           setOrderNumber(data.orderId)
           setStatus("success")
           clearCart()
-          sessionStorage.removeItem("checkout_address")
-          sessionStorage.removeItem("checkout_payment")
+          ;["checkout_address", "checkout_payment", "checkout_shipping_method", "checkout_shipping_cost"].forEach(k => sessionStorage.removeItem(k))
         } else {
           setStatus("error")
           setErrorMsg(data.error || "Error al crear el pedido")
@@ -113,6 +118,9 @@ function Paso3Content() {
       })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const subtotal = items.reduce((s, i) => s + i.price, 0)
+  const orderTotal = subtotal + shippingCost
 
   if (status === "loading") {
     return (
@@ -224,11 +232,21 @@ function Paso3Content() {
                 </div>
               ))}
             </div>
-            <div className="px-4 py-3 border-t border-border-subtle flex justify-between">
-              <span className="font-semibold text-text-strong">Total</span>
-              <span className="font-bold text-price">
-                $ {orderTotal.toLocaleString("es-AR")}
-              </span>
+            <div className="px-4 py-3 border-t border-border-subtle space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-text-muted">Subtotal</span>
+                <span className="text-text-strong">$ {subtotal.toLocaleString("es-AR")}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-text-muted">Envío {shippingMethodLabel && <span className="text-xs">({shippingMethodLabel})</span>}</span>
+                <span className="text-text-strong">{shippingCost === 0 ? "Gratis" : `$ ${shippingCost.toLocaleString("es-AR")}`}</span>
+              </div>
+              <div className="flex justify-between pt-1.5 border-t border-border-subtle">
+                <span className="font-semibold text-text-strong">Total</span>
+                <span className="font-bold text-price">
+                  $ {orderTotal.toLocaleString("es-AR")}
+                </span>
+              </div>
             </div>
           </div>
         )}

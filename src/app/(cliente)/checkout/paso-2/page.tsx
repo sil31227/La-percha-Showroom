@@ -15,6 +15,9 @@ export default function CheckoutPaso2() {
   const total = useShopStore(s => s.cartTotal())
   const cart = useShopStore(s => s.cart)
   const user = useAuthStore(s => s.user)
+  const shippingCost = useShopStore(s => s.shippingCost)
+  const shippingMethod = useShopStore(s => s.shippingMethod)
+  const totalConEnvio = total + shippingCost
 
   const handleConfirmar = async () => {
     if (!method) { setError(true); return }
@@ -38,6 +41,8 @@ export default function CheckoutPaso2() {
             direccion: address,
             email: user?.email || (address as Record<string, string>)?.email,
             payerName: user?.name || (address as Record<string, string>)?.name,
+            metodo_envio: shippingMethod,
+            costo_envio: shippingCost,
           }),
         })
         const data = await res.json()
@@ -80,7 +85,7 @@ export default function CheckoutPaso2() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-text-strong">
-                  Total: $ {total.toLocaleString("es-AR")}
+                  Total: $ {totalConEnvio.toLocaleString("es-AR")}
                 </p>
                 <p className="text-xs text-text-muted">
                   Serás redirigido a Mercado Pago para completar el pago
@@ -109,12 +114,20 @@ export default function CheckoutPaso2() {
                 <span className="text-text-muted">Banco</span>
                 <span className="text-text-strong">Banco Galicia</span>
               </div>
+              <div className="flex justify-between py-1 border-b border-border-subtle">
+                <span className="text-text-muted">Subtotal</span>
+                <span className="text-text-strong">$ {total.toLocaleString("es-AR")}</span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-border-subtle">
+                <span className="text-text-muted">Envío</span>
+                <span className="text-text-strong">{shippingCost === 0 ? "Gratis" : `$ ${shippingCost.toLocaleString("es-AR")}`}</span>
+              </div>
               <div className="flex justify-between py-1">
                 <span className="text-text-muted font-semibold">Monto</span>
-                <span className="font-bold text-price">$ {total.toLocaleString("es-AR")}</span>
+                <span className="font-bold text-price">$ {totalConEnvio.toLocaleString("es-AR")}</span>
               </div>
               <p className="text-xs text-text-muted bg-warning-50 rounded-lg p-2.5 mt-1">
-                Envianos el comprobante a <strong>pagos@lapercha.com.ar</strong> con el número de orden
+                Envianos el comprobante a <strong>sil31227@gmail.com</strong> con el número de orden
               </p>
             </div>
           </PaymentMethodCard>
