@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Bell, BellOff, BellRing, Loader2 } from "lucide-react"
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -14,13 +14,16 @@ function urlBase64ToUint8Array(base64String: string) {
 type PushState = "loading" | "unsupported" | "default" | "granted" | "denied" | "subscribing"
 
 export function EnableAdminPush() {
-  const [state, setState] = useState<PushState>(() => {
-    if (typeof window === "undefined") return "loading"
+  const [state, setState] = useState<PushState>("loading")
+
+  useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-      return "unsupported"
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setState("unsupported")
+      return
     }
-    return Notification.permission as PushState
-  })
+    setState(Notification.permission as PushState)
+  }, [])
 
   async function enable() {
     const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
