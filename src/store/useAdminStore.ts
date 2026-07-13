@@ -56,7 +56,7 @@ interface AdminState {
   removeStoreProduct: (id: string) => Promise<void>
   updateProductStock: (id: string, stock?: number, variantes?: Variante[]) => Promise<void>
   reorderProducts: (items: { id: string; orden: number }[]) => Promise<void>
-  markOrderShipped: (id: string) => Promise<void>
+  markOrderShipped: (id: string, seguimiento?: string) => Promise<void>
   markOrderDelivered: (id: string) => Promise<void>
   addSubcategory: (catId: string, nombre: string) => Promise<void>
   renameSubcategory: (catId: string, subId: string, nombre: string) => Promise<void>
@@ -241,9 +241,23 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     })
   },
 
-  markOrderShipped: async (id) => {
-    await supabase.from("pedidos").update({ status: "shipped" }).eq("id", id)
-    set(s => ({ orders: s.orders.map(o => o.id === id ? { ...o, status: "shipped" as const } : o) }))
+  markOrderShipped: async (id, seguimiento) => {
+    await supabase.from("pedidos").update({ status: "shipped", seguimiento: seguimiento || null }).eq("id", id)
+    const order = get().orders.find(o => o.id === id)
+    set(s => ({ orders: s.orders.map(o => o.id === id ? { ...o, status: "shipped" as const, seguimiento } : o) }))
+    if (order?.comprador_email) {
+      fetch("/api/email/pedido-enviado", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: order.comprador_email,
+          orderId: order.id,
+          producto_titulo: order.producto_titulo,
+          metodo_envio: order.metodo_envio,
+          seguimiento: seguimiento || "",
+        }),
+      }).catch(() => {})
+    }
   },
   markOrderDelivered: async (id) => {
     await supabase.from("pedidos").update({ status: "delivered" }).eq("id", id)
