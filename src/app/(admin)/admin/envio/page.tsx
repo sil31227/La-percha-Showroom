@@ -4,7 +4,7 @@ import { useAdminStore } from "@/store/useAdminStore"
 import type { ShippingConfig } from "@/lib/types"
 
 export default function EnvioPage() {
-  const { shippingConfig, loadShippingConfig, updateShippingConfig } = useAdminStore()
+  const { shippingConfig, shippingConfigLoaded, loadShippingConfig, updateShippingConfig } = useAdminStore()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [form, setForm] = useState<ShippingConfig>({
@@ -33,7 +33,7 @@ export default function EnvioPage() {
     setTimeout(() => setSaved(false), 2000)
   }
 
-  if (!shippingConfig) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
+  if (!shippingConfigLoaded) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
   const inputClass = "w-full h-12 rounded-lg border border-border-default px-4 text-sm text-text-strong placeholder:text-text-subtle bg-surface-card focus:outline-none focus:border-brand transition-colors"
 

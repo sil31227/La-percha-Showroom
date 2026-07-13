@@ -42,6 +42,7 @@ interface AdminState {
   products: AdminProduct[]; vendors: VendorRequest[]; orders: AdminOrder[]
   categories: AdminCategory[]; faq: FAQItem[];   terms: string
   shippingConfig: ShippingConfig | null
+  shippingConfigLoaded: boolean
   loaded: boolean
   loadFromSupabase: () => Promise<void>
   loadShippingConfig: () => Promise<void>
@@ -78,7 +79,7 @@ async function createNotification(userId: string | undefined, type: Notification
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
-  products: [], vendors: [], orders: [], categories: [], faq: [], terms: "", shippingConfig: null, loaded: false,
+  products: [], vendors: [], orders: [], categories: [], faq: [], terms: "", shippingConfig: null, shippingConfigLoaded: false, loaded: false,
 
   loadFromSupabase: async () => {
     const [pRes, vRes, oRes, cRes, fRes, tRes] = await Promise.all([
@@ -295,11 +296,12 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   loadShippingConfig: async () => {
-    const { data } = await supabase.from("configuracion_envio").select("*").single()
+    const { data } = await supabase.from("configuracion_envio").select("*").maybeSingle()
     if (data) set({ shippingConfig: data as ShippingConfig })
+    set({ shippingConfigLoaded: true })
   },
   updateShippingConfig: async (config) => {
     await supabase.from("configuracion_envio").upsert({ id: 1, ...config, updated_at: new Date().toISOString() })
-    set({ shippingConfig: config })
+    set({ shippingConfig: config, shippingConfigLoaded: true })
   },
 }))
