@@ -264,6 +264,7 @@ export default function VenderPage() {
       talles: selectedSizes,
       colores: selectedColors,
       imagenes: images,
+      stock: 1,
       envio_gratis: freeShipping,
       retiro_local: retiroLocal,
       tipo: "ropa",
