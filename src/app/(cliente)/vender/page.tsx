@@ -266,6 +266,7 @@ export default function VenderPage() {
       envio_gratis: freeShipping,
       tipo: "ropa",
       vendedor_nombre: user.name,
+      vendedor_id: user.id,
       vendedor_tipo: "feria",
       status: "pending",
       created_at: new Date().toISOString(),
