@@ -112,6 +112,16 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       `"${product?.titulo || "Tu prenda"}" ya está publicada y a la venta en La Percha.`,
       `/producto/${id}`
     )
+    fetch("/api/push/notify-seller", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: product?.vendedor_id,
+        title: "¡Tu prenda fue publicada!",
+        body: `"${product?.titulo || "Tu prenda"}" ya está publicada y a la venta.`,
+        url: "/perfil/publicaciones",
+      }),
+    }).catch(() => {})
     set(s => ({ products: s.products.map(p => p.id === id ? { ...p, status: "approved" as const } : p) }))
   },
   rejectProduct: async (id) => {
@@ -124,6 +134,16 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       `"${product?.titulo || "Tu prenda"}" no pasó la moderación esta vez. Podés revisarla y volver a publicarla.`,
       null
     )
+    fetch("/api/push/notify-seller", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: product?.vendedor_id,
+        title: "Tu prenda no fue aprobada",
+        body: `"${product?.titulo || "Tu prenda"}" no pasó la moderación. Podés revisarla y volver a publicarla.`,
+        url: "/perfil/publicaciones",
+      }),
+    }).catch(() => {})
     set(s => ({ products: s.products.map(p => p.id === id ? { ...p, status: "rejected" as const } : p) }))
   },
   approveVendor: async (id) => {
