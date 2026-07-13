@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { CheckoutStepper } from "@/components/CheckoutStepper"
 import { useShopStore } from "@/store/useShopStore"
 import type { ShippingConfig, ShippingMethod } from "@/lib/types"
+import { supabase } from "@/lib/supabase"
 
 const PROVINCIAS = [
   'Buenos Aires','CABA','Catamarca','Chaco','Chubut','Córdoba',
@@ -17,9 +18,11 @@ const METODO_LABEL: Record<ShippingMethod, string> = {
   correo_sucursal: "Correo Argentino a sucursal",
   correo_domicilio: "Correo Argentino a domicilio",
   arreglar_vendedor: "Arreglar con el vendedor",
+  retiro_local: "Retiro en local (coordinar con La Percha)",
 }
 
 function calcShipping(method: ShippingMethod, subtotal: number, cfg: ShippingConfig): number {
+  if (method === "retiro_local") return 0
   if (method === "arreglar_vendedor") return 0
   if (subtotal >= cfg.free_threshold) {
     if (method === "correo_sucursal") return 0
@@ -47,10 +50,11 @@ interface FormData {
 
 type Errors = Partial<Record<keyof FormData, string>>
 
-function validate(form: FormData): Errors {
+function validate(form: FormData, method: ShippingMethod | ""): Errors {
   const e: Errors = {}
   if (!form.nombre.trim()) e.nombre = 'Requerido'
   if (!form.email.trim() || !form.email.includes('@')) e.email = 'Email inválido'
+  if (method === "retiro_local") return e
   if (!form.provincia) e.provincia = 'Requerido'
   if (!form.ciudad.trim()) e.ciudad = 'Requerido'
   if (!form.cp.trim()) e.cp = 'Requerido'
@@ -62,6 +66,7 @@ export default function CheckoutPaso1() {
   const router = useRouter()
   const subtotal = useShopStore(s => s.cartTotal())
   const setShipping = useShopStore(s => s.setShipping)
+  const cart = useShopStore(s => s.cart)
 
   const [form, setForm] = useState<FormData>({
     nombre: '', email: '', provincia: '', ciudad: '', cp: '', direccion: '',
@@ -70,6 +75,17 @@ export default function CheckoutPaso1() {
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod | "">("")
   const [shipError, setShipError] = useState(false)
   const [cfg, setCfg] = useState<ShippingConfig | null>(null)
+  const [allowRetiro, setAllowRetiro] = useState(false)
+
+  useEffect(() => {
+    const ids = cart.map(i => i.productId)
+    if (!ids.length) { queueMicrotask(() => setAllowRetiro(false)); return }
+    supabase.from("productos").select("id, retiro_local").in("id", ids)
+      .then(({ data }) => {
+        const all = !!data && data.length === ids.length && data.every(p => p.retiro_local === true)
+        setAllowRetiro(all)
+      })
+  }, [cart])
 
   useEffect(() => {
     fetch("/api/configuracion-envio")
@@ -84,7 +100,7 @@ export default function CheckoutPaso1() {
   }
 
   const handleContinuar = () => {
-    const e = validate(form)
+    const e = validate(form, shippingMethod)
     if (!shippingMethod) { setShipError(true); setErrors(e); return }
     setShipError(false)
 
@@ -132,44 +148,48 @@ export default function CheckoutPaso1() {
             {errors.email && <p className="text-xs text-error-500">{errors.email}</p>}
           </div>
 
-          <div className="space-y-1">
-            <label className="block text-sm font-semibold text-text-strong">Provincia</label>
-            <select value={form.provincia} onChange={set('provincia')}
-              className={inputClass(errors.provincia)}>
-              <option value="">Seleccioná una provincia</option>
-              {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
-            {errors.provincia && <p className="text-xs text-error-500">{errors.provincia}</p>}
-          </div>
+          {shippingMethod !== "retiro_local" && (
+            <>
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold text-text-strong">Provincia</label>
+                <select value={form.provincia} onChange={set('provincia')}
+                  className={inputClass(errors.provincia)}>
+                  <option value="">Seleccioná una provincia</option>
+                  {PROVINCIAS.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+                {errors.provincia && <p className="text-xs text-error-500">{errors.provincia}</p>}
+              </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="block text-sm font-semibold text-text-strong">Ciudad</label>
-              <input value={form.ciudad} onChange={set('ciudad')} placeholder="Ej: Rosario"
-                className={inputClass(errors.ciudad)} />
-              {errors.ciudad && <p className="text-xs text-error-500">{errors.ciudad}</p>}
-            </div>
-            <div className="space-y-1">
-              <label className="block text-sm font-semibold text-text-strong">Código postal</label>
-              <input value={form.cp} onChange={set('cp')} placeholder="Ej: 2000"
-                className={inputClass(errors.cp)} />
-              {errors.cp && <p className="text-xs text-error-500">{errors.cp}</p>}
-            </div>
-          </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-sm font-semibold text-text-strong">Ciudad</label>
+                  <input value={form.ciudad} onChange={set('ciudad')} placeholder="Ej: Rosario"
+                    className={inputClass(errors.ciudad)} />
+                  {errors.ciudad && <p className="text-xs text-error-500">{errors.ciudad}</p>}
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-sm font-semibold text-text-strong">Código postal</label>
+                  <input value={form.cp} onChange={set('cp')} placeholder="Ej: 2000"
+                    className={inputClass(errors.cp)} />
+                  {errors.cp && <p className="text-xs text-error-500">{errors.cp}</p>}
+                </div>
+              </div>
 
-          <div className="space-y-1">
-            <label className="block text-sm font-semibold text-text-strong">Dirección</label>
-            <input value={form.direccion} onChange={set('direccion')} placeholder="Ej: San Martín 1234"
-              className={inputClass(errors.direccion)} />
-            {errors.direccion && <p className="text-xs text-error-500">{errors.direccion}</p>}
-          </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold text-text-strong">Dirección</label>
+                <input value={form.direccion} onChange={set('direccion')} placeholder="Ej: San Martín 1234"
+                  className={inputClass(errors.direccion)} />
+                {errors.direccion && <p className="text-xs text-error-500">{errors.direccion}</p>}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="space-y-3">
           <h3 className="font-display text-lg text-text-strong">Método de envío</h3>
           {cfg && (
             <div className="space-y-2">
-              {(["correo_sucursal", "correo_domicilio", "arreglar_vendedor"] as ShippingMethod[]).map(method => (
+              {(["correo_sucursal", "correo_domicilio", "arreglar_vendedor", ...(allowRetiro ? ["retiro_local"] as ShippingMethod[] : [])] as ShippingMethod[]).map(method => (
                 <label key={method} className={radioClass(shippingMethod === method)}>
                   <input type="radio" name="shipping" value={method}
                     checked={shippingMethod === method}
