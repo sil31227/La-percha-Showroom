@@ -1,12 +1,11 @@
 import { createAdminClient } from "@/lib/supabase-admin"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
 interface SubscribeBody {
   endpoint?: string
   keys?: { p256dh?: string; auth?: string }
   audience?: string
+  user_id?: string
 }
 
 export async function POST(req: Request) {
@@ -21,27 +20,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Suscripción inválida" }, { status: 400 })
     }
 
+    const supabase = createAdminClient()
+
     let userId: string | null = null
     if (audience === "seller") {
-      const supabaseAuth = createRouteHandlerClient({ cookies })
-      const { data: { user } } = await supabaseAuth.auth.getUser()
-      if (!user) {
+      if (!body.user_id) {
         return NextResponse.json({ error: "No autenticado" }, { status: 401 })
       }
-      userId = user.id
 
-      const { data: profile } = await supabaseAuth
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("seller_status")
-        .eq("id", user.id)
+        .eq("id", body.user_id)
         .single()
 
-      if (!profile || profile.seller_status !== "approved") {
+      if (profileError || !profile) {
+        return NextResponse.json({ error: "Usuario no encontrado" }, { status: 401 })
+      }
+
+      if (profile.seller_status !== "approved") {
         return NextResponse.json({ error: "Solo vendedoras aprobadas pueden suscribirse" }, { status: 403 })
       }
+
+      userId = body.user_id
     }
 
-    const supabase = createAdminClient()
     const { error } = await supabase
       .from("push_subscriptions")
       .upsert(

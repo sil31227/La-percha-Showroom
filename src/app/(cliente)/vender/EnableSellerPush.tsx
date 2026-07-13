@@ -13,7 +13,7 @@ function urlBase64ToUint8Array(base64String: string) {
 
 type PushState = "loading" | "unsupported" | "default" | "granted" | "denied" | "subscribing"
 
-export function EnableSellerPush() {
+export function EnableSellerPush({ userId }: { userId: string }) {
   const [state, setState] = useState<PushState>("loading")
 
   useEffect(() => {
@@ -50,7 +50,7 @@ export function EnableSellerPush() {
       const res = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...sub.toJSON(), audience: "seller" }),
+        body: JSON.stringify({ ...sub.toJSON(), audience: "seller", user_id: userId }),
       })
       if (!res.ok) throw new Error("No se pudo guardar la suscripción")
 
