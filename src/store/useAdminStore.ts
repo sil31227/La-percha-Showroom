@@ -242,10 +242,15 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   markOrderShipped: async (id, seguimiento) => {
-    const payload: Record<string, unknown> = { status: "shipped" }
-    if (seguimiento) payload.seguimiento = seguimiento
-    const { error } = await supabase.from("pedidos").update(payload).eq("id", id)
-    if (error) throw new Error(error.message)
+    const res = await fetch("/api/admin/pedidos", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "shipped", seguimiento }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || "Error al actualizar el pedido")
+    }
     const order = get().orders.find(o => o.id === id)
     set(s => ({ orders: s.orders.map(o => o.id === id ? { ...o, status: "shipped" as const, seguimiento } : o) }))
     if (order?.comprador_email) {
@@ -263,8 +268,15 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }
   },
   markOrderDelivered: async (id) => {
-    const { error } = await supabase.from("pedidos").update({ status: "delivered" }).eq("id", id)
-    if (error) throw new Error(error.message)
+    const res = await fetch("/api/admin/pedidos", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "delivered" }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || "Error al actualizar el pedido")
+    }
     set(s => ({ orders: s.orders.map(o => o.id === id ? { ...o, status: "delivered" as const } : o) }))
   },
 
