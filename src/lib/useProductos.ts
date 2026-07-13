@@ -73,6 +73,7 @@ export function useApprovedProductos() {
       .from("productos")
       .select("*")
       .eq("status", "approved")
+      .gt("stock", 0)
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (error) {
