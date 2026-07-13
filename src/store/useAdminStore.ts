@@ -112,7 +112,6 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       `"${product?.titulo || "Tu prenda"}" ya está publicada y a la venta en La Percha.`,
       `/producto/${id}`
     )
-    const { data: { session } } = await supabase.auth.getSession()
     fetch("/api/push/notify-seller", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -121,7 +120,6 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         title: "¡Tu prenda fue publicada!",
         body: `"${product?.titulo || "Tu prenda"}" ya está publicada y a la venta.`,
         url: "/perfil/publicaciones",
-        access_token: session?.access_token || "",
       }),
     }).catch(() => {})
     set(s => ({ products: s.products.map(p => p.id === id ? { ...p, status: "approved" as const } : p) }))
@@ -136,7 +134,6 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       `"${product?.titulo || "Tu prenda"}" no pasó la moderación esta vez. Podés revisarla y volver a publicarla.`,
       null
     )
-    const { data: { session } } = await supabase.auth.getSession()
     fetch("/api/push/notify-seller", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -145,7 +142,6 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         title: "Tu prenda no fue aprobada",
         body: `"${product?.titulo || "Tu prenda"}" no pasó la moderación. Podés revisarla y volver a publicarla.`,
         url: "/perfil/publicaciones",
-        access_token: session?.access_token || "",
       }),
     }).catch(() => {})
     set(s => ({ products: s.products.map(p => p.id === id ? { ...p, status: "rejected" as const } : p) }))
