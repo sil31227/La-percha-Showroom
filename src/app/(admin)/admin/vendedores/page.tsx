@@ -16,6 +16,10 @@ export default function VendedoresPage() {
 
   async function copyCBU(cbu: string, id: string) { await navigator.clipboard.writeText(cbu); setCopied(id); setTimeout(() => setCopied(null), 1500) }
 
+  async function handleVendor(action: (id: string) => Promise<void>, id: string) {
+    try { await action(id) } catch (e) { alert(e instanceof Error ? e.message : "Error al actualizar la vendedora") }
+  }
+
   if (!loaded) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
   return (
@@ -37,7 +41,7 @@ export default function VendedoresPage() {
                   {v.cbu && <button onClick={() => copyCBU(v.cbu!, v.id)} className="inline-flex items-center gap-1 text-[11px] text-matcha-600 font-medium hover:text-matcha-700">{copied === v.id ? <CheckCheck className="w-3 h-3" /> : <Copy className="w-3 h-3" />}{copied === v.id ? "¡Copiado!" : `CBU: ...${v.cbu.slice(-4)}`}</button>}
                 </div>
               </div>
-              {v.status === "pending" && <div className="flex gap-1.5 shrink-0"><button onClick={() => approveVendor(v.id)} className="w-8 h-8 rounded-full bg-success-50 text-success-600 flex items-center justify-center hover:bg-success-500 hover:text-white transition-colors"><Check className="w-4 h-4" /></button><button onClick={() => rejectVendor(v.id)} className="w-8 h-8 rounded-full bg-error-50 text-error-500 flex items-center justify-center hover:bg-error-500 hover:text-white transition-colors"><X className="w-4 h-4" /></button></div>}
+              {v.status === "pending" && <div className="flex gap-1.5 shrink-0"><button onClick={() => handleVendor(approveVendor, v.id)} className="w-8 h-8 rounded-full bg-success-50 text-success-600 flex items-center justify-center hover:bg-success-500 hover:text-white transition-colors"><Check className="w-4 h-4" /></button><button onClick={() => handleVendor(rejectVendor, v.id)} className="w-8 h-8 rounded-full bg-error-50 text-error-500 flex items-center justify-center hover:bg-error-500 hover:text-white transition-colors"><X className="w-4 h-4" /></button></div>}
             </div>
           </div>
         ))}
