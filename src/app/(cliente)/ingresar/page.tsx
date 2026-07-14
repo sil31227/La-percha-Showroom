@@ -7,20 +7,38 @@ import { useAuthStore } from "@/store/useAuthStore"
 
 export default function IngresarPage() {
   const router = useRouter()
-  const { login, isLoading } = useAuthStore()
+  const { login, resendVerification, isLoading } = useAuthStore()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
+  const [needsConfirmation, setNeedsConfirmation] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resent, setResent] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
+    setNeedsConfirmation(false)
+    setResent(false)
     const result = await login(email, password)
     if (result.ok) {
       router.push("/home")
     } else {
+      setNeedsConfirmation(!!result.needsConfirmation)
       setError(result.error ?? "Error al ingresar")
+    }
+  }
+
+  async function handleResend() {
+    setResending(true)
+    const result = await resendVerification(email)
+    setResending(false)
+    if (result.ok) {
+      setResent(true)
+      setError("")
+    } else {
+      setError(result.error ?? "No se pudo reenviar el email")
     }
   }
 
@@ -75,6 +93,23 @@ export default function IngresarPage() {
 
             {error && (
               <p className="text-xs text-error-500 bg-error-50 px-3 py-2 rounded-lg">{error}</p>
+            )}
+
+            {resent && (
+              <p className="text-xs text-success-500 bg-success-50 px-3 py-2 rounded-lg">
+                Te reenviamos el email de verificación a {email}. Revisá tu casilla (y spam).
+              </p>
+            )}
+
+            {needsConfirmation && !resent && (
+              <button type="button" onClick={handleResend} disabled={resending}
+                className="w-full h-11 border border-brand text-brand hover:bg-brand/5
+                  font-semibold rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                {resending ? (
+                  <span className="w-4.5 h-4.5 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
+                ) : null}
+                {resending ? "Reenviando..." : "Reenviar email de verificación"}
+              </button>
             )}
 
             <button type="submit" disabled={isLoading}
