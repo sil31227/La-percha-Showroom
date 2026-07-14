@@ -53,6 +53,7 @@ CREATE TABLE productos (
   retiro_local BOOLEAN DEFAULT true,
   tipo TEXT CHECK (tipo IN ('ropa','tienda')) DEFAULT 'ropa',
   vendedor_nombre TEXT NOT NULL DEFAULT 'Tienda Oficial',
+  vendedor_id UUID REFERENCES profiles(id),
   vendedor_tipo TEXT CHECK (vendedor_tipo IN ('oficial','feria')) DEFAULT 'oficial',
   status TEXT CHECK (status IN ('pending','approved','rejected')) DEFAULT 'pending',
   orden INTEGER DEFAULT 0,
@@ -77,15 +78,46 @@ CREATE TABLE pedidos (
   id TEXT PRIMARY KEY,
   producto_titulo TEXT NOT NULL,
   producto_imagen TEXT,
+  producto_id TEXT,
   precio NUMERIC NOT NULL,
   comprador_nombre TEXT,
   comprador_email TEXT,
   vendedor_nombre TEXT,
   vendedor_email TEXT,
+  vendedor_id UUID REFERENCES profiles(id),
+  vendedor_tipo TEXT CHECK (vendedor_tipo IN ('oficial','feria')),
   talle TEXT,
   direccion TEXT,
+  metodo_envio TEXT,
+  costo_envio NUMERIC,
+  seguimiento TEXT,
   status TEXT CHECK (status IN ('pending_shipment','shipped','delivered','cancelled')) DEFAULT 'pending_shipment',
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5b. VENTAS (comisión 80/20)
+CREATE TABLE IF NOT EXISTS ventas (
+  id TEXT PRIMARY KEY,
+  pedido_id TEXT REFERENCES pedidos(id) ON DELETE CASCADE,
+  vendedor_id UUID REFERENCES profiles(id),
+  producto_titulo TEXT NOT NULL,
+  monto_bruto INTEGER NOT NULL,
+  comision INTEGER NOT NULL,
+  monto_neto INTEGER NOT NULL,
+  status TEXT CHECK (status IN ('pendiente','liberado','cancelada')) DEFAULT 'pendiente',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  liberado_at TIMESTAMPTZ
+);
+
+-- 5c. RETIROS
+CREATE TABLE IF NOT EXISTS retiros (
+  id TEXT PRIMARY KEY,
+  vendedor_id UUID REFERENCES profiles(id),
+  monto INTEGER NOT NULL,
+  cbu TEXT,
+  status TEXT CHECK (status IN ('solicitado','pagado','rechazado')) DEFAULT 'solicitado',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  pagado_at TIMESTAMPTZ
 );
 
 -- 6. FAQ
@@ -185,6 +217,8 @@ ALTER TABLE categorias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subcategorias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vendedores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pedidos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ventas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE retiros ENABLE ROW LEVEL SECURITY;
 ALTER TABLE faq ENABLE ROW LEVEL SECURITY;
 ALTER TABLE terminos ENABLE ROW LEVEL SECURITY;
 
@@ -207,5 +241,87 @@ CREATE POLICY "admin_all_categorias" ON categorias FOR ALL USING (true) WITH CHE
 CREATE POLICY "admin_all_subcategorias" ON subcategorias FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "admin_all_vendedores" ON vendedores FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "admin_all_pedidos" ON pedidos FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_ventas" ON ventas FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "admin_all_retiros" ON retiros FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "admin_all_faq" ON faq FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "admin_all_terminos" ON terminos FOR ALL USING (true) WITH CHECK (true);
+
+-- Ventas: sellers see their own
+CREATE POLICY "ventas_select_own" ON ventas FOR SELECT USING (auth.uid() = vendedor_id);
+
+-- Retiros: sellers see and insert their own
+CREATE POLICY "retiros_select_own" ON retiros FOR SELECT USING (auth.uid() = vendedor_id);
+CREATE POLICY "retiros_insert_own" ON retiros FOR INSERT WITH CHECK (auth.uid() = vendedor_id);
+
+-- ===== RPC FUNCTIONS =====
+
+-- Confirmar entrega + acreditar 80% (atómica, idempotente)
+CREATE OR REPLACE FUNCTION confirmar_entrega(p_pedido_id TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_pedido_status TEXT;
+  v_venta ventas%ROWTYPE;
+BEGIN
+  SELECT status INTO v_pedido_status FROM pedidos WHERE id = p_pedido_id;
+  IF v_pedido_status IS DISTINCT FROM 'shipped' THEN
+    RETURN;
+  END IF;
+
+  UPDATE pedidos SET status = 'delivered' WHERE id = p_pedido_id;
+
+  SELECT * INTO v_venta FROM ventas WHERE pedido_id = p_pedido_id AND status = 'pendiente' LIMIT 1;
+  IF FOUND THEN
+    UPDATE ventas SET status = 'liberado', liberado_at = NOW() WHERE id = v_venta.id;
+    UPDATE profiles SET balance = balance + v_venta.monto_neto WHERE id = v_venta.vendedor_id;
+  END IF;
+END;
+$$;
+
+-- Solicitar retiro (valida saldo, descuenta, registra)
+CREATE OR REPLACE FUNCTION solicitar_retiro(p_vendedor_id UUID, p_monto INTEGER, p_cbu TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_balance INTEGER;
+  v_id TEXT;
+BEGIN
+  IF p_monto IS NULL OR p_monto <= 0 THEN
+    RAISE EXCEPTION 'Monto inválido';
+  END IF;
+  SELECT balance INTO v_balance FROM profiles WHERE id = p_vendedor_id FOR UPDATE;
+  IF v_balance IS NULL OR p_monto > v_balance THEN
+    RAISE EXCEPTION 'Saldo insuficiente';
+  END IF;
+
+  v_id := 'R-' || to_char(NOW(), 'YYYYMMDDHH24MISS') || '-' || substr(md5(random()::text), 1, 4);
+  INSERT INTO retiros (id, vendedor_id, monto, cbu, status)
+  VALUES (v_id, p_vendedor_id, p_monto, p_cbu, 'solicitado');
+  UPDATE profiles SET balance = balance - p_monto WHERE id = p_vendedor_id;
+  RETURN v_id;
+END;
+$$;
+
+-- Marcar retiro pagado (admin, idempotente, no toca balance)
+CREATE OR REPLACE FUNCTION marcar_retiro_pagado(p_retiro_id TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE retiros SET status = 'pagado', pagado_at = NOW()
+  WHERE id = p_retiro_id AND status <> 'pagado';
+END;
+$$;
+
+-- Permisos de ejecución
+GRANT EXECUTE ON FUNCTION confirmar_entrega(TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION solicitar_retiro(UUID, INTEGER, TEXT) TO service_role;
+GRANT EXECUTE ON FUNCTION marcar_retiro_pagado(TEXT) TO anon, authenticated, service_role;

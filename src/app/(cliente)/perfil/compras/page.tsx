@@ -1,7 +1,7 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
-import { ArrowLeft, Package, Loader2 } from "lucide-react"
+import { ArrowLeft, Package, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/useAuthStore"
 
@@ -39,11 +39,20 @@ function esCorreoArgentino(metodo: string | null) {
 
 export default function ComprasPage() {
   const user = useAuthStore(s => s.user)
+  const session = useAuthStore(s => s.session)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [loading, setLoading] = useState(true)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [confirmError, setConfirmError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user?.email) { setLoading(false); return }
+    fetchPedidos()
+  }, [user])
+
+  function fetchPedidos() {
+    if (!user?.email) return
+    setLoading(true)
     supabase
       .from("pedidos")
       .select("id, producto_titulo, producto_imagen, precio, status, talle, created_at, metodo_envio, seguimiento")
@@ -53,7 +62,34 @@ export default function ComprasPage() {
         setPedidos((data || []) as Pedido[])
         setLoading(false)
       })
-  }, [user])
+  }
+
+  async function confirmarRecepcion(pedidoId: string) {
+    if (!session?.access_token) return
+    setConfirmingId(pedidoId)
+    setConfirmError(null)
+    try {
+      const res = await fetch("/api/pedidos/confirmar-entrega", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ pedidoId }),
+      })
+      const data = await res.json().catch(() => ({ error: "Error de conexión" }))
+      if (!res.ok) {
+        setConfirmError(data.error || "No se pudo confirmar la entrega")
+        setConfirmingId(null)
+        return
+      }
+      fetchPedidos()
+      setConfirmingId(null)
+    } catch {
+      setConfirmError("Error de conexión")
+      setConfirmingId(null)
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -65,6 +101,12 @@ export default function ComprasPage() {
       </header>
 
       <div className="flex-1 px-4 lg:px-6 py-4 space-y-4 pb-24 lg:pb-10 max-w-lg mx-auto w-full">
+        {confirmError && (
+          <div className="bg-danger-50 border border-danger-200 rounded-lg p-3 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-danger-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-danger-600">{confirmError}</p>
+          </div>
+        )}
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-brand animate-spin" />
@@ -118,6 +160,20 @@ export default function ComprasPage() {
                       </>
                     )}
                   </div>
+                )}
+                {pedido.status === "shipped" && (
+                  <button
+                    onClick={() => confirmarRecepcion(pedido.id)}
+                    disabled={confirmingId === pedido.id}
+                    className="mt-2 w-full h-9 bg-brand hover:bg-brand-hover text-white font-semibold rounded-full text-xs
+                      transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {confirmingId === pedido.id ? (
+                      <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Confirmando...</>
+                    ) : (
+                      <><CheckCircle className="w-3.5 h-3.5" /> Ya recibí mi pedido</>
+                    )}
+                  </button>
                 )}
               </div>
             </div>

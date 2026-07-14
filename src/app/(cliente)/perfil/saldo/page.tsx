@@ -1,14 +1,28 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, Wallet, TrendingUp, Clock, ArrowDown, CheckCircle, AlertCircle, DollarSign } from "lucide-react"
+import { ArrowLeft, Wallet, TrendingUp, Clock, ArrowDown, CheckCircle, AlertCircle, DollarSign, XCircle } from "lucide-react"
 import { useAuthStore } from "@/store/useAuthStore"
+import type { VentaRecord, RetiroRecord } from "@/store/useAuthStore"
 
 export default function SaldoPage() {
-  const { user, withdraw } = useAuthStore()
+  const { user, withdraw, fetchVentas, fetchRetiros, refreshProfile } = useAuthStore()
+  const [ventas, setVentas] = useState<VentaRecord[]>([])
+  const [retiros, setRetiros] = useState<RetiroRecord[]>([])
   const [showRetiro, setShowRetiro] = useState(false)
   const [retiroAmount, setRetiroAmount] = useState("")
   const [retiroDone, setRetiroDone] = useState(false)
+  const [retiroError, setRetiroError] = useState("")
+  const [loadingRetiro, setLoadingRetiro] = useState(false)
+
+  useEffect(() => {
+    if (user?.id) {
+      Promise.all([fetchVentas(), fetchRetiros()]).then(([v, r]) => {
+        setVentas(v)
+        setRetiros(r)
+      })
+    }
+  }, [user?.id])
 
   if (!user) {
     return (
@@ -22,20 +36,27 @@ export default function SaldoPage() {
     )
   }
 
-  const liberado = user.ventas.filter(v => v.status === 'liberado')
-  const pendiente = user.ventas.filter(v => v.status === 'pendiente')
-  const retirado = user.ventas.filter(v => v.status === 'retirado')
-  const totalVentas = user.ventas.reduce((s, v) => s + v.price, 0)
-  const ganancia = totalVentas * 0.8
+  const liberado = ventas.filter(v => v.status === 'liberado')
+  const pendiente = ventas.filter(v => v.status === 'pendiente')
+  const totalNeto = liberado.reduce((s, v) => s + v.monto_neto, 0)
+  const gananciaPendiente = pendiente.reduce((s, v) => s + v.monto_neto, 0)
 
-  function handleRetiro() {
+  async function handleRetiro() {
     const amount = Number(retiroAmount)
     if (!amount || amount <= 0 || amount > user!.balance) return
-    withdraw(amount)
-    setRetiroDone(true)
-    setShowRetiro(false)
-    setRetiroAmount("")
-    setTimeout(() => setRetiroDone(false), 4000)
+    setLoadingRetiro(true)
+    setRetiroError("")
+    const result = await withdraw(amount)
+    setLoadingRetiro(false)
+    if (result.ok) {
+      setRetiroDone(true)
+      setShowRetiro(false)
+      setRetiroAmount("")
+      fetchRetiros().then(setRetiros)
+      setTimeout(() => setRetiroDone(false), 4000)
+    } else {
+      setRetiroError(result.error || "Error al procesar el retiro")
+    }
   }
 
   if (retiroDone) {
@@ -88,9 +109,15 @@ export default function SaldoPage() {
           <p className="text-3xl lg:text-4xl font-bold tracking-tight">
             $ {user.balance.toLocaleString('es-AR')}
           </p>
-          <p className="text-matcha-200 text-xs mt-1">
-            Ganancia total de ventas: $ {ganancia.toLocaleString('es-AR')}
-          </p>
+          {user.is_seller && (
+            <p className="text-matcha-200 text-xs mt-1">
+              {totalNeto > 0
+                ? `Total ganado: $ ${totalNeto.toLocaleString('es-AR')}`
+                : gananciaPendiente > 0
+                  ? `Pendiente de liberar: $ ${gananciaPendiente.toLocaleString('es-AR')}`
+                  : "Aún no tenés ventas"}
+            </p>
+          )}
 
           <div className="flex gap-3 mt-5">
             <button
@@ -109,7 +136,7 @@ export default function SaldoPage() {
           <div className="bg-surface-card rounded-xl border border-border-subtle p-5 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-text-strong text-sm">Retirar saldo</h3>
-              <button onClick={() => setShowRetiro(false)}
+              <button onClick={() => { setShowRetiro(false); setRetiroError("") }}
                 className="text-xs text-text-muted hover:text-text-body">Cancelar</button>
             </div>
 
@@ -118,6 +145,13 @@ export default function SaldoPage() {
                 El dinero se transfiere a tu CBU registrado en Datos de vendedora. Asegurate de que los datos estén correctos.
               </p>
             </div>
+
+            {retiroError && (
+              <div className="bg-danger-50 border border-danger-200 rounded-lg p-3 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-danger-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-danger-600">{retiroError}</p>
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-semibold text-text-muted uppercase tracking-wide mb-1.5">
@@ -145,20 +179,20 @@ export default function SaldoPage() {
             </div>
 
             <button onClick={handleRetiro}
-              disabled={!retiroAmount || Number(retiroAmount) <= 0 || Number(retiroAmount) > user.balance}
+              disabled={loadingRetiro || !retiroAmount || Number(retiroAmount) <= 0 || Number(retiroAmount) > user.balance}
               className="w-full h-11 bg-brand hover:bg-brand-hover text-white
                 font-semibold rounded-full transition-colors disabled:opacity-50 text-sm">
-              Confirmar retiro
+              {loadingRetiro ? "Procesando..." : "Confirmar retiro"}
             </button>
           </div>
         )}
 
         {/* Estado de ventas */}
-        {user.is_seller && user.ventas.length > 0 && (
+        {(ventas.length > 0) && (
           <section>
             <h2 className="text-sm font-semibold text-text-strong mb-3">Tus ventas</h2>
             <div className="space-y-3">
-              {user.ventas.map(venta => (
+              {ventas.map(venta => (
                 <div key={venta.id}
                   className="bg-surface-card rounded-xl border border-border-subtle p-4">
                   <div className="flex items-center justify-between">
@@ -178,18 +212,59 @@ export default function SaldoPage() {
                     </div>
                     <div className="text-right shrink-0 ml-3">
                       <p className="text-sm font-bold text-text-strong">
-                        $ {(venta.price * 0.8).toLocaleString('es-AR')}
+                        $ {venta.monto_neto.toLocaleString('es-AR')}
                       </p>
-                      <span className={`text-[10px] font-semibold
+                      <span className="text-[10px] text-text-subtle">
+                        Bruto: $ {venta.monto_bruto.toLocaleString('es-AR')}
+                      </span>
+                      <span className={`text-[10px] font-semibold ml-1
                         ${venta.status === 'liberado' ? 'text-success-500' :
                           venta.status === 'retirado' ? 'text-text-subtle' :
                           'text-warning-500'}`}>
-                        {venta.status === 'liberado' ? 'Disponible' :
+                        {venta.status === 'liberado' ? 'Liberado' :
                          venta.status === 'retirado' ? 'Retirado' :
                          'Pendiente'}
                       </span>
                     </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Historial de retiros */}
+        {retiros.length > 0 && (
+          <section>
+            <h2 className="text-sm font-semibold text-text-strong mb-3">Historial de retiros</h2>
+            <div className="space-y-2">
+              {retiros.map(retiro => (
+                <div key={retiro.id}
+                  className="bg-surface-card rounded-xl border border-border-subtle p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                      ${retiro.status === 'pagado' ? 'bg-success-50 text-success-500' :
+                        retiro.status === 'rechazado' ? 'bg-danger-50 text-danger-500' :
+                        'bg-warning-50 text-warning-500'}`}>
+                      {retiro.status === 'pagado' ? <CheckCircle className="w-4 h-4" /> :
+                       retiro.status === 'rechazado' ? <XCircle className="w-4 h-4" /> :
+                       <Clock className="w-4 h-4" />}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-text-strong">$ {retiro.monto.toLocaleString('es-AR')}</p>
+                      <p className="text-[10px] text-text-muted">
+                        {new Date(retiro.created_at).toLocaleDateString('es-AR')}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`text-[10px] font-semibold
+                    ${retiro.status === 'pagado' ? 'text-success-500' :
+                      retiro.status === 'rechazado' ? 'text-danger-500' :
+                      'text-warning-500'}`}>
+                    {retiro.status === 'pagado' ? 'Pagado' :
+                     retiro.status === 'rechazado' ? 'Rechazado' :
+                     'Solicitado'}
+                  </span>
                 </div>
               ))}
             </div>
@@ -213,8 +288,6 @@ export default function SaldoPage() {
           </div>
         </div>
       </div>
-
-      {/* Modal retiro confirmado toast */}
     </div>
   )
 }

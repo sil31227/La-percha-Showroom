@@ -23,6 +23,7 @@ export type OrderStatus = "pending_shipment" | "shipped" | "delivered" | "cancel
 export interface AdminOrder {
   id: string; producto_titulo: string; producto_imagen?: string; precio: number
   comprador_nombre?: string; comprador_email?: string; vendedor_nombre?: string; vendedor_email?: string
+  vendedor_tipo?: string
   talle?: string; direccion?: string; status: OrderStatus; created_at?: string
   metodo_envio?: string; costo_envio?: number; seguimiento?: string
 }
