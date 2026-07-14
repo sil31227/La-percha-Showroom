@@ -3,15 +3,16 @@ import { createAdminClient } from "@/lib/supabase-admin"
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = createAdminClient()
 
     const { data: product, error: fetchError } = await supabase
       .from("productos")
       .select("id, imagenes")
-      .eq("id", params.id)
+      .eq("id", id)
       .single()
 
     if (fetchError || !product) {
@@ -29,7 +30,7 @@ export async function DELETE(
     const { error: deleteError } = await supabase
       .from("productos")
       .delete()
-      .eq("id", params.id)
+      .eq("id", id)
 
     if (deleteError) {
       console.error("Error eliminando producto:", deleteError.message)
