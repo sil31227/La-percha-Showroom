@@ -12,7 +12,7 @@ export interface AdminProduct {
   stock?: number; variantes?: Variante[]
   envio_gratis?: boolean; destacado?: boolean; tipo: ProductType; retiro_local?: boolean
   vendedor_nombre: string; vendedor_id?: string; vendedor_tipo: "oficial" | "feria"
-  status: ProductStatus; orden?: number; created_at?: string
+  status: ProductStatus; vendido?: boolean; orden?: number; created_at?: string
 }
 
 export interface VendorRequest {
@@ -21,9 +21,9 @@ export interface VendorRequest {
 }
 export type OrderStatus = "pending_shipment" | "shipped" | "delivered" | "cancelled"
 export interface AdminOrder {
-  id: string; producto_titulo: string; producto_imagen?: string; precio: number
+  id: string; producto_titulo: string; producto_imagen?: string; producto_id?: string; precio: number
   comprador_nombre?: string; comprador_email?: string; vendedor_nombre?: string; vendedor_email?: string
-  vendedor_tipo?: string
+  vendedor_id?: string; vendedor_tipo?: string
   talle?: string; direccion?: string; status: OrderStatus; created_at?: string
   metodo_envio?: string; costo_envio?: number; seguimiento?: string
 }
@@ -69,6 +69,9 @@ interface AdminState {
   updateFAQ: (id: string, pregunta: string, respuesta: string) => Promise<void>
   deleteFAQ: (id: string) => Promise<void>
   updateTerms: (contenido: string) => Promise<void>
+  toggleProductSold: (id: string, vendido: boolean) => Promise<void>
+  updateFeriaProduct: (id: string, updates: Partial<AdminProduct>) => Promise<void>
+  deleteFeriaProduct: (id: string) => Promise<void>
 }
 
 async function createNotification(userId: string | undefined, type: NotificationType, title: string, body: string, link: string | null) {
@@ -429,6 +432,47 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   updateTerms: async (contenido) => {
     await supabase.from("terminos").upsert({ id: 1, contenido })
     set({ terms: contenido })
+  },
+
+  toggleProductSold: async (id, vendido) => {
+    const { error } = await supabase.from("productos").update({ vendido }).eq("id", id)
+    if (error) throw new Error(error.message)
+    set(s => ({
+      products: s.products.map(p => p.id === id ? { ...p, vendido } : p)
+    }))
+  },
+  updateFeriaProduct: async (id, updates) => {
+    const payload = { ...updates, updated_at: new Date().toISOString() }
+    delete payload.id
+    delete payload.vendedor_nombre
+    delete payload.vendedor_tipo
+    const { error } = await supabase.from("productos").update(payload).eq("id", id)
+    if (error) throw new Error(error.message)
+    set(s => ({
+      products: s.products.map(p => p.id === id ? { ...p, ...updates } : p)
+    }))
+  },
+  deleteFeriaProduct: async (id) => {
+    const product = get().products.find(p => p.id === id)
+    const imagePaths = (product?.imagenes || [])
+      .filter((url: string) => url.includes("hvmctiqzjbqsghuwhquk.supabase.co"))
+      .map((url: string) => {
+        const parts = url.split("/productos/")
+        return parts[1]?.split("?")[0]
+      })
+      .filter(Boolean) as string[]
+
+    await supabase.from("productos").delete().eq("id", id)
+
+    if (imagePaths.length > 0) {
+      fetch("/api/imagenes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths: imagePaths }),
+      }).catch(() => {})
+    }
+
+    set(s => ({ products: s.products.filter(p => p.id !== id) }))
   },
 
   loadShippingConfig: async () => {
