@@ -122,6 +122,10 @@ export async function POST(req: Request) {
           .update({ stock: newStock })
           .eq("id", item.productId)
       }
+      await supabase
+        .from("productos")
+        .update({ vendido: true })
+        .eq("id", item.productId)
     }
 
     const validItems = items.map(item => {
