@@ -1,9 +1,10 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Clock, CheckCircle, XCircle, Eye, Loader2 } from "lucide-react"
+import { ArrowLeft, Clock, CheckCircle, XCircle, Eye, Loader2, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/useAuthStore"
+import { Toast } from "@/components/Toast"
 
 interface MiPublicacion {
   id: string
@@ -24,6 +25,9 @@ export default function PublicacionesPage() {
   const user = useAuthStore(s => s.user)
   const [publicaciones, setPublicaciones] = useState<MiPublicacion[]>([])
   const [loading, setLoading] = useState(true)
+  const [showDelete, setShowDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user?.name) { setLoading(false); return }
@@ -38,9 +42,38 @@ export default function PublicacionesPage() {
       })
   }, [user])
 
+  const handleDelete = async () => {
+    if (!showDelete) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/productos/${showDelete}`, { method: "DELETE" })
+      if (!res.ok) {
+        const { error } = await res.json()
+        setToast(error || "Error al eliminar")
+        return
+      }
+      setPublicaciones(prev => prev.filter(p => p.id !== showDelete))
+      setToast("Publicación eliminada")
+    } catch {
+      setToast("Error al eliminar")
+    } finally {
+      setDeleting(false)
+      setShowDelete(null)
+    }
+  }
+
   const pendientes = publicaciones.filter(p => p.status === "pending")
   const aprobadas = publicaciones.filter(p => p.status === "approved")
   const rechazadas = publicaciones.filter(p => p.status === "rejected")
+
+  const DeleteButton = ({ id }: { id: string }) => (
+    <button
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowDelete(id) }}
+      className="w-8 h-8 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-error-50 hover:text-error-500 transition-colors shrink-0"
+    >
+      <Trash2 className="w-4 h-4 text-text-muted" />
+    </button>
+  )
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -93,9 +126,12 @@ export default function PublicacionesPage() {
                               $ {p.precio.toLocaleString("es-AR")}
                             </p>
                           </div>
-                          <p className="text-[10px] text-text-subtle mt-1">
-                            Publicada el {new Date(p.created_at).toLocaleDateString("es-AR")}
-                          </p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-[10px] text-text-subtle">
+                              Publicada el {new Date(p.created_at).toLocaleDateString("es-AR")}
+                            </p>
+                            <DeleteButton id={p.id} />
+                          </div>
                         </div>
                       </div>
                       <div className="px-3 py-2.5 bg-warning-50/50 border-t border-warning-100">
@@ -144,6 +180,8 @@ export default function PublicacionesPage() {
                               <Eye className="w-3 h-3" />
                               Ver publicación
                             </Link>
+                            <div className="flex-1" />
+                            <DeleteButton id={p.id} />
                           </div>
                         </div>
                       </div>
@@ -179,9 +217,12 @@ export default function PublicacionesPage() {
                               $ {p.precio.toLocaleString("es-AR")}
                             </p>
                           </div>
-                          <p className="text-[10px] text-text-subtle mt-1">
-                            {new Date(p.created_at).toLocaleDateString("es-AR")}
-                          </p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-[10px] text-text-subtle">
+                              {new Date(p.created_at).toLocaleDateString("es-AR")}
+                            </p>
+                            <DeleteButton id={p.id} />
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -198,6 +239,33 @@ export default function PublicacionesPage() {
           + Publicar otra prenda
         </Link>
       </div>
+
+      {showDelete && (
+        <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center">
+          <div className="absolute inset-0 bg-carob-900/40 backdrop-blur-sm" onClick={() => setShowDelete(null)} />
+          <div className="relative bg-surface-card rounded-t-2xl lg:rounded-2xl p-6 w-full lg:max-w-sm">
+            <p className="font-semibold text-text-strong mb-2">¿Eliminar publicación?</p>
+            <p className="text-sm text-text-muted mb-5">Esta acción no se puede deshacer. También se eliminarán las imágenes del producto.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDelete(null)}
+                disabled={deleting}
+                className="flex-1 h-10 rounded-full border border-border-default text-sm font-semibold disabled:opacity-50">
+                Cancelar
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 h-10 rounded-full bg-error-500 text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+                {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>
   )
 }
