@@ -10,6 +10,20 @@ export const metadata: Metadata = {
   manifest: "/api/manifest",
   icons: { icon: "/logo.jpg", apple: "/logo.jpg" },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "La Percha" },
+  openGraph: {
+    title: "La Percha Showroom",
+    description: "Moda Circular · Comunidad · Confianza",
+    siteName: "La Percha Showroom",
+    images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "La Percha Showroom" }],
+    type: "website",
+    locale: "es_AR",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "La Percha Showroom",
+    description: "Moda Circular · Comunidad · Confianza",
+    images: ["/og-image.jpg"],
+  },
 };
 export const viewport: Viewport = {
   themeColor: "#f8f6f2", width: "device-width", initialScale: 1, maximumScale: 1,
