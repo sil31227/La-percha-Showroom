@@ -92,7 +92,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       supabase.from("faq").select("*").order("orden"),
       supabase.from("terminos").select("*").single(),
     ])
-    let moderationNotes: Record<string, ModerationNote[]> = {}
+    const moderationNotes: Record<string, ModerationNote[]> = {}
     const productIds = (pRes.data || []).map((p: { id: string }) => p.id)
     if (productIds.length > 0) {
       const { data: notes } = await supabase
