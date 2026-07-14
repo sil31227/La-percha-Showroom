@@ -1,20 +1,37 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, Banknote, Check, Copy } from "lucide-react"
+import { useAuthStore } from "@/store/useAuthStore"
+import { supabase } from "@/lib/supabase"
+import { ArrowLeft, Banknote, Check, Copy, Loader2 } from "lucide-react"
 
 export default function DatosVendedoraPage() {
+  const { user } = useAuthStore()
   const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    fullName: "María García",
-    bank: "Santander Río",
+    fullName: "",
+    bank: "",
     accountType: "caja_ahorro" as "caja_ahorro" | "cuenta_corriente",
-    cbu: "0720000788000000123456",
-    alias: "maria.percha",
+    cbu: "",
+    alias: "",
   })
 
   const [showCbu, setShowCbu] = useState(false)
   const [copied, setCopied] = useState("")
+
+  useEffect(() => {
+    if (!user?.id) return
+    supabase.from("vendedores").select("cbu, banco, tipo_cuenta, alias, titular").eq("id", user.id).maybeSingle().then(({ data }) => {
+      setForm({
+        fullName: (data?.titular as string) || user.name || "",
+        bank: (data?.banco as string) || "",
+        accountType: ((data?.tipo_cuenta as string) || "caja_ahorro") as "caja_ahorro" | "cuenta_corriente",
+        cbu: (data?.cbu as string) || "",
+        alias: (data?.alias as string) || "",
+      })
+    })
+  }, [user?.id, user?.name])
 
   function copyToClipboard(text: string, label: string) {
     navigator.clipboard.writeText(text)
@@ -22,10 +39,39 @@ export default function DatosVendedoraPage() {
     setTimeout(() => setCopied(""), 2000)
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    if (!user?.id) return
+
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from("vendedores")
+        .upsert({
+          id: user.id,
+          nombre: user.name,
+          email: user.email,
+          avatar: user.avatar,
+          cbu: form.cbu,
+          banco: form.bank,
+          tipo_cuenta: form.accountType,
+          alias: form.alias,
+          titular: form.fullName,
+        })
+
+      if (error) {
+        alert("Error al guardar los datos: " + error.message)
+        setSaving(false)
+        return
+      }
+
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch (err) {
+      alert("Error al guardar los datos: " + (err instanceof Error ? err.message : "Error de conexión"))
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -143,10 +189,12 @@ export default function DatosVendedoraPage() {
           </div>
         </div>
 
-        <button type="submit"
+        <button type="submit" disabled={saving}
           className="w-full h-12 bg-brand hover:bg-brand-hover text-white
-            font-semibold rounded-full transition-colors text-sm">
-          {saved ? '✓ Guardado' : 'Guardar cambios'}
+            font-semibold rounded-full transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed">
+          {saving ? (
+            <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</span>
+          ) : saved ? '✓ Guardado' : 'Guardar cambios'}
         </button>
 
         <div className="bg-info-50 border border-info-200 rounded-xl p-4">
