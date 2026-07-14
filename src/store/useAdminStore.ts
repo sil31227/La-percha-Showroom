@@ -208,10 +208,16 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }
   },
   approveVendor: async (id) => {
-    await Promise.all([
-      supabase.from("vendedores").update({ status: "approved" }).eq("id", id),
-      supabase.from("profiles").update({ seller_status: "approved", is_seller: true }).eq("id", id),
-    ])
+    const res = await fetch("/api/admin/vendedores", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "approved" }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      console.error("[approveVendor] error:", data.error || res.status)
+      throw new Error(data.error || "No se pudo aprobar la vendedora")
+    }
     createNotification(
       id,
       "seller_approved",
@@ -222,10 +228,16 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set(s => ({ vendors: s.vendors.map(v => v.id === id ? { ...v, status: "approved" as const } : v) }))
   },
   rejectVendor: async (id) => {
-    await Promise.all([
-      supabase.from("vendedores").update({ status: "rejected" }).eq("id", id),
-      supabase.from("profiles").update({ seller_status: "rejected", is_seller: false }).eq("id", id),
-    ])
+    const res = await fetch("/api/admin/vendedores", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "rejected" }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      console.error("[rejectVendor] error:", data.error || res.status)
+      throw new Error(data.error || "No se pudo rechazar la vendedora")
+    }
     createNotification(
       id,
       "seller_rejected",
