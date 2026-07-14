@@ -8,17 +8,23 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminClient()
 
-    const { data: users, error: listError } = await supabase.auth.admin.listUsers()
-    if (listError) return NextResponse.json({ error: listError.message }, { status: 500 })
-
-    const user = (users?.users || []).find(u => u.email === email)
+    const target = String(email).toLowerCase()
+    let user: { id: string; email?: string } | undefined
+    for (let page = 1; page <= 100 && !user; page++) {
+      const { data, error: listError } = await supabase.auth.admin.listUsers({ page, perPage: 1000 })
+      if (listError) return NextResponse.json({ error: listError.message }, { status: 500 })
+      const found = (data?.users || []).find(u => u.email?.toLowerCase() === target)
+      if (found) user = found
+      if ((data?.users?.length || 0) < 1000) break
+    }
     if (!user) return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 })
 
     const { error } = await supabase.auth.admin.updateUserById(user.id, { email_confirm: true })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     return NextResponse.json({ ok: true })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Error inesperado"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

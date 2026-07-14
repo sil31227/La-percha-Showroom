@@ -7,17 +7,20 @@ import { useAuthStore } from "@/store/useAuthStore"
 
 export default function RegistrarsePage() {
   const router = useRouter()
-  const { register, isLoading } = useAuthStore()
+  const { register, resendVerification, isLoading } = useAuthStore()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [sent, setSent] = useState(false)
+  const [alreadyExists, setAlreadyExists] = useState(false)
+  const [resending, setResending] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
+    setAlreadyExists(false)
     const result = await register(name, email, password)
     if (result.ok) {
       if (result.needsConfirmation) {
@@ -25,8 +28,23 @@ export default function RegistrarsePage() {
       } else {
         router.push("/home")
       }
+    } else if (result.alreadyExists) {
+      setAlreadyExists(true)
+      setError(result.error ?? "Ya existe una cuenta con ese email")
     } else {
       setError(result.error ?? "Error al registrarse")
+    }
+  }
+
+  async function handleResend() {
+    setResending(true)
+    setError("")
+    const result = await resendVerification(email, name)
+    setResending(false)
+    if (result.ok) {
+      setSent(true)
+    } else {
+      setError(result.error ?? "No se pudo reenviar el email")
     }
   }
 
@@ -124,6 +142,23 @@ export default function RegistrarsePage() {
 
             {error && (
               <p className="text-xs text-error-500 bg-error-50 px-3 py-2 rounded-lg">{error}</p>
+            )}
+
+            {alreadyExists && (
+              <div className="flex flex-col gap-2">
+                <button type="button" onClick={handleResend} disabled={resending}
+                  className="w-full h-11 border border-brand text-brand hover:bg-brand/5
+                    font-semibold rounded-lg transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                  {resending ? (
+                    <span className="w-4.5 h-4.5 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
+                  ) : null}
+                  {resending ? "Reenviando..." : "Reenviar email de verificación"}
+                </button>
+                <Link href="/ingresar"
+                  className="text-center text-xs text-text-muted hover:text-text-body">
+                  ¿Ya confirmaste tu cuenta? <span className="text-brand font-semibold">Ingresá</span>
+                </Link>
+              </div>
             )}
 
             <button type="submit" disabled={isLoading}

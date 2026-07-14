@@ -42,8 +42,9 @@ interface AuthStore {
   isLoading: boolean
   initialized: boolean
   initialize: () => Promise<void>
-  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
-  register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean }>
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean }>
+  register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean; alreadyExists?: boolean }>
+  resendVerification: (email: string, name?: string) => Promise<{ ok: boolean; error?: string }>
   requestSeller: () => Promise<void>
   refreshProfile: () => Promise<void>
   fetchVentas: () => Promise<VentaRecord[]>
@@ -132,7 +133,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         return { ok: false, error: "Email o contraseña incorrectos" }
       }
       if (error.message.includes("Email not confirmed") || (error as { code?: string }).code === "email_not_confirmed") {
-        return { ok: false, error: "Tenés que confirmar tu email antes de ingresar. Revisá tu casilla (y la carpeta de spam)." }
+        return { ok: false, error: "Tenés que confirmar tu email antes de ingresar. Revisá tu casilla (y la carpeta de spam).", needsConfirmation: true }
       }
       return { ok: false, error: error.message }
     }
@@ -166,7 +167,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
     if (!res.ok) {
       set({ isLoading: false })
-      return { ok: false, error: result.error || "Error al crear la cuenta" }
+      return { ok: false, error: result.error || "Error al crear la cuenta", alreadyExists: res.status === 409 }
     }
 
     await fetch("/api/email/registro", {
@@ -177,6 +178,22 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
     set({ isLoading: false })
     return { ok: true, needsConfirmation: true }
+  },
+
+  resendVerification: async (email, name) => {
+    if (!email) return { ok: false, error: "Ingresá tu email" }
+    try {
+      const res = await fetch("/api/email/registro", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name: name || "" }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) return { ok: false, error: data.error || "No se pudo reenviar el email" }
+      return { ok: true }
+    } catch {
+      return { ok: false, error: "Error de conexión" }
+    }
   },
 
   requestSeller: async () => {
