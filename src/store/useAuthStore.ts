@@ -4,10 +4,23 @@ import type { Session } from "@supabase/supabase-js"
 
 export interface VentaRecord {
   id: string
+  pedido_id: string
   title: string
   price: number
+  monto_bruto: number
+  comision: number
+  monto_neto: number
   date: string
   status: "pendiente" | "liberado" | "retirado"
+}
+
+export interface RetiroRecord {
+  id: string
+  monto: number
+  cbu: string
+  status: "solicitado" | "pagado" | "rechazado"
+  created_at: string
+  pagado_at: string | null
 }
 
 export interface User {
@@ -20,6 +33,7 @@ export interface User {
   seller_status: "none" | "pending" | "approved" | "rejected"
   balance: number
   ventas: VentaRecord[]
+  retiros: RetiroRecord[]
 }
 
 interface AuthStore {
@@ -32,8 +46,10 @@ interface AuthStore {
   register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean }>
   requestSeller: () => Promise<void>
   refreshProfile: () => Promise<void>
+  fetchVentas: () => Promise<VentaRecord[]>
+  fetchRetiros: () => Promise<RetiroRecord[]>
   updateProfile: (data: { name?: string; avatar?: string; phone?: string }) => void
-  withdraw: (amount: number) => void
+  withdraw: (amount: number) => Promise<{ ok: boolean; error?: string }>
   logout: () => Promise<void>
   isAuthenticated: () => boolean
 }
@@ -49,6 +65,7 @@ function mapProfile(profile: Record<string, unknown> | null, email: string, user
     seller_status: (profile?.seller_status as User["seller_status"]) || "none",
     balance: (profile?.balance as number) || 0,
     ventas: [],
+    retiros: [],
   }
 }
 
@@ -207,19 +224,69 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       }
     } : s),
 
-  withdraw: (amount) =>
-    set(s => {
-      if (!s.user) return s
-      return {
-        user: {
-          ...s.user,
-          balance: s.user.balance - amount,
-          ventas: s.user.ventas.map(v =>
-            v.status === "liberado" ? { ...v, status: "retirado" as const } : v
-          ),
-        },
-      }
-    }),
+  withdraw: async (amount) => {
+    const session = get().session
+    if (!session?.access_token) {
+      return { ok: false, error: "No autenticado" }
+    }
+    const res = await fetch("/api/saldo/retirar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ monto: amount }),
+    })
+    const data = await res.json().catch(() => ({ error: "Error de conexión" }))
+    if (!res.ok) {
+      return { ok: false, error: data.error || "Error al procesar el retiro" }
+    }
+    await get().refreshProfile()
+    const retiros = await get().fetchRetiros()
+    set(s => s.user ? { user: { ...s.user, retiros } } : s)
+    return { ok: true }
+  },
+
+  fetchVentas: async () => {
+    const user = get().user
+    if (!user?.id) return []
+    const { data } = await supabase
+      .from("ventas")
+      .select("id, pedido_id, producto_titulo, monto_bruto, comision, monto_neto, status, created_at, liberado_at")
+      .eq("vendedor_id", user.id)
+      .order("created_at", { ascending: false })
+    if (!data) return []
+    return data.map((v: Record<string, unknown>) => ({
+      id: v.id as string,
+      pedido_id: v.pedido_id as string,
+      title: v.producto_titulo as string,
+      price: v.monto_bruto as number,
+      monto_bruto: v.monto_bruto as number,
+      comision: v.comision as number,
+      monto_neto: v.monto_neto as number,
+      date: (v.created_at as string)?.slice(0, 10) ?? "",
+      status: v.status as VentaRecord["status"],
+    }))
+  },
+
+  fetchRetiros: async () => {
+    const user = get().user
+    if (!user?.id) return []
+    const { data } = await supabase
+      .from("retiros")
+      .select("id, monto, cbu, status, created_at, pagado_at")
+      .eq("vendedor_id", user.id)
+      .order("created_at", { ascending: false })
+    if (!data) return []
+    return data.map((r: Record<string, unknown>) => ({
+      id: r.id as string,
+      monto: r.monto as number,
+      cbu: (r.cbu as string) || "",
+      status: r.status as RetiroRecord["status"],
+      created_at: r.created_at as string,
+      pagado_at: r.pagado_at as string | null,
+    }))
+  },
 
   logout: async () => {
     await supabase.auth.signOut()

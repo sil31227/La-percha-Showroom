@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase-admin"
+import { registrarVentaFeria } from "@/lib/ventas"
 import { NextResponse } from "next/server"
 import { sendAdminPush, sendSellerPush } from "@/lib/push"
 
@@ -158,12 +159,16 @@ export async function POST(req: Request) {
     const compradorEmail = addr.email || email || ""
 
     for (const item of validItems) {
+      const prod = productMap.get(item.productId)
+      const vid = (prod as Record<string, unknown>)?.vendedor_id as string | null | undefined
+      const vtipo = (prod as Record<string, unknown>)?.vendedor_tipo as string | undefined
       await supabase.from("pedidos").insert({
         id: `${orderId}-${item.productId.slice(-4)}`,
         producto_titulo: item.title,
         producto_imagen: item.image,
         producto_id: item.productId,
-        vendedor_id: (productMap.get(item.productId) as Record<string, unknown>)?.vendedor_id as string | undefined,
+        vendedor_id: vid as string | undefined,
+        vendedor_tipo: vtipo as string | undefined,
         precio: item.price,
         comprador_nombre: compradorNombre,
         comprador_email: compradorEmail,
@@ -175,6 +180,13 @@ export async function POST(req: Request) {
         metodo_envio: metodo,
         costo_envio: shipping,
         created_at: now,
+      })
+      await registrarVentaFeria(supabase, {
+        pedidoId: `${orderId}-${item.productId.slice(-4)}`,
+        vendedorId: vid ?? null,
+        vendedorTipo: vtipo ?? "oficial",
+        productoTitulo: item.title,
+        precio: item.price,
       })
     }
 

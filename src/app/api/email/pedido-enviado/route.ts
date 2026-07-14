@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server"
 const RESEND_KEY = process.env.RESEND_API_KEY
 const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null
 const FROM = process.env.RESEND_FROM_EMAIL || "La Percha Showroom <onboarding@resend.dev>"
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://lapercha.com.ar"
 
 const TRACKING_URL = "https://www.correoargentino.com.ar/formularios/e-commerce"
 
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
           producto: producto_titulo || "tu pedido",
           correo: esCorreoArgentino(metodo_envio),
           seguimiento: seguimiento || "",
+          comprasUrl: `${SITE_URL}/perfil/compras`,
         }),
       })
       if (error) {
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function pedidoEnviadoEmail(d: { orderId: string; producto: string; correo: boolean; seguimiento: string }) {
+function pedidoEnviadoEmail(d: { orderId: string; producto: string; correo: boolean; seguimiento: string; comprasUrl: string }) {
   const bloqueCorreo = d.correo
     ? `<p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px; color: #725C3A;">Tu pedido fue enviado por <strong>Correo Argentino</strong>.</p>
        ${d.seguimiento ? `<div style="text-align: center; margin: 16px 0;">
@@ -75,6 +77,14 @@ function pedidoEnviadoEmail(d: { orderId: string; producto: string; correo: bool
       <p style="font-size: 16px; line-height: 1.6; margin: 0 0 8px;">¡Buenas noticias!</p>
       <p style="font-size: 14px; line-height: 1.6; margin: 0 0 16px; color: #725C3A;">Pedido <strong>#${d.orderId}</strong> — ${d.producto}.</p>
       ${bloqueCorreo}
+      <div style="margin: 24px 0; padding: 16px; background: #f0f7ed; border-radius: 12px; border: 1px solid #d4e5c5;">
+        <p style="font-size: 13px; line-height: 1.5; color: #5a7745; margin: 0 0 12px; text-align: center;">
+          Cuando recibas tu pedido, confirmalo para que la vendedora pueda cobrar.
+        </p>
+        <div style="text-align: center;">
+          <a href="${d.comprasUrl}" style="display: inline-block; background: #809671; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 100px; font-size: 14px; font-weight: 600;">Ya recibí mi pedido</a>
+        </div>
+      </div>
       <p style="font-size: 12px; color: #a39584; line-height: 1.5; margin: 16px 0 0;">Gracias por comprar en La Percha Showroom.</p>
     </td>
   </tr>

@@ -24,6 +24,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    if (status === "delivered") {
+      await supabase.rpc("confirmar_entrega", { p_pedido_id: id })
+    }
+
     return NextResponse.json({ ok: true })
   } catch {
     return NextResponse.json({ error: "Error interno" }, { status: 500 })
