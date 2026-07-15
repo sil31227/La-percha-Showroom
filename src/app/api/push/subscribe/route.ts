@@ -14,7 +14,9 @@ export async function POST(req: Request) {
     const endpoint = body.endpoint
     const p256dh = body.keys?.p256dh
     const auth = body.keys?.auth
-    const audience = body.audience === "seller" ? "seller" : "admin"
+    let audience = "admin"
+    if (body.audience === "seller") audience = "seller"
+    else if (body.audience === "buyer") audience = "buyer"
 
     if (!endpoint || !p256dh || !auth) {
       return NextResponse.json({ error: "Suscripción inválida" }, { status: 400 })
@@ -42,6 +44,20 @@ export async function POST(req: Request) {
 
       if (profileError || !profile || profile.seller_status !== "approved") {
         return NextResponse.json({ error: "Solo vendedoras aprobadas pueden suscribirse" }, { status: 403 })
+      }
+
+      userId = user.id
+    }
+
+    if (audience === "buyer") {
+      if (!body.access_token) {
+        return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+      }
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser(body.access_token)
+
+      if (authError || !user) {
+        return NextResponse.json({ error: "Token inválido o expirado" }, { status: 401 })
       }
 
       userId = user.id
