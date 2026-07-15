@@ -1,6 +1,7 @@
 "use client"
 import { useState, useRef, useCallback } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ImageLightbox } from "./ImageLightbox"
 
 interface Props {
   images: string[]
@@ -13,6 +14,8 @@ export function ProductGallery({ images, title }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef(0)
   const touchStartY = useRef(0)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lens, setLens] = useState<{ show: boolean; x: number; y: number }>({ show: false, x: 50, y: 50 })
 
   const fallbackSrc = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='800' fill='%23f2efe8'%3E%3Crect width='600' height='800'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%23c4baac' font-size='18' font-family='sans-serif'%3ESin imagen%3C/text%3E%3C/svg%3E"
 
@@ -77,7 +80,12 @@ export function ProductGallery({ images, title }: Props) {
       >
         {images.map((img, i) => (
           <div key={i} className="shrink-0 w-full snap-center">
-            <div className="relative h-[320px] sm:h-[400px] bg-surface-sunken">
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(true)}
+              className="relative h-[320px] sm:h-[400px] w-full bg-surface-sunken block"
+              aria-label="Ampliar imagen"
+            >
               <img
                 src={imgErrors[i] ? fallbackSrc : img}
                 alt={`${title} foto ${i + 1}`}
@@ -85,7 +93,7 @@ export function ProductGallery({ images, title }: Props) {
                 onError={() => markError(i)}
                 className="w-full h-full object-contain bg-surface-sunken"
               />
-            </div>
+            </button>
           </div>
         ))}
 
@@ -135,12 +143,37 @@ export function ProductGallery({ images, title }: Props) {
       {/* Desktop: main image + thumbnails */}
       <div className="hidden lg:block">
         <div className="relative aspect-[3/4] max-h-[520px] rounded-xl bg-surface-sunken overflow-hidden">
-          <img
-            src={imgErrors[active] ? fallbackSrc : images[active]}
-            alt={`${title} foto ${active + 1}`}
-            onError={() => markError(active)}
-            className="w-full h-full object-contain bg-surface-sunken"
-          />
+          <div
+            className="w-full h-full cursor-zoom-in"
+            onClick={() => setLightboxOpen(true)}
+            onMouseEnter={() => !imgErrors[active] && setLens(l => ({ ...l, show: true }))}
+            onMouseLeave={() => setLens(l => ({ ...l, show: false }))}
+            onMouseMove={(e) => {
+              const r = e.currentTarget.getBoundingClientRect()
+              setLens({
+                show: true,
+                x: ((e.clientX - r.left) / r.width) * 100,
+                y: ((e.clientY - r.top) / r.height) * 100,
+              })
+            }}
+          >
+            <img
+              src={imgErrors[active] ? fallbackSrc : images[active]}
+              alt={`${title} foto ${active + 1}`}
+              onError={() => markError(active)}
+              className="w-full h-full object-contain bg-surface-sunken pointer-events-none"
+            />
+            {lens.show && !imgErrors[active] && (
+              <div
+                className="absolute inset-0 pointer-events-none bg-no-repeat"
+                style={{
+                  backgroundImage: `url(${images[active]})`,
+                  backgroundSize: "200%",
+                  backgroundPosition: `${lens.x}% ${lens.y}%`,
+                }}
+              />
+            )}
+          </div>
 
           {/* Navigation arrows — desktop */}
           {total > 1 && (
@@ -196,6 +229,16 @@ export function ProductGallery({ images, title }: Props) {
           </div>
         )}
       </div>
+
+      {lightboxOpen && (
+        <ImageLightbox
+          images={images}
+          title={title}
+          startIndex={active}
+          onClose={() => setLightboxOpen(false)}
+          onIndexChange={setActive}
+        />
+      )}
     </div>
   )
 }
