@@ -14,13 +14,18 @@ export async function POST(req: Request) {
   }
 
   const supabase = createAdminClient()
-  const { data: pedido } = await supabase
+  const { data: pedido, error: pedidoError } = await supabase
     .from("pedidos")
     .select("id, comprador_email, status")
     .eq("id", pedidoId)
     .single()
 
+  if (pedidoError) {
+    console.error("[confirmar-entrega] Error consultando pedido:", JSON.stringify(pedidoError))
+  }
+
   if (!pedido) {
+    console.error("[confirmar-entrega] Pedido no encontrado para ID:", pedidoId, "email:", user.email, "error:", JSON.stringify(pedidoError))
     return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 })
   }
   if (pedido.comprador_email !== user.email) {
