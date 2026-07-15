@@ -16,36 +16,32 @@ export async function POST(req: Request) {
 
   const supabase = createAdminClient()
 
-  console.log("[despachar] Request body pedidoId:", JSON.stringify(pedidoId))
-
   const { data: pedido, error: pedidoError } = await supabase
     .from("pedidos")
-    .select("id, vendedor_id, vendedor_tipo, status, comprador_email, producto_titulo, metodo_envio")
+    .select("id, vendedor_id, producto_id, status, comprador_email, producto_titulo, metodo_envio")
     .eq("id", pedidoId)
     .single()
 
-  if (pedidoError) {
-    console.error("[despachar] Error consultando pedido:", JSON.stringify(pedidoError))
-  }
-
   if (!pedido) {
-    console.error("[despachar] Pedido no encontrado para ID:", pedidoId, "user:", user.id, "error:", JSON.stringify(pedidoError))
-
-    const { count } = await supabase
-      .from("pedidos")
-      .select("*", { count: "exact", head: true })
-      .eq("vendedor_id", user.id)
-
-    console.log("[despachar] Total pedidos del vendedor:", user.id, "=", count)
-
+    console.error("[despachar] Pedido no encontrado para ID:", pedidoId, "error:", JSON.stringify(pedidoError?.message || pedidoError))
     return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 })
   }
   if (pedido.vendedor_id !== user.id) {
     return NextResponse.json({ error: "No sos la vendedora de este pedido" }, { status: 403 })
   }
-  if (pedido.vendedor_tipo !== "feria") {
-    return NextResponse.json({ error: "Solo se pueden despachar pedidos de Feria" }, { status: 400 })
+
+  if (pedido.producto_id) {
+    const { data: prod } = await supabase
+      .from("productos")
+      .select("vendedor_tipo")
+      .eq("id", pedido.producto_id)
+      .single()
+
+    if (prod?.vendedor_tipo && prod.vendedor_tipo !== "feria") {
+      return NextResponse.json({ error: "Solo se pueden despachar pedidos de Feria" }, { status: 400 })
+    }
   }
+
   if (pedido.status !== "pending_shipment") {
     return NextResponse.json({ error: "El pedido no está pendiente de envío" }, { status: 409 })
   }
