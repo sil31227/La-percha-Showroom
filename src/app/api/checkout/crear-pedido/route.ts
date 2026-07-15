@@ -181,7 +181,7 @@ export async function POST(req: Request) {
       const prod = productMap.get(item.productId)
       const vid = (prod as Record<string, unknown>)?.vendedor_id as string | null | undefined
       const vtipo = (prod as Record<string, unknown>)?.vendedor_tipo as string | undefined
-      await supabase.from("pedidos").insert({
+      const { error: insertError } = await supabase.from("pedidos").insert({
         id: `${orderId}-${item.productId.slice(-4)}`,
         producto_titulo: item.title,
         producto_imagen: item.image,
@@ -200,6 +200,10 @@ export async function POST(req: Request) {
         costo_envio: shipping,
         created_at: now,
       })
+      if (insertError) {
+        console.error("[crear-pedido] Error insertando pedido:", insertError)
+        return NextResponse.json({ error: "Error al crear el pedido" }, { status: 500 })
+      }
       await registrarVentaFeria(supabase, {
         pedidoId: `${orderId}-${item.productId.slice(-4)}`,
         vendedorId: vid ?? null,
