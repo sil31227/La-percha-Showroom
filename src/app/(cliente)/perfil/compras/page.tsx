@@ -1,6 +1,7 @@
 "use client"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, Package, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/useAuthStore"
@@ -39,17 +40,23 @@ function esCorreoArgentino(metodo: string | null) {
 }
 
 export default function ComprasPage() {
+  const router = useRouter()
   const user = useAuthStore(s => s.user)
   const session = useAuthStore(s => s.session)
+  const initialized = useAuthStore(s => s.initialized)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [loading, setLoading] = useState(true)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!user?.email) { setLoading(false); return }
+    if (!initialized) return
+    if (!user?.email) {
+      router.replace("/ingresar?redirect=/perfil/compras")
+      return
+    }
     fetchPedidos()
-  }, [user])
+  }, [user, initialized])
 
   function fetchPedidos() {
     if (!user?.email) return
