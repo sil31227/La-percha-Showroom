@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { useAdminStore } from "@/store/useAdminStore"
 import { Check, X, Copy, CheckCheck, ChevronDown, ChevronUp, Pencil, Trash2, Eye, Package, ShoppingBag, User, Banknote } from "lucide-react"
@@ -8,6 +8,14 @@ import type { AdminOrder } from "@/store/useAdminStore"
 type Tab = "pending" | "approved" | "rejected" | "publicaciones"
 
 export default function VendedoresPage() {
+  return (
+    <Suspense fallback={<div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>}>
+      <VendedoresContent />
+    </Suspense>
+  )
+}
+
+function VendedoresContent() {
   const {
     vendors, products, orders, loaded, loadFromSupabase,
     approveVendor, rejectVendor,
