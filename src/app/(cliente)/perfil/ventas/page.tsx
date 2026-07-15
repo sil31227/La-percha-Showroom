@@ -93,7 +93,7 @@ export default function VentasPage() {
       })
       const data = await res.json().catch(() => ({ error: "Error de conexión" }))
       if (!res.ok) {
-        setErrorMsg(data.error || "No se pudo despachar el pedido")
+        setErrorMsg(`${data.error || "No se pudo despachar el pedido"} (ID: ${pedidoId})`)
         setDespachandoId(null)
         setIsSubmitting(false)
         return
