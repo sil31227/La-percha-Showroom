@@ -19,9 +19,11 @@ export function EnableBuyerPush() {
 
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setState("unsupported")
       return
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState(Notification.permission as PushState)
   }, [])
 

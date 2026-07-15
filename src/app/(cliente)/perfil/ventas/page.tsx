@@ -27,8 +27,6 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "Cancelado",
 }
 
-type ParsedAddress = { nombre?: string; email?: string; provincia?: string; ciudad?: string; cp?: string; direccion?: string }
-
 function formatDireccion(raw?: string | null): string {
   if (!raw) return ""
   try {
@@ -56,6 +54,7 @@ export default function VentasPage() {
   const [seguimiento, setSeguimiento] = useState("")
   const [errorMsg, setErrorMsg] = useState("")
   const [successMsg, setSuccessMsg] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     if (!user?.id) { setLoading(false); return }
@@ -81,8 +80,8 @@ export default function VentasPage() {
       setErrorMsg("Sesión expirada, volvé a ingresar")
       return
     }
-    setDespachandoId(pedidoId)
     setErrorMsg("")
+    setIsSubmitting(true)
     try {
       const res = await fetch("/api/pedidos/despachar", {
         method: "POST",
@@ -96,16 +95,19 @@ export default function VentasPage() {
       if (!res.ok) {
         setErrorMsg(data.error || "No se pudo despachar el pedido")
         setDespachandoId(null)
+        setIsSubmitting(false)
         return
       }
       setSeguimiento("")
       setDespachandoId(null)
+      setIsSubmitting(false)
       setSuccessMsg("Pedido despachado. La compradora recibirá una notificación.")
       fetchPedidos()
       setTimeout(() => setSuccessMsg(""), 4000)
     } catch {
       setErrorMsg("Error de conexión")
       setDespachandoId(null)
+      setIsSubmitting(false)
     }
   }
 
@@ -230,17 +232,17 @@ export default function VentasPage() {
                               hover:border-text-subtle transition-colors">
                             Cancelar
                           </button>
-                          <button
-                            onClick={() => despachar(pedido.id)}
-                            disabled={despachandoId !== null}
-                            className="flex-1 h-9 rounded-full bg-brand hover:bg-brand-hover text-white text-xs font-semibold
-                              transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
-                            {despachandoId === pedido.id ? (
-                              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Despachando...</>
-                            ) : (
-                              <><Truck className="w-3.5 h-3.5" /> Confirmar despacho</>
-                            )}
-                          </button>
+                            <button
+                              onClick={() => despachar(pedido.id)}
+                              disabled={isSubmitting}
+                              className="flex-1 h-9 rounded-full bg-brand hover:bg-brand-hover text-white text-xs font-semibold
+                                transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
+                              {isSubmitting ? (
+                                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Despachando...</>
+                              ) : (
+                                <><Truck className="w-3.5 h-3.5" /> Confirmar despacho</>
+                              )}
+                            </button>
                         </div>
                       </>
                     ) : (
