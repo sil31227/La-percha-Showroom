@@ -12,6 +12,8 @@ interface PedidoVenta {
   precio: number
   talle: string
   comprador_nombre: string
+  comprador_email: string
+  direccion: string | null
   status: string
   metodo_envio: string | null
   seguimiento: string | null
@@ -51,7 +53,7 @@ export default function VentasPage() {
     setLoading(true)
     supabase
       .from("pedidos")
-      .select("id, producto_titulo, producto_imagen, precio, talle, comprador_nombre, status, metodo_envio, seguimiento, created_at")
+      .select("id, producto_titulo, producto_imagen, precio, talle, comprador_nombre, comprador_email, direccion, status, metodo_envio, seguimiento, created_at")
       .eq("vendedor_id", user.id)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -158,7 +160,13 @@ export default function VentasPage() {
                 <span className="block text-[10px] text-text-muted">Orden #{pedido.id}</span>
                 <p className="text-[11px] text-text-muted">
                   Compradora: {pedido.comprador_nombre || "—"}
+                  {pedido.comprador_email && <span className="ml-1">· {pedido.comprador_email}</span>}
                 </p>
+                {pedido.direccion && (
+                  <p className="text-[11px] text-text-muted">
+                    Envío: {pedido.direccion}
+                  </p>
+                )}
 
                 {pedido.status === "shipped" && (
                   <div className="text-[11px] text-info-600">

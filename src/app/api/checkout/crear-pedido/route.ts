@@ -65,6 +65,20 @@ export async function POST(req: Request) {
 
     const productMap = new Map(products.map(p => [p.id, p]))
 
+    const vendedorIds = [...new Set(products.map(p => (p as Record<string, unknown>).vendedor_id as string).filter(Boolean))]
+    const vendedorEmails = new Map<string, string>()
+    if (vendedorIds.length > 0) {
+      const { data: vendorData } = await supabase
+        .from("vendedores")
+        .select("id, email")
+        .in("id", vendedorIds)
+      if (vendorData) {
+        for (const v of vendorData) {
+          if (v.email) vendedorEmails.set(v.id as string, v.email as string)
+        }
+      }
+    }
+
     for (const item of items) {
       const prod = productMap.get(item.productId)!
       if (item.variantLabel) {
@@ -122,10 +136,6 @@ export async function POST(req: Request) {
           .update({ stock: newStock })
           .eq("id", item.productId)
       }
-      await supabase
-        .from("productos")
-        .update({ vendido: true })
-        .eq("id", item.productId)
     }
 
     const validItems = items.map(item => {
@@ -177,7 +187,7 @@ export async function POST(req: Request) {
         comprador_nombre: compradorNombre,
         comprador_email: compradorEmail,
         vendedor_nombre: item.vendedor_nombre,
-        vendedor_email: "",
+        vendedor_email: vid ? vendedorEmails.get(vid) || "" : "",
         talle: item.size,
         direccion: typeof direccion === "object" ? JSON.stringify(direccion) : String(direccion || ""),
         status: "pending_shipment",
@@ -211,8 +221,8 @@ export async function POST(req: Request) {
           vendedoresNotificados.add(vid)
           sendSellerPush(vid, {
             title: "¡Vendiste un producto!",
-            body: `Alguien compró "${prod.titulo}". Revisá tus publicaciones.`,
-            url: "/perfil/publicaciones",
+            body: `Alguien compró "${prod.titulo}". Revisá tus ventas.`,
+            url: "/perfil/ventas",
             tag: `venta-${orderId}-${vid}`,
           }).catch(() => {})
         }

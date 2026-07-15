@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, Clock, CheckCircle, XCircle, Eye, Loader2, Trash2 } from "lucide-react"
+import { ArrowLeft, Clock, CheckCircle, XCircle, Eye, Loader2, Trash2, Package } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/useAuthStore"
 import { Toast } from "@/components/Toast"
@@ -19,6 +19,7 @@ const STATUS_CONFIG: Record<string, { icon: typeof Clock; label: string; classNa
   pending: { icon: Clock, label: "Pendiente", className: "bg-warning-50 text-warning-500" },
   approved: { icon: CheckCircle, label: "Aprobada", className: "bg-success-50 text-success-600" },
   rejected: { icon: XCircle, label: "Rechazada", className: "bg-error-50 text-error-500" },
+  sold: { icon: Package, label: "Vendida", className: "bg-info-50 text-info-600" },
 }
 
 export default function PublicacionesPage() {
@@ -65,6 +66,7 @@ export default function PublicacionesPage() {
   const pendientes = publicaciones.filter(p => p.status === "pending")
   const aprobadas = publicaciones.filter(p => p.status === "approved")
   const rechazadas = publicaciones.filter(p => p.status === "rejected")
+  const vendidas = publicaciones.filter(p => p.status === "sold")
 
   const DeleteButton = ({ id }: { id: string }) => (
     <button
@@ -93,6 +95,50 @@ export default function PublicacionesPage() {
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <p className="text-4xl">📦</p>
             <p className="text-text-muted text-sm">Todavía no publicaste ninguna prenda</p>
+            {vendidas.length > 0 && (
+              <section>
+                <div className="flex items-center gap-2 mb-3">
+                  <Package className="w-4 h-4 text-info-500" />
+                  <h2 className="text-sm font-semibold text-text-strong">Vendidas</h2>
+                  <span className="text-xs text-text-muted">({vendidas.length})</span>
+                </div>
+                <div className="space-y-3">
+                  {vendidas.map(p => (
+                    <div key={p.id}
+                      className="bg-surface-card rounded-xl border border-info-200 overflow-hidden">
+                      <div className="flex gap-3 p-3">
+                        <img src={(p.imagenes as string[])?.[0] || ""} alt={p.titulo}
+                          className="w-20 h-26 rounded-lg object-cover bg-surface-sunken shrink-0" />
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="text-sm font-semibold text-text-strong leading-snug">{p.titulo}</p>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-info-50 text-info-600 shrink-0">
+                                Vendida
+                              </span>
+                            </div>
+                            <p className="text-sm font-bold text-price mt-1">
+                              $ {p.precio.toLocaleString("es-AR")}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-[10px] text-text-subtle">
+                              {new Date(p.created_at).toLocaleDateString("es-AR")}
+                            </p>
+                            <Link href="/perfil/ventas"
+                              className="flex items-center gap-1 text-[10px] font-semibold text-brand hover:underline">
+                              <Eye className="w-3 h-3" />
+                              Ver venta
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             <Link href="/vender"
               className="mt-2 px-5 py-2 rounded-full bg-brand text-white font-semibold text-sm hover:bg-brand-hover transition-colors">
               Publicar mi primera prenda
