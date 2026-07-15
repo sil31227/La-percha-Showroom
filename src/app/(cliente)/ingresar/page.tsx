@@ -1,13 +1,15 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Eye, EyeOff } from "lucide-react"
 import { useAuthStore } from "@/store/useAuthStore"
 
 export default function IngresarPage() {
   const router = useRouter()
-  const { login, resendVerification, isLoading } = useAuthStore()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get("redirect") || "/home"
+  const { login, resendVerification, isLoading, user, initialized } = useAuthStore()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -16,6 +18,12 @@ export default function IngresarPage() {
   const [resending, setResending] = useState(false)
   const [resent, setResent] = useState(false)
 
+  useEffect(() => {
+    if (initialized && user) {
+      router.replace(redirectTo)
+    }
+  }, [user, initialized, redirectTo, router])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
@@ -23,7 +31,7 @@ export default function IngresarPage() {
     setResent(false)
     const result = await login(email, password)
     if (result.ok) {
-      router.push("/home")
+      router.push(redirectTo)
     } else {
       setNeedsConfirmation(!!result.needsConfirmation)
       setError(result.error ?? "Error al ingresar")
