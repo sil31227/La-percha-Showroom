@@ -1,11 +1,11 @@
 "use client"
-import { useState, useEffect } from "react"
+import { Suspense, useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Eye, EyeOff } from "lucide-react"
 import { useAuthStore } from "@/store/useAuthStore"
 
-export default function IngresarPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get("redirect") || "/home"
@@ -139,5 +139,13 @@ export default function IngresarPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function IngresarPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }
