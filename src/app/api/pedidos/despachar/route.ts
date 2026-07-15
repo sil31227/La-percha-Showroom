@@ -47,9 +47,12 @@ export async function POST(req: Request) {
   let buyerUserId: string | null = null
 
   if (pedido.comprador_email) {
-    const { data: buyerIdData } = await supabase
+    const { data: buyerIdData, error: rpcError } = await supabase
       .rpc("get_user_id_by_email", { p_email: pedido.comprador_email })
 
+    if (rpcError) {
+      console.error("[despachar] Error buscando comprador:", rpcError)
+    }
     buyerUserId = (buyerIdData as string) || null
   }
 
@@ -75,14 +78,18 @@ export async function POST(req: Request) {
         ? `Pedido #${pedido.id.slice(-8)} — ${pedido.producto_titulo}. Seguimiento: ${seguimiento}`
         : `Pedido #${pedido.id.slice(-8)} — ${pedido.producto_titulo}.`
 
-      await supabase.from("notifications").insert({
-        id: `order-shipped-${pedidoId}-${Date.now()}`,
-        user_id: buyerUserId,
-        type: "order_shipped",
-        title: "Tu pedido está en camino",
-        body,
-        link: "/perfil/compras",
-      })
+      try {
+        await supabase.from("notifications").insert({
+          id: `order-shipped-${pedidoId}-${Date.now()}`,
+          user_id: buyerUserId,
+          type: "order_shipped",
+          title: "Tu pedido está en camino",
+          body,
+          link: "/perfil/compras",
+        })
+      } catch (e) {
+        console.error("[despachar] Error creando notificación:", e)
+      }
 
       sendBuyerPush(buyerUserId, {
         title: "Tu pedido está en camino",
