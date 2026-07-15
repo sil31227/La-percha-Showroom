@@ -187,7 +187,7 @@ export async function POST(req: Request) {
         producto_imagen: item.image,
         producto_id: item.productId,
         vendedor_id: vid as string | undefined,
-        vendedor_tipo: vtipo as string | undefined,
+        vendedor_tipo: (vtipo as string) || "oficial",
         precio: item.price,
         comprador_nombre: compradorNombre,
         comprador_email: compradorEmail,

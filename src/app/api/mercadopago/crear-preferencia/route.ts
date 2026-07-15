@@ -187,13 +187,13 @@ export async function POST(req: Request) {
     for (const item of validItems) {
       const prod = productMap.get(item.productId)!
       const vid = (prod as Record<string, unknown>)?.vendedor_id as string | undefined
-      await supabase.from("pedidos").insert({
+      const { error: insertError } = await supabase.from("pedidos").insert({
         id: `${orderId}-${item.productId.slice(-4)}`,
         producto_titulo: item.title,
         producto_imagen: item.image,
         producto_id: item.productId,
         vendedor_id: vid,
-        vendedor_tipo: (prod as Record<string, unknown>)?.vendedor_tipo as string | undefined,
+        vendedor_tipo: ((prod as Record<string, unknown>)?.vendedor_tipo as string) || "oficial",
         precio: item.price,
         comprador_nombre: compradorNombre,
         comprador_email: compradorEmail,
@@ -208,6 +208,10 @@ export async function POST(req: Request) {
         costo_envio: shipping,
         created_at: now,
       })
+      if (insertError) {
+        console.error("[crear-preferencia] Error insertando pedido:", insertError, "item:", item.title, "productId:", item.productId)
+        return NextResponse.json({ error: "Error al crear el pedido" }, { status: 500 })
+      }
       if (soldProductIds.has(item.productId)) {
         await supabase
           .from("productos")
