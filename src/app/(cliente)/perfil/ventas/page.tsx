@@ -223,9 +223,6 @@ export default function VentasPage() {
                         {errorMsg && (
                           <p className="text-[10px] text-danger-500">{errorMsg}</p>
                         )}
-                        {successMsg && (
-                          <p className="text-[10px] text-success-600 font-medium">{successMsg}</p>
-                        )}
                         <div className="flex gap-2">
                           <button
                             onClick={() => { setDespachandoId(null); setSeguimiento(""); setErrorMsg("") }}
@@ -254,6 +251,9 @@ export default function VentasPage() {
                         <Truck className="w-3.5 h-3.5" />
                         Despachar pedido
                       </button>
+                    )}
+                    {successMsg && (
+                      <p className="text-[10px] text-success-600 font-medium">{successMsg}</p>
                     )}
                   </div>
                 )}
