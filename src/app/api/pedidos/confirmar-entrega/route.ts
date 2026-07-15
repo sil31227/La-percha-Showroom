@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase-admin"
 import { bearerToken, getUserFromToken } from "@/lib/auth-server"
+import { sendAdminPush } from "@/lib/push"
 import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
   const supabase = createAdminClient()
   const { data: pedido, error: pedidoError } = await supabase
     .from("pedidos")
-    .select("id, comprador_email, status")
+    .select("id, comprador_email, comprador_nombre, status, producto_titulo, vendedor_id, vendedor_nombre")
     .eq("id", pedidoId)
     .single()
 
@@ -39,5 +40,46 @@ export async function POST(req: Request) {
   if (error) {
     return NextResponse.json({ error: "No se pudo confirmar la entrega" }, { status: 500 })
   }
+
+  const compradorNombre = pedido.comprador_nombre || user.email
+  const productoTitulo = pedido.producto_titulo || "producto"
+  const vendedorNombre = pedido.vendedor_nombre || "vendedora"
+  const vendedorId = pedido.vendedor_id
+  const notificationLink = vendedorId
+    ? `/admin/vendedores?tab=publicaciones&vendedor=${vendedorId}&pedido=${pedidoId}`
+    : "/admin/vendedores"
+
+  sendAdminPush({
+    title: "📦 Entrega confirmada",
+    body: `${compradorNombre} confirmó la entrega de "${productoTitulo}". Vendedora: ${vendedorNombre}`,
+    url: notificationLink,
+    tag: `entrega-${pedidoId}`,
+  }).catch(() => {})
+
+  const { data: adminSubs } = await supabase
+    .from("push_subscriptions")
+    .select("user_id")
+    .eq("audience", "admin")
+
+  if (adminSubs?.length) {
+    const adminIds = [...new Set(adminSubs.map(s => s.user_id).filter(Boolean))]
+    const notifId = `entrega-${pedidoId}-${Date.now()}`
+    await Promise.all(
+      adminIds.map(uid =>
+        supabase.from("notifications").insert({
+          id: `${notifId}-${uid.slice(0, 8)}`,
+          user_id: uid,
+          type: "order_delivered",
+          title: "📦 Compradora recibió el pedido",
+          body: `${compradorNombre} confirmó la entrega de "${productoTitulo}". Liberá el pago a ${vendedorNombre}.`,
+          link: notificationLink,
+          read: false,
+        }).then(({ error: notifErr }) => {
+          if (notifErr) console.error("[confirmar-entrega] Error insertando notificación admin:", notifErr)
+        })
+      )
+    )
+  }
+
   return NextResponse.json({ ok: true })
 }
