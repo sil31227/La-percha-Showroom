@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { MercadoPagoConfig, Payment } from "mercadopago"
 import { createAdminClient } from "@/lib/supabase-admin"
 import { sendAdminPush, sendSellerPush } from "@/lib/push"
+import { registrarVentaFeria } from "@/lib/ventas"
 
 export async function POST(req: Request) {
   const supabase = createAdminClient()
@@ -36,13 +37,30 @@ export async function POST(req: Request) {
 
     const { data: pedidos } = await supabase
       .from("pedidos")
-      .select("id, comprador_email, producto_titulo, talle, precio, direccion, metodo_envio, costo_envio, mail_pago_enviado, vendedor_id")
+      .select("id, comprador_email, producto_titulo, talle, precio, direccion, metodo_envio, costo_envio, mail_pago_enviado, vendedor_id, producto_id, vendedor_tipo")
       .like("id", `${externalReference}%`)
 
     if (pedidos?.length) {
       const yaEnviado = pedidos.some(p => p.mail_pago_enviado)
 
       if (!yaEnviado) {
+        for (const p of pedidos) {
+          if (p.producto_id) {
+            await supabase
+              .from("productos")
+              .update({ status: "sold" })
+              .eq("id", p.producto_id)
+
+            await registrarVentaFeria(supabase, {
+              pedidoId: p.id,
+              vendedorId: p.vendedor_id ?? null,
+              vendedorTipo: p.vendedor_tipo ?? "oficial",
+              productoTitulo: p.producto_titulo,
+              precio: Number(p.precio),
+            })
+          }
+        }
+
         const email = pedidos.find(p => p.comprador_email)?.comprador_email || ""
         const costoEnvio = Number(pedidos[0].costo_envio) || 0
         const subtotal = pedidos.reduce((s, p) => s + Number(p.precio), 0)
@@ -87,7 +105,7 @@ export async function POST(req: Request) {
             sendSellerPush(p.vendedor_id, {
               title: "✅ Pago confirmado",
               body: `Recibiste el pago por "${p.producto_titulo}".`,
-              url: "/perfil/saldo",
+              url: "/perfil/ventas",
               tag: `pago-${externalReference}-${p.vendedor_id}`,
             }).catch(() => {})
           }

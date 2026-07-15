@@ -55,7 +55,7 @@ CREATE TABLE productos (
   vendedor_nombre TEXT NOT NULL DEFAULT 'Tienda Oficial',
   vendedor_id UUID REFERENCES profiles(id),
   vendedor_tipo TEXT CHECK (vendedor_tipo IN ('oficial','feria')) DEFAULT 'oficial',
-  status TEXT CHECK (status IN ('pending','approved','rejected')) DEFAULT 'pending',
+  status TEXT CHECK (status IN ('pending','approved','rejected','sold')) DEFAULT 'pending',
   orden INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
