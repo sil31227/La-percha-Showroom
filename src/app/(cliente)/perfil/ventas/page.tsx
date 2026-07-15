@@ -27,6 +27,19 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "Cancelado",
 }
 
+type ParsedAddress = { nombre?: string; email?: string; provincia?: string; ciudad?: string; cp?: string; direccion?: string }
+
+function formatDireccion(raw?: string | null): string {
+  if (!raw) return ""
+  try {
+    const d = JSON.parse(raw)
+    if (d && typeof d === "object") {
+      return [d.direccion, d.ciudad, d.provincia, d.cp && `CP ${d.cp}`].filter(Boolean).join(", ")
+    }
+  } catch {}
+  return raw
+}
+
 const STATUS_STYLE: Record<string, string> = {
   pending_shipment: "bg-warning-50 text-warning-500",
   shipped: "bg-info-50 text-info-600",
@@ -164,7 +177,7 @@ export default function VentasPage() {
                 </p>
                 {pedido.direccion && (
                   <p className="text-[11px] text-text-muted">
-                    Envío: {pedido.direccion}
+                    Envío: {formatDireccion(pedido.direccion)}
                   </p>
                 )}
 
