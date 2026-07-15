@@ -83,6 +83,8 @@ export type NotificationType =
   | "product_changes_requested"
   | "seller_approved"
   | "seller_rejected"
+  | "order_shipped"
+  | "order_delivered"
 
 export type ModerationActionType = 'approved' | 'rejected' | 'changes_requested'
 

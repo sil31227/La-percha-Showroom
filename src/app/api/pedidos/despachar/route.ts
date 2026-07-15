@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase-admin"
 import { bearerToken, getUserFromToken } from "@/lib/auth-server"
+import { sendBuyerPush } from "@/lib/push"
 import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
@@ -43,8 +44,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  let buyerUserId: string | null = null
+
   if (pedido.comprador_email) {
-    fetch(`${req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/api/email/pedido-enviado`, {
+    const { data: buyerIdData, error: rpcError } = await supabase
+      .rpc("get_user_id_by_email", { p_email: pedido.comprador_email })
+
+    if (rpcError) {
+      console.error("[despachar] Error buscando comprador:", rpcError)
+    }
+    buyerUserId = (buyerIdData as string) || null
+  }
+
+  if (pedido.comprador_email) {
+    const esCorreo = pedido.metodo_envio === "correo_sucursal" || pedido.metodo_envio === "correo_domicilio"
+
+    const baseUrl = req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+
+    fetch(`${baseUrl}/api/email/pedido-enviado`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -55,6 +72,32 @@ export async function POST(req: Request) {
         seguimiento: seguimiento || "",
       }),
     }).catch(() => {})
+
+    if (buyerUserId) {
+      const body = esCorreo && seguimiento
+        ? `Pedido #${pedido.id.slice(-8)} — ${pedido.producto_titulo}. Seguimiento: ${seguimiento}`
+        : `Pedido #${pedido.id.slice(-8)} — ${pedido.producto_titulo}.`
+
+      try {
+        await supabase.from("notifications").insert({
+          id: `order-shipped-${pedidoId}-${Date.now()}`,
+          user_id: buyerUserId,
+          type: "order_shipped",
+          title: "Tu pedido está en camino",
+          body,
+          link: "/perfil/compras",
+        })
+      } catch (e) {
+        console.error("[despachar] Error creando notificación:", e)
+      }
+
+      sendBuyerPush(buyerUserId, {
+        title: "Tu pedido está en camino",
+        body: body,
+        url: "/perfil/compras",
+        tag: `pedido-enviado-${pedidoId}`,
+      }).catch(() => {})
+    }
   }
 
   return NextResponse.json({ ok: true })

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { ArrowLeft, Package, Loader2, CheckCircle, AlertCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/useAuthStore"
+import { EnableBuyerPush } from "./EnableBuyerPush"
 
 interface Pedido {
   id: string
@@ -99,6 +100,10 @@ export default function ComprasPage() {
         </Link>
         <h1 className="font-display text-xl text-text-strong">Mis compras</h1>
       </header>
+
+      <div className="px-4 lg:px-6 pt-3 max-w-lg mx-auto w-full">
+        <EnableBuyerPush />
+      </div>
 
       <div className="flex-1 px-4 lg:px-6 py-4 space-y-4 pb-24 lg:pb-10 max-w-lg mx-auto w-full">
         {confirmError && (
