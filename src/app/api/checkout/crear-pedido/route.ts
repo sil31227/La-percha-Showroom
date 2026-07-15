@@ -110,6 +110,8 @@ export async function POST(req: Request) {
       }
     }
 
+    const soldProductIds = new Set<string>()
+
     for (const item of items) {
       const prod = productMap.get(item.productId)!
       if (item.variantLabel) {
@@ -124,6 +126,8 @@ export async function POST(req: Request) {
             ...updatedVariants[variantIdx],
             stock: Math.max(0, oldStock - 1),
           }
+          const totalStock = updatedVariants.reduce((s, v: Record<string, unknown>) => s + Number(v.stock ?? 0), 0)
+          if (totalStock === 0) soldProductIds.add(item.productId)
           await supabase
             .from("productos")
             .update({ variantes: updatedVariants })
@@ -131,6 +135,7 @@ export async function POST(req: Request) {
         }
       } else {
         const newStock = Math.max(0, Number(prod.stock) - 1)
+        if (newStock === 0) soldProductIds.add(item.productId)
         await supabase
           .from("productos")
           .update({ stock: newStock })
@@ -202,6 +207,12 @@ export async function POST(req: Request) {
         productoTitulo: item.title,
         precio: item.price,
       })
+      if (soldProductIds.has(item.productId)) {
+        await supabase
+          .from("productos")
+          .update({ status: "sold" })
+          .eq("id", item.productId)
+      }
     }
 
     const totalPush = subtotal + shipping
