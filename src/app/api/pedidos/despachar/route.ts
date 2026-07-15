@@ -30,17 +30,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No sos la vendedora de este pedido" }, { status: 403 })
   }
 
-  let vendedorTipo: string | null = pedido.vendedor_tipo ?? null
-
-  if (!vendedorTipo && pedido.producto_id) {
-    const { data: prod } = await supabase
-      .from("productos")
-      .select("vendedor_tipo")
-      .eq("id", pedido.producto_id)
-      .single()
-
-    vendedorTipo = prod?.vendedor_tipo ?? null
-  }
+  const vendedorTipo: string | null = pedido.vendedor_tipo ?? null
 
   if (vendedorTipo && vendedorTipo !== "feria") {
     return NextResponse.json({ error: "Solo se pueden despachar pedidos de Feria" }, { status: 400 })
