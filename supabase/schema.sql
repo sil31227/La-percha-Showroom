@@ -54,7 +54,7 @@ CREATE TABLE productos (
   tipo TEXT CHECK (tipo IN ('ropa','tienda')) DEFAULT 'ropa',
   vendedor_nombre TEXT NOT NULL DEFAULT 'Tienda Oficial',
   vendedor_id UUID REFERENCES profiles(id),
-  vendedor_tipo TEXT CHECK (vendedor_tipo IN ('oficial','feria')) DEFAULT 'oficial',
+  vendedor_tipo TEXT NOT NULL CHECK (vendedor_tipo IN ('oficial','feria')) DEFAULT 'oficial',
   status TEXT CHECK (status IN ('pending','approved','rejected','sold')) DEFAULT 'pending',
   orden INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -74,6 +74,10 @@ CREATE TABLE vendedores (
 );
 
 -- 5. PEDIDOS
+-- ⚠️  MIGRACIÓN PENDIENTE: ejecutar migration-vendedor-tipo-not-null.sql en SQL Editor
+--     para agregar NOT NULL a vendedor_tipo + backfill si hubiera NULLs residuales.
+--     Última migración aplicada: migration-vendedor-tipo-pedidos.sql (ADD COLUMN sin backfill).
+--     Backfill vía REST: 5/5 pedidos corregidos el 2026-07-15.
 CREATE TABLE pedidos (
   id TEXT PRIMARY KEY,
   producto_titulo TEXT NOT NULL,
@@ -85,7 +89,7 @@ CREATE TABLE pedidos (
   vendedor_nombre TEXT,
   vendedor_email TEXT,
   vendedor_id UUID REFERENCES profiles(id),
-  vendedor_tipo TEXT CHECK (vendedor_tipo IN ('oficial','feria')),
+  vendedor_tipo TEXT NOT NULL CHECK (vendedor_tipo IN ('oficial','feria')),
   talle TEXT,
   direccion TEXT,
   metodo_envio TEXT,

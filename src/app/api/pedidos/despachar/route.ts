@@ -30,9 +30,36 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No sos la vendedora de este pedido" }, { status: 403 })
   }
 
-  const vendedorTipo: string | null = pedido.vendedor_tipo ?? null
+  let vendedorTipo: string | null = pedido.vendedor_tipo ?? null
 
-  if (vendedorTipo && vendedorTipo !== "feria") {
+  if (!vendedorTipo && pedido.producto_id) {
+    const { data: prod } = await supabase
+      .from("productos")
+      .select("vendedor_tipo")
+      .eq("id", pedido.producto_id)
+      .single()
+
+    vendedorTipo = prod?.vendedor_tipo ?? null
+
+    if (vendedorTipo) {
+      console.warn("[despachar] Auto-corrigiendo vendedor_tipo NULL →", vendedorTipo, "en pedido", pedidoId)
+      supabase
+        .from("pedidos")
+        .update({ vendedor_tipo: vendedorTipo })
+        .eq("id", pedidoId)
+        .then(({ error }) => {
+          if (error) console.error("[despachar] Error al auto-corregir:", error)
+        })
+    } else {
+      console.warn("[despachar] Producto sin vendedor_tipo para pedido", pedidoId, "producto_id:", pedido.producto_id)
+    }
+  }
+
+  if (!vendedorTipo) {
+    return NextResponse.json({ error: "No se pudo determinar el tipo de vendedor del pedido" }, { status: 422 })
+  }
+
+  if (vendedorTipo !== "feria") {
     return NextResponse.json({ error: "Solo se pueden despachar pedidos de Feria" }, { status: 400 })
   }
 
