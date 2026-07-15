@@ -7,3 +7,15 @@ node_modules/
 .vercel
 .env
 .env.local
+
+.codegraph/
+
+La-percha-Showroom-main/
+src/frontend.tsx
+src/App.tsx
+src/APITester.tsx
+src/index.ts
+src/index.html
+src/index.css
+src/logo.svg
+src/react.svg
