@@ -86,3 +86,7 @@ export async function sendAdminPush(payload: PushPayload): Promise<void> {
 export async function sendSellerPush(userId: string, payload: PushPayload): Promise<void> {
   await sendPush({ audience: "seller", userId }, payload)
 }
+
+export async function sendBuyerPush(userId: string, payload: PushPayload): Promise<void> {
+  await sendPush({ audience: "buyer", userId }, payload)
+}
