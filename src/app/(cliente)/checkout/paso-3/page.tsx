@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { CheckCircle, Loader2, AlertCircle, Clock } from "lucide-react"
 import { useShopStore } from "@/store/useShopStore"
+import { useAuthStore } from "@/store/useAuthStore"
 import { CheckoutStepper } from "@/components/CheckoutStepper"
 
 interface CartItem {
@@ -37,6 +38,7 @@ function Paso3Content() {
   const searchParams = useSearchParams()
   const cart = useShopStore(s => s.cart)
   const clearCart = useShopStore(s => s.clearCart)
+  const user = useAuthStore(s => s.user)
   const [orderNumber, setOrderNumber] = useState("")
   const [email, setEmail] = useState("")
   const [paymentMethod, setPaymentMethod] = useState("")
@@ -110,7 +112,7 @@ function Paso3Content() {
       body: JSON.stringify({
         items: capturedItems,
         direccion: address,
-        email: checkoutEmail,
+        email: user?.email || checkoutEmail,
         paymentMethod,
         metodo_envio: shippingMethod,
         costo_envio: shippingCost,

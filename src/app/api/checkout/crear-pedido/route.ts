@@ -174,8 +174,8 @@ export async function POST(req: Request) {
     const now = new Date().toISOString()
 
     const addr = (direccion && typeof direccion === "object" ? direccion : {}) as { nombre?: string; email?: string }
-    const compradorNombre = addr.nombre || email || "Comprador"
-    const compradorEmail = addr.email || email || ""
+    const compradorNombre = email || addr.nombre || "Comprador"
+    const compradorEmail = email || addr.email || ""
 
     for (const item of validItems) {
       const prod = productMap.get(item.productId)
