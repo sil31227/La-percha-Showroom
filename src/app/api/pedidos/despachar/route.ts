@@ -16,6 +16,8 @@ export async function POST(req: Request) {
 
   const supabase = createAdminClient()
 
+  console.log("[despachar] Request body pedidoId:", JSON.stringify(pedidoId))
+
   const { data: pedido, error: pedidoError } = await supabase
     .from("pedidos")
     .select("id, vendedor_id, vendedor_tipo, status, comprador_email, producto_titulo, metodo_envio")
@@ -28,6 +30,14 @@ export async function POST(req: Request) {
 
   if (!pedido) {
     console.error("[despachar] Pedido no encontrado para ID:", pedidoId, "user:", user.id, "error:", JSON.stringify(pedidoError))
+
+    const { count } = await supabase
+      .from("pedidos")
+      .select("*", { count: "exact", head: true })
+      .eq("vendedor_id", user.id)
+
+    console.log("[despachar] Total pedidos del vendedor:", user.id, "=", count)
+
     return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 })
   }
   if (pedido.vendedor_id !== user.id) {
