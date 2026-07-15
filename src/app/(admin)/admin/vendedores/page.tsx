@@ -1,7 +1,8 @@
 "use client"
 import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { useAdminStore } from "@/store/useAdminStore"
-import { Check, X, Copy, CheckCheck, ChevronDown, ChevronUp, Pencil, Trash2, Eye, Package, ShoppingBag } from "lucide-react"
+import { Check, X, Copy, CheckCheck, ChevronDown, ChevronUp, Pencil, Trash2, Eye, Package, ShoppingBag, User, Banknote } from "lucide-react"
 import type { AdminOrder } from "@/store/useAdminStore"
 
 type Tab = "pending" | "approved" | "rejected" | "publicaciones"
@@ -12,14 +13,27 @@ export default function VendedoresPage() {
     approveVendor, rejectVendor,
     toggleProductSold, updateFeriaProduct, deleteFeriaProduct, updateProductStatus,
   } = useAdminStore()
+  const searchParams = useSearchParams()
   const [tab, setTab] = useState<Tab>("pending")
   const [copied, setCopied] = useState<string | null>(null)
   const [expandedVendor, setExpandedVendor] = useState<string | null>(null)
   const [editingProduct, setEditingProduct] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [viewingOrder, setViewingOrder] = useState<string | null>(null)
+  const [viewingProfile, setViewingProfile] = useState<string | null>(null)
 
-  useEffect(() => { loadFromSupabase() }, [])
+  useEffect(() => {
+    loadFromSupabase().then(() => {
+      const vendorParam = searchParams.get("vendedor")
+      const pedidoParam = searchParams.get("pedido")
+      if (vendorParam) {
+        setTab("publicaciones")
+        setExpandedVendor(vendorParam)
+        if (pedidoParam) setViewingOrder(pedidoParam)
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const counts = {
     all: vendors.length,
@@ -163,13 +177,23 @@ export default function VendedoresPage() {
                         {pendingCount > 0 && <span className="text-warning-600">{pendingCount} pendientes</span>}
                       </div>
                     </div>
-                    <div className="shrink-0 pt-1">
+                    <div className="shrink-0 flex items-center gap-1 pt-1">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setViewingProfile(viewingProfile === v.id ? null : v.id) }}
+                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${viewingProfile === v.id ? 'bg-brand text-white' : 'bg-surface-sunken text-text-muted hover:bg-matcha-100 hover:text-matcha-600'}`}
+                        title="Perfil del vendedor"
+                      >
+                        <User className="w-3.5 h-3.5" />
+                      </button>
                       {isExpanded ? <ChevronUp className="w-5 h-5 text-text-muted" /> : <ChevronDown className="w-5 h-5 text-text-muted" />}
                     </div>
                   </button>
 
                   {isExpanded && (
                     <div className="border-t border-border-subtle">
+                      {viewingProfile === v.id && (
+                        <VendorProfile vendor={v} products={vendorProducts} orders={orders} />
+                      )}
                       {vendorProducts.length === 0 ? (
                         <div className="px-4 py-10 text-center text-sm text-text-muted">Esta vendedora no tiene prendas publicadas</div>
                       ) : (
@@ -215,38 +239,42 @@ export default function VendedoresPage() {
                                       </div>
                                     </div>
 
-                                    <div className="flex flex-col gap-1 shrink-0">
+                                    <div className="flex gap-1.5 shrink-0">
                                       <button
                                         onClick={() => setEditingProduct(isEditing ? null : product.id)}
-                                        className="w-7 h-7 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-brand hover:text-white transition-colors"
-                                        title="Editar"
+                                        className="flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-lg bg-surface-sunken hover:bg-brand hover:text-white transition-colors text-text-muted group"
+                                        title="Editar producto"
                                       >
                                         <Pencil className="w-3.5 h-3.5" />
+                                        <span className="text-[8px] font-medium leading-none">Editar</span>
                                       </button>
                                       <button
                                         onClick={async () => {
                                           try { await toggleProductSold(product.id, !product.vendido) } catch {}
                                         }}
-                                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${product.vendido ? 'bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white' : 'bg-carob-50 text-carob-600 hover:bg-carob-500 hover:text-white'}`}
+                                        className={`flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-lg transition-colors ${product.vendido ? 'bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white' : 'bg-carob-50 text-carob-600 hover:bg-carob-500 hover:text-white'}`}
                                         title={product.vendido ? "Marcar como no vendida" : "Marcar como vendida"}
                                       >
                                         <Package className="w-3.5 h-3.5" />
+                                        <span className="text-[8px] font-medium leading-none">Vendido</span>
                                       </button>
                                       {order && (
                                         <button
                                           onClick={() => setViewingOrder(isViewingOrder ? null : order.id)}
-                                          className="w-7 h-7 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center hover:bg-purple-500 hover:text-white transition-colors"
+                                          className="flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-500 hover:text-white transition-colors"
                                           title="Ver pedido"
                                         >
                                           <Eye className="w-3.5 h-3.5" />
+                                          <span className="text-[8px] font-medium leading-none">Pedido</span>
                                         </button>
                                       )}
                                       <button
                                         onClick={() => setDeleteConfirm(deleteConfirm === product.id ? null : product.id)}
-                                        className="w-7 h-7 rounded-full bg-error-50 text-error-500 flex items-center justify-center hover:bg-error-500 hover:text-white transition-colors"
-                                        title="Eliminar"
+                                        className="flex flex-col items-center gap-0.5 px-1.5 py-1 rounded-lg bg-error-50 text-error-500 hover:bg-error-500 hover:text-white transition-colors"
+                                        title="Eliminar producto"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
+                                        <span className="text-[8px] font-medium leading-none">Eliminar</span>
                                       </button>
                                     </div>
                                   </div>
@@ -257,7 +285,7 @@ export default function VendedoresPage() {
                                       <span className="text-xs text-error-700 flex-1">¿Eliminar &quot;{product.titulo}&quot;? Esta acción no se puede deshacer.</span>
                                       <button
                                         onClick={async () => {
-                                          try { await deleteFeriaProduct(product.id); setDeleteConfirm(null) } catch (e) { alert("Error al eliminar") }
+                                          try { await deleteFeriaProduct(product.id); setDeleteConfirm(null) } catch { alert("Error al eliminar") }
                                         }}
                                         className="px-3 py-1.5 rounded-lg bg-error-500 text-white text-xs font-semibold hover:bg-error-600"
                                       >
@@ -274,7 +302,7 @@ export default function VendedoresPage() {
                                     <ProductEditForm
                                       product={product}
                                       onSave={async (updates) => {
-                                        try { await updateFeriaProduct(product.id, updates); setEditingProduct(null) } catch (e) { alert("Error al guardar") }
+                                        try { await updateFeriaProduct(product.id, updates); setEditingProduct(null) } catch { alert("Error al guardar") }
                                       }}
                                       onCancel={() => setEditingProduct(null)}
                                       onUpdateStatus={async (status) => {
@@ -301,6 +329,122 @@ export default function VendedoresPage() {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/* ─── Vendor Profile ─── */
+function VendorProfile({
+  vendor,
+  products,
+  orders,
+}: {
+  vendor: ReturnType<typeof useAdminStore.getState>["vendors"][number]
+  products: ReturnType<typeof useAdminStore.getState>["products"]
+  orders: ReturnType<typeof useAdminStore.getState>["orders"]
+}) {
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+
+  const soldProducts = products.filter(p => p.vendido)
+  const totalSold = soldProducts.reduce((sum, p) => sum + (p.precio || 0), 0)
+  const commission = Math.round(totalSold * 0.2)
+  const toTransfer = totalSold - commission
+
+  const deliveredOrders = orders.filter(
+    o => o.vendedor_id === vendor.id && o.status === "delivered"
+  )
+  const pendingRelease = deliveredOrders.reduce((sum, o) => sum + (o.precio || 0), 0)
+
+  async function copyField(value: string, field: string) {
+    await navigator.clipboard.writeText(value)
+    setCopiedField(field)
+    setTimeout(() => setCopiedField(null), 1500)
+  }
+
+  const tipoCuentaLabel =
+    vendor.tipo_cuenta === "cuenta_corriente" ? "Cuenta corriente" : "Caja de ahorro"
+
+  return (
+    <div className="px-4 py-4 bg-matcha-50/30 border-b border-border-subtle space-y-4">
+      <div className="flex items-center gap-2">
+        <Banknote className="w-4 h-4 text-matcha-600" />
+        <span className="text-xs font-semibold text-text-strong">Perfil del vendedor</span>
+      </div>
+
+      {(vendor.titular || vendor.banco || vendor.cbu) ? (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+          {vendor.titular && (
+            <div className="col-span-2">
+              <span className="text-text-muted">Titular:</span>
+              <p className="text-text-strong font-medium">{vendor.titular}</p>
+            </div>
+          )}
+          {vendor.banco && (
+            <div>
+              <span className="text-text-muted">Banco:</span>
+              <p className="text-text-strong font-medium">{vendor.banco}</p>
+            </div>
+          )}
+          {vendor.tipo_cuenta && (
+            <div>
+              <span className="text-text-muted">Tipo de cuenta:</span>
+              <p className="text-text-strong font-medium">{tipoCuentaLabel}</p>
+            </div>
+          )}
+          {vendor.cbu && (
+            <div className="col-span-2">
+              <span className="text-text-muted">CBU:</span>
+              <div className="flex items-center gap-2">
+                <p className="text-text-strong font-mono font-medium text-xs">{vendor.cbu}</p>
+                <button
+                  onClick={() => copyField(vendor.cbu!, "cbu")}
+                  className="inline-flex items-center gap-1 text-[10px] text-matcha-600 font-medium hover:text-matcha-700"
+                >
+                  {copiedField === "cbu" ? <CheckCheck className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {copiedField === "cbu" ? "Copiado" : "Copiar"}
+                </button>
+              </div>
+            </div>
+          )}
+          {vendor.alias && (
+            <div className="col-span-2">
+              <span className="text-text-muted">Alias:</span>
+              <div className="flex items-center gap-2">
+                <p className="text-text-strong font-medium">{vendor.alias}</p>
+                <button
+                  onClick={() => copyField(vendor.alias!, "alias")}
+                  className="inline-flex items-center gap-1 text-[10px] text-matcha-600 font-medium hover:text-matcha-700"
+                >
+                  {copiedField === "alias" ? <CheckCheck className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {copiedField === "alias" ? "Copiado" : "Copiar"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="text-xs text-text-muted italic">No cargó sus datos bancarios todavía</p>
+      )}
+
+      <div className="border-t border-matcha-200 pt-3 space-y-1.5">
+        <div className="flex justify-between text-xs">
+          <span className="text-text-muted">Total vendido</span>
+          <span className="text-text-strong font-semibold">${totalSold.toLocaleString("es-AR")}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-text-muted">Comisión (20%)</span>
+          <span className="text-error-500 font-semibold">−${commission.toLocaleString("es-AR")}</span>
+        </div>
+        <div className="flex justify-between text-xs font-semibold border-t border-matcha-200 pt-1.5">
+          <span className="text-text-strong">A transferir</span>
+          <span className="text-success-600">${toTransfer.toLocaleString("es-AR")}</span>
+        </div>
+        {pendingRelease > 0 && (
+          <p className="text-[10px] text-warning-600 mt-1">
+            Hay ${pendingRelease.toLocaleString("es-AR")} en pedidos entregados pendientes de liberación
+          </p>
+        )}
+      </div>
     </div>
   )
 }

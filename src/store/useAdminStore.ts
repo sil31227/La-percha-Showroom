@@ -17,7 +17,8 @@ export interface AdminProduct {
 
 export interface VendorRequest {
   id: string; nombre: string; email?: string; avatar?: string
-  cbu?: string; productos_count?: number; status: VendorStatus; created_at?: string
+  cbu?: string; banco?: string; tipo_cuenta?: string; alias?: string; titular?: string
+  productos_count?: number; status: VendorStatus; created_at?: string
 }
 export type OrderStatus = "pending_shipment" | "shipped" | "delivered" | "cancelled"
 export interface AdminOrder {
