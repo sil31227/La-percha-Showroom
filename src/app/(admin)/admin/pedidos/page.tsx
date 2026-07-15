@@ -91,7 +91,10 @@ export default function PedidosPage() {
                         <Trash2 className="w-3 h-3" /> Eliminar
                       </button>
                     )}
-                    {o.status === "shipped" && <button onClick={() => markOrderDelivered(o.id).catch(() => alert("Error al actualizar el pedido. Reintentá."))} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-success-50 text-success-600 hover:bg-success-500 hover:text-white transition-colors"><PackageCheck className="w-3 h-3" /> Entregado</button>}
+                    {o.status === "shipped" && o.vendedor_tipo === "oficial" && <button onClick={() => markOrderDelivered(o.id).catch(() => alert("Error al actualizar el pedido. Reintentá."))} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold bg-success-50 text-success-600 hover:bg-success-500 hover:text-white transition-colors"><PackageCheck className="w-3 h-3" /> Entregado</button>}
+                    {o.status === "shipped" && o.vendedor_tipo === "feria" && (
+                      <span className="text-[10px] text-text-muted italic px-1">Esperando confirmación de la compradora</span>
+                    )}
                     <button onClick={() => setExpanded(isOpen ? null : o.id)} className="px-3 py-1.5 rounded-full text-[11px] font-medium text-text-muted hover:bg-surface-sunken transition-colors">{isOpen ? "Menos" : "Detalles"}</button>
                   </div>
                 </div>
