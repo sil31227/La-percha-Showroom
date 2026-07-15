@@ -55,6 +55,7 @@ export default function VentasPage() {
   const [despachandoId, setDespachandoId] = useState<string | null>(null)
   const [seguimiento, setSeguimiento] = useState("")
   const [errorMsg, setErrorMsg] = useState("")
+  const [successMsg, setSuccessMsg] = useState("")
 
   useEffect(() => {
     if (!user?.id) { setLoading(false); return }
@@ -76,7 +77,10 @@ export default function VentasPage() {
   }
 
   async function despachar(pedidoId: string) {
-    if (!session?.access_token) return
+    if (!session?.access_token) {
+      setErrorMsg("Sesión expirada, volvé a ingresar")
+      return
+    }
     setDespachandoId(pedidoId)
     setErrorMsg("")
     try {
@@ -96,7 +100,9 @@ export default function VentasPage() {
       }
       setSeguimiento("")
       setDespachandoId(null)
+      setSuccessMsg("Pedido despachado. La compradora recibirá una notificación.")
       fetchPedidos()
+      setTimeout(() => setSuccessMsg(""), 4000)
     } catch {
       setErrorMsg("Error de conexión")
       setDespachandoId(null)
@@ -217,6 +223,9 @@ export default function VentasPage() {
                         {errorMsg && (
                           <p className="text-[10px] text-danger-500">{errorMsg}</p>
                         )}
+                        {successMsg && (
+                          <p className="text-[10px] text-success-600 font-medium">{successMsg}</p>
+                        )}
                         <div className="flex gap-2">
                           <button
                             onClick={() => { setDespachandoId(null); setSeguimiento(""); setErrorMsg("") }}
@@ -226,11 +235,14 @@ export default function VentasPage() {
                           </button>
                           <button
                             onClick={() => despachar(pedido.id)}
-                            disabled={false}
+                            disabled={despachandoId !== null}
                             className="flex-1 h-9 rounded-full bg-brand hover:bg-brand-hover text-white text-xs font-semibold
-                              transition-colors flex items-center justify-center gap-1.5">
-                            <Truck className="w-3.5 h-3.5" />
-                            Confirmar despacho
+                              transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
+                            {despachandoId === pedido.id ? (
+                              <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Despachando...</>
+                            ) : (
+                              <><Truck className="w-3.5 h-3.5" /> Confirmar despacho</>
+                            )}
                           </button>
                         </div>
                       </>
