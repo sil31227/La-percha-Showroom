@@ -25,6 +25,16 @@ export async function PATCH(request: Request) {
     }
 
     if (status === "delivered") {
+      const { data: pedido } = await supabase
+        .from("pedidos")
+        .select("vendedor_tipo")
+        .eq("id", id)
+        .single()
+
+      if (pedido?.vendedor_tipo === "feria") {
+        return NextResponse.json({ error: "Los pedidos de Feria los confirma la compradora" }, { status: 400 })
+      }
+
       await supabase.rpc("confirmar_entrega", { p_pedido_id: id })
     }
 
