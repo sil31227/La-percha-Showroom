@@ -214,7 +214,7 @@ export async function POST(req: Request) {
       if (soldProductIds.has(item.productId)) {
         await supabase
           .from("productos")
-          .update({ status: "sold" })
+          .update({ status: "sold", vendido: true })
           .eq("id", item.productId)
       }
     }
@@ -234,6 +234,16 @@ export async function POST(req: Request) {
         const vid = (prod as Record<string, unknown>).vendedor_id as string
         if (!vendedoresNotificados.has(vid)) {
           vendedoresNotificados.add(vid)
+          await supabase.from("notifications").insert({
+            id: `product-sold-${orderId}-${vid}-${Date.now()}`,
+            user_id: vid,
+            type: "product_sold",
+            title: "¡Vendiste un producto!",
+            body: `Alguien compró "${prod.titulo}". Revisá tus ventas.`,
+            link: "/perfil/ventas",
+          }).then(({ error }) => {
+            if (error) console.error("[crear-pedido] Error insertando notificación:", error)
+          })
           sendSellerPush(vid, {
             title: "¡Vendiste un producto!",
             body: `Alguien compró "${prod.titulo}". Revisá tus ventas.`,

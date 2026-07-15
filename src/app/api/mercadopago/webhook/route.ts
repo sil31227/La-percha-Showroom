@@ -48,7 +48,7 @@ export async function POST(req: Request) {
           if (p.producto_id) {
             await supabase
               .from("productos")
-              .update({ status: "sold" })
+              .update({ status: "sold", vendido: true })
               .eq("id", p.producto_id)
 
             await registrarVentaFeria(supabase, {
@@ -102,6 +102,16 @@ export async function POST(req: Request) {
         for (const p of pedidos) {
           if (p.vendedor_id && !sellersNotified.has(p.vendedor_id)) {
             sellersNotified.add(p.vendedor_id)
+            await supabase.from("notifications").insert({
+              id: `product-sold-${externalReference}-${p.vendedor_id}-${Date.now()}`,
+              user_id: p.vendedor_id,
+              type: "product_sold",
+              title: "✅ Pago confirmado",
+              body: `Recibiste el pago por "${p.producto_titulo}".`,
+              link: "/perfil/ventas",
+            }).then(({ error }) => {
+              if (error) console.error("[webhook] Error insertando notificación:", error)
+            })
             sendSellerPush(p.vendedor_id, {
               title: "✅ Pago confirmado",
               body: `Recibiste el pago por "${p.producto_titulo}".`,
