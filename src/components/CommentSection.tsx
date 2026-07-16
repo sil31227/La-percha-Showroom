@@ -97,7 +97,7 @@ export function CommentSection({ productoId, isAdmin }: { productoId: string; is
 
       <div className="space-y-3">
         {comentarios.map(c => (
-          <div key={c.id} className="flex items-start gap-2">
+          <div key={c.id} id={`comentario-${c.id}`} className="flex items-start gap-2 scroll-mt-24">
             <div className="w-7 h-7 rounded-full bg-surface-sunken shrink-0 overflow-hidden flex items-center justify-center">
               {c.user_avatar ? (
                 <img src={c.user_avatar} alt="" className="w-full h-full object-cover" />

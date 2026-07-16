@@ -75,19 +75,67 @@ export async function GET(req: NextRequest) {
 
   const supabase = createAdminClient()
 
-  const { data, error } = await supabase
+  const { data: existing, error: existingErr } = await supabase
     .from("conversaciones")
     .select("*")
     .eq("pedido_id", pedidoId)
     .maybeSingle()
 
-  if (error || !data) {
-    return NextResponse.json({ error: "Conversación no encontrada" }, { status: 404 })
+  if (existing && !existingErr) {
+    if (existing.comprador_id !== user.id && existing.vendedor_id !== user.id) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+    }
+    return NextResponse.json({ conversacion: existing })
   }
 
-  if (data.comprador_id !== user.id && data.vendedor_id !== user.id) {
-    return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+  const { data: pedido, error: pedidoErr } = await supabase
+    .from("pedidos")
+    .select("id, comprador_email, vendedor_id")
+    .eq("id", pedidoId)
+    .single()
+
+  if (pedidoErr || !pedido) {
+    return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 })
   }
 
-  return NextResponse.json({ conversacion: data })
+  const isSeller = pedido.vendedor_id === user.id
+  let compradorId = ""
+  let vendedorId = ""
+
+  if (isSeller) {
+    vendedorId = user.id
+    const { data: users } = await supabase.auth.admin.listUsers()
+    const buyerUser = (users?.users || []).find(u => u.email === pedido.comprador_email)
+    compradorId = buyerUser?.id || ""
+  } else {
+    compradorId = user.id
+    vendedorId = pedido.vendedor_id || ""
+  }
+
+  if (!compradorId || !vendedorId) {
+    return NextResponse.json({ error: "No se pudo identificar a los participantes" }, { status: 400 })
+  }
+
+  const conversacionId = crypto.randomUUID()
+  const { error: insertErr } = await supabase
+    .from("conversaciones")
+    .insert({
+      id: conversacionId,
+      pedido_id: pedidoId,
+      comprador_id: compradorId,
+      vendedor_id: vendedorId,
+    })
+
+  if (insertErr) {
+    return NextResponse.json({ error: "Error al crear conversación" }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    conversacion: {
+      id: conversacionId,
+      pedido_id: pedidoId,
+      comprador_id: compradorId,
+      vendedor_id: vendedorId,
+    },
+  })
 }
