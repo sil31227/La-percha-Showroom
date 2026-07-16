@@ -1,7 +1,16 @@
 import Link from "next/link"
 import { Sparkles, ShoppingBag, Shirt, Truck } from "lucide-react"
+import { LandingGuard } from "@/components/LandingGuard"
 
 export default function RootPage() {
+  return (
+    <LandingGuard>
+      <LandingContent />
+    </LandingGuard>
+  )
+}
+
+function LandingContent() {
   return (
     <main className="min-h-screen bg-bg-page flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-md space-y-8 text-center">

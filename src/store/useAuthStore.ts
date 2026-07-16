@@ -307,6 +307,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   logout: async () => {
     await supabase.auth.signOut()
+    localStorage.removeItem("lapercha_device_remembered")
     set({ user: null, session: null })
   },
 
