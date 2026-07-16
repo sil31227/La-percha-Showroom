@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
-import { LayoutDashboard, ShieldCheck, Users, Store, Package, ShoppingBag, Tags, HelpCircle, UserPlus, Menu, X, LogOut, MoreHorizontal, Truck, MessageSquareText } from "lucide-react"
+import { LayoutDashboard, ShieldCheck, Users, Store, Package, ShoppingBag, Tags, HelpCircle, UserPlus, Menu, X, LogOut, MoreHorizontal, Truck, MessageSquareText, ArrowDownCircle } from "lucide-react"
 import { useAdminStore } from "@/store/useAdminStore"
 import { EnableAdminPush } from "./EnableAdminPush"
 
@@ -18,6 +18,7 @@ const NAV = [
   { href: "/admin/envio", label: "Envío", icon: Truck },
   { href: "/admin/categorias", label: "Categorías", icon: Tags },
   { href: "/admin/faq", label: "FAQ / Términos", icon: HelpCircle },
+  { href: "/admin/retiros", label: "Retiros", icon: ArrowDownCircle },
 ]
 
 const MOBILE_TABS = [
@@ -32,15 +33,17 @@ const MOBILE_TABS = [
 export function AdminSidebar() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const { loadFromSupabase, products, vendors } = useAdminStore()
+  const { loadFromSupabase, loadRetiros, products, vendors, retiros } = useAdminStore()
   const pendingProducts = products.filter(p => p.status === "pending").length
   const pendingVendors = vendors.filter(v => v.status === "pending").length
+  const pendingRetiros = retiros.filter(r => r.status === "solicitado").length
 
-  useEffect(() => { loadFromSupabase() }, [])
+  useEffect(() => { loadFromSupabase(); loadRetiros() }, [])
 
   function badge(href: string) {
     if (href === "/admin/moderacion" && pendingProducts > 0) return pendingProducts
     if (href === "/admin/vendedores" && pendingVendors > 0) return pendingVendors
+    if (href === "/admin/retiros" && pendingRetiros > 0) return pendingRetiros
     return 0
   }
 

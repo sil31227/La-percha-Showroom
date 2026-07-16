@@ -1,12 +1,12 @@
 "use client"
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { ArrowLeft, Wallet, TrendingUp, Clock, ArrowDown, CheckCircle, AlertCircle, DollarSign, XCircle } from "lucide-react"
+import { ArrowLeft, Wallet, Clock, ArrowDown, CheckCircle, AlertCircle, DollarSign, XCircle } from "lucide-react"
 import { useAuthStore } from "@/store/useAuthStore"
 import type { VentaRecord, RetiroRecord } from "@/store/useAuthStore"
 
 export default function SaldoPage() {
-  const { user, withdraw, fetchVentas, fetchRetiros, refreshProfile } = useAuthStore()
+  const { user, withdraw, fetchVentas, fetchRetiros } = useAuthStore()
   const [ventas, setVentas] = useState<VentaRecord[]>([])
   const [retiros, setRetiros] = useState<RetiroRecord[]>([])
   const [showRetiro, setShowRetiro] = useState(false)
@@ -40,10 +40,11 @@ export default function SaldoPage() {
   const pendiente = ventas.filter(v => v.status === 'pendiente')
   const totalNeto = liberado.reduce((s, v) => s + v.monto_neto, 0)
   const gananciaPendiente = pendiente.reduce((s, v) => s + v.monto_neto, 0)
+  const balanceDisponible = user.balance
 
   async function handleRetiro() {
     const amount = Number(retiroAmount)
-    if (!amount || amount <= 0 || amount > user!.balance) return
+    if (!amount || amount <= 0 || amount > balanceDisponible!) return
     setLoadingRetiro(true)
     setRetiroError("")
     const result = await withdraw(amount)
@@ -107,22 +108,44 @@ export default function SaldoPage() {
             </span>
           </div>
           <p className="text-3xl lg:text-4xl font-bold tracking-tight">
-            $ {user.balance.toLocaleString('es-AR')}
+            $ {balanceDisponible.toLocaleString('es-AR')}
           </p>
+
           {user.is_seller && (
-            <p className="text-matcha-200 text-xs mt-1">
-              {totalNeto > 0
-                ? `Total ganado: $ ${totalNeto.toLocaleString('es-AR')}`
-                : gananciaPendiente > 0
-                  ? `Pendiente de liberar: $ ${gananciaPendiente.toLocaleString('es-AR')}`
-                  : "Aún no tenés ventas"}
-            </p>
+            <div className="mt-3 pt-3 border-t border-matcha-400/30 space-y-1.5">
+              {gananciaPendiente > 0 && (
+                <div className="flex items-center justify-between text-matcha-100 text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    Pendiente de liberar
+                  </span>
+                  <span className="font-semibold">$ {gananciaPendiente.toLocaleString('es-AR')}</span>
+                </div>
+              )}
+              {totalNeto > 0 && (
+                <div className="flex items-center justify-between text-matcha-100 text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Total liberado
+                  </span>
+                  <span className="font-semibold">$ {totalNeto.toLocaleString('es-AR')}</span>
+                </div>
+              )}
+              {gananciaPendiente === 0 && totalNeto === 0 && (
+                <p className="text-matcha-200 text-xs">Aún no tenés ventas</p>
+              )}
+              {gananciaPendiente > 0 && (
+                <p className="text-[10px] text-matcha-200 leading-relaxed mt-1">
+                  Se acredita cuando la compradora confirme la entrega.
+                </p>
+              )}
+            </div>
           )}
 
           <div className="flex gap-3 mt-5">
             <button
               onClick={() => setShowRetiro(true)}
-              disabled={user.balance <= 0}
+              disabled={balanceDisponible <= 0}
               className="flex-1 h-11 bg-white text-matcha-600 font-semibold rounded-full text-sm
                 hover:bg-matcha-50 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
               <ArrowDown className="w-4 h-4" />
@@ -130,6 +153,19 @@ export default function SaldoPage() {
             </button>
           </div>
         </div>
+
+        {/* Resumen rápido si hay pendientes y balance 0 */}
+        {user.is_seller && balanceDisponible === 0 && gananciaPendiente > 0 && (
+          <div className="bg-warning-50 border border-warning-200 rounded-xl p-4 flex items-start gap-3">
+            <Clock className="w-5 h-5 text-warning-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-warning-700">Saldo pendiente de liberación</p>
+              <p className="text-xs text-warning-600 mt-0.5 leading-relaxed">
+                Tenés <strong>$ {gananciaPendiente.toLocaleString('es-AR')}</strong> pendientes de que la compradora confirme la entrega. Una vez confirmado, el saldo se acreditará automáticamente y vas a poder retirarlo.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Retiro form */}
         {showRetiro && (
@@ -163,23 +199,23 @@ export default function SaldoPage() {
                   <input type="number" value={retiroAmount}
                     onChange={e => setRetiroAmount(e.target.value)}
                     placeholder="0"
-                    min={0} max={user.balance} step={100}
+                    min={0} max={balanceDisponible} step={100}
                     className="w-full h-11 pl-7 pr-4 rounded-lg bg-surface-sunken text-sm text-text-body
                       border border-transparent focus:border-brand focus:outline-none transition-colors" />
                 </div>
-                <button onClick={() => setRetiroAmount(String(user.balance))}
+                <button onClick={() => setRetiroAmount(String(balanceDisponible))}
                   className="px-3 h-11 rounded-lg border border-border-default text-xs font-semibold text-text-muted
                     hover:border-brand hover:text-brand transition-colors shrink-0">
                   Todo
                 </button>
               </div>
               <p className="text-[10px] text-text-subtle mt-1">
-                Disponible: $ {user.balance.toLocaleString('es-AR')}
+                Disponible: $ {balanceDisponible.toLocaleString('es-AR')}
               </p>
             </div>
 
             <button onClick={handleRetiro}
-              disabled={loadingRetiro || !retiroAmount || Number(retiroAmount) <= 0 || Number(retiroAmount) > user.balance}
+              disabled={loadingRetiro || !retiroAmount || Number(retiroAmount) <= 0 || Number(retiroAmount) > balanceDisponible}
               className="w-full h-11 bg-brand hover:bg-brand-hover text-white
                 font-semibold rounded-full transition-colors disabled:opacity-50 text-sm">
               {loadingRetiro ? "Procesando..." : "Confirmar retiro"}
@@ -188,7 +224,7 @@ export default function SaldoPage() {
         )}
 
         {/* Estado de ventas */}
-        {(ventas.length > 0) && (
+        {ventas.length > 0 && (
           <section>
             <h2 className="text-sm font-semibold text-text-strong mb-3">Tus ventas</h2>
             <div className="space-y-3">

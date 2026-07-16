@@ -262,6 +262,10 @@ BEGIN
   IF FOUND THEN
     UPDATE ventas SET status = 'liberado', liberado_at = NOW() WHERE id = v_venta.id;
     UPDATE profiles SET balance = balance + v_venta.monto_neto WHERE id = v_venta.vendedor_id;
+    GET DIAGNOSTICS v_pedido_status = ROW_COUNT;
+    IF v_pedido_status = 0 THEN
+      RAISE EXCEPTION 'No se pudo acreditar el saldo al vendedor %', v_venta.vendedor_id;
+    END IF;
   END IF;
 END;
 $$;
@@ -293,6 +297,29 @@ BEGIN
 END;
 $$;
 
+-- Rechazar retiro (admin, devuelve saldo al vendedor)
+CREATE OR REPLACE FUNCTION rechazar_retiro(p_retiro_id TEXT, p_motivo TEXT DEFAULT NULL)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_retiro retiros%ROWTYPE;
+BEGIN
+  SELECT * INTO v_retiro FROM retiros WHERE id = p_retiro_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Retiro no encontrado';
+  END IF;
+  IF v_retiro.status <> 'solicitado' THEN
+    RAISE EXCEPTION 'El retiro ya fue procesado (status: %)', v_retiro.status;
+  END IF;
+
+  UPDATE retiros SET status = 'rechazado' WHERE id = p_retiro_id;
+  UPDATE profiles SET balance = balance + v_retiro.monto WHERE id = v_retiro.vendedor_id;
+END;
+$$;
+
 -- Marcar retiro pagado (admin, idempotente, no toca balance)
 CREATE OR REPLACE FUNCTION marcar_retiro_pagado(p_retiro_id TEXT)
 RETURNS void
@@ -310,3 +337,4 @@ $$;
 GRANT EXECUTE ON FUNCTION confirmar_entrega(TEXT) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION solicitar_retiro(UUID, INTEGER, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION marcar_retiro_pagado(TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION rechazar_retiro(TEXT, TEXT) TO anon, authenticated, service_role;
