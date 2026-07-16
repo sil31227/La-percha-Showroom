@@ -165,27 +165,8 @@ INSERT INTO subcategorias (id, categoria_id, nombre, orden) VALUES
   ('sub-t-ba', 'tienda', 'Bazar', 2),
   ('sub-t-de', 'tienda', 'Decoración', 3);
 
--- Productos de ejemplo
-INSERT INTO productos (id, titulo, precio, precio_anterior, descripcion, marca, categoria_id, subcategoria_id, estado, talles, imagenes, envio_gratis, destacado, tipo, vendedor_nombre, vendedor_tipo, status) VALUES
-  ('p1', 'Vestido lino sage', 18900, NULL, '', '', 'mujer', 'sub-m-ro', 'new_tag', ARRAY['S','M','L'], ARRAY['https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600&h=800&fit=crop'], false, false, 'ropa', 'Laura M.', 'feria', 'pending'),
-  ('p2', 'Blazer crema oversize', 24700, 31000, '', '', 'mujer', 'sub-m-ro', 'like_new', ARRAY['M','L'], ARRAY['https://images.unsplash.com/photo-1594938298603-c8148c4b4e6f?w=600&h=800&fit=crop'], true, true, 'ropa', 'Tienda Oficial', 'oficial', 'approved'),
-  ('p3', 'Top crochet mint', 8300, NULL, '', '', 'mujer', 'sub-m-ro', 'new', ARRAY['XS','S','M'], ARRAY['https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=600&h=800&fit=crop'], false, false, 'ropa', 'Sofía R.', 'feria', 'pending'),
-  ('p4', 'Jean mom fit talle 26', 15300, NULL, '', '', 'mujer', 'sub-m-ro', 'used', ARRAY['26'], ARRAY['https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=600&h=800&fit=crop'], false, false, 'ropa', 'Carla G.', 'feria', 'pending'),
-  ('p5', 'Camisa lino hombre M', 11600, NULL, '', '', 'hombre', 'sub-h-ro', 'new_tag', ARRAY['M','L','XL'], ARRAY['https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&h=800&fit=crop'], false, false, 'ropa', 'Martín P.', 'feria', 'pending'),
-  ('p6', 'Zapatillas urbanas t38', 19700, NULL, '', '', 'mujer', 'sub-m-ca', 'new', ARRAY['38','39','40'], ARRAY['https://images.unsplash.com/photo-1549298916-b41d501d3772?w=600&h=800&fit=crop'], true, false, 'ropa', 'Tienda Oficial', 'oficial', 'approved'),
-  ('p7', 'Conjunto bebé orgánico', 9200, NULL, '', '', 'kids', 'sub-k-be', 'new_tag', ARRAY['Único'], ARRAY['https://images.unsplash.com/photo-1522771930-78848d9293e8?w=600&h=800&fit=crop'], false, false, 'ropa', 'Valen T.', 'feria', 'pending'),
-  ('p8', 'Kimono seda estampado', 21500, NULL, '', '', 'mujer', 'sub-m-ro', 'like_new', ARRAY['S','M'], ARRAY['https://images.unsplash.com/photo-1602607144289-dcc40cc61b90?w=600&h=800&fit=crop'], false, false, 'ropa', 'Flor D.', 'feria', 'rejected'),
-  ('p9', 'Buzo oversized kids 10', 10800, NULL, '', '', 'kids', 'sub-k-ni', 'used', ARRAY['10','12'], ARRAY['https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?w=600&h=800&fit=crop'], false, false, 'ropa', 'Romi S.', 'feria', 'pending'),
-  ('p10', 'Sweater cashmere camel', 31200, 38000, '', '', 'mujer', 'sub-m-ro', 'new_tag', ARRAY['S','M','L','XL'], ARRAY['https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=600&h=800&fit=crop'], true, true, 'ropa', 'Tienda Oficial', 'oficial', 'approved');
-
--- Vendedores
-INSERT INTO vendedores (id, nombre, email, avatar, cbu, productos_count, status) VALUES
-  ('v1', 'María José López', 'majo@email.com', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop', '0171234540000012345678', 12, 'approved'),
-  ('v2', 'Camila Suárez', 'cami@email.com', 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop', '0110567840000098765432', 8, 'pending'),
-  ('v3', 'Florencia D''Angelo', 'flor@email.com', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop', '0150999940000011112222', 15, 'pending'),
-  ('v4', 'Valentina Ríos', 'vale@email.com', 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop', '0720000780000001234567', 5, 'pending'),
-  ('v5', 'Luciana Paz', 'lu@email.com', 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=100&h=100&fit=crop', '0110123450000099988776', 1, 'rejected'),
-  ('v6', 'Agustina Vega', 'agus@email.com', 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?w=100&h=100&fit=crop', '0140333340000055556666', 20, 'approved');
+-- Los productos y vendedores ya no se siembran desde schema.sql.
+-- Los vendedores se registran desde la app y se gestionan desde el admin.
 
 -- FAQ
 INSERT INTO faq (id, pregunta, respuesta, orden) VALUES
