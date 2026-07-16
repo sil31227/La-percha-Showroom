@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const supabase = createAdminClient()
   const { data: pedido, error: pedidoError } = await supabase
     .from("pedidos")
-    .select("id, comprador_email, comprador_nombre, status, producto_titulo, vendedor_id, vendedor_nombre")
+    .select("id, comprador_email, comprador_nombre, status, producto_titulo, vendedor_id, vendedor_nombre, vendedor_tipo, producto_id")
     .eq("id", pedidoId)
     .single()
 
@@ -29,16 +29,30 @@ export async function POST(req: Request) {
     console.error("[confirmar-entrega] Pedido no encontrado para ID:", pedidoId, "email:", user.email, "error:", JSON.stringify(pedidoError))
     return NextResponse.json({ error: "Pedido no encontrado" }, { status: 404 })
   }
-  if (pedido.comprador_email !== user.email) {
+  if ((pedido.comprador_email || "").toLowerCase() !== (user.email || "").toLowerCase()) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 })
   }
   if (pedido.status !== "shipped") {
     return NextResponse.json({ error: "El pedido no está en camino" }, { status: 409 })
   }
 
-  const { error } = await supabase.rpc("confirmar_entrega", { p_pedido_id: pedidoId })
-  if (error) {
-    return NextResponse.json({ error: "No se pudo confirmar la entrega" }, { status: 500 })
+  let vendedorTipo: string | null = pedido.vendedor_tipo ?? null
+  if (!vendedorTipo && pedido.producto_id) {
+    const { data: prod } = await supabase
+      .from("productos")
+      .select("vendedor_tipo")
+      .eq("id", pedido.producto_id)
+      .single()
+    vendedorTipo = prod?.vendedor_tipo ?? null
+    if (vendedorTipo) {
+      await supabase.from("pedidos").update({ vendedor_tipo: vendedorTipo }).eq("id", pedidoId)
+    }
+  }
+
+  const { error: rpcError } = await supabase.rpc("confirmar_entrega", { p_pedido_id: pedidoId })
+  if (rpcError) {
+    console.error("[confirmar-entrega] RPC error:", JSON.stringify(rpcError), "pedidoId:", pedidoId)
+    return NextResponse.json({ error: "No se pudo confirmar la entrega", detail: rpcError.message }, { status: 500 })
   }
 
   const compradorNombre = pedido.comprador_nombre || user.email
