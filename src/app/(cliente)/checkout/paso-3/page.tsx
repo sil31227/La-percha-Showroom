@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { CheckCircle, Loader2, AlertCircle, Clock } from "lucide-react"
 import { useShopStore } from "@/store/useShopStore"
+import { useAuthStore } from "@/store/useAuthStore"
 import { CheckoutStepper } from "@/components/CheckoutStepper"
 
 interface CartItem {
@@ -46,6 +47,9 @@ function Paso3Content() {
   const [shippingMethodRaw, setShippingMethodRaw] = useState("")
   const [status, setStatus] = useState<"loading" | "success" | "pending" | "error">("loading")
   const [errorMsg, setErrorMsg] = useState("")
+
+  const token = useAuthStore(s => s.session?.access_token)
+  const isArreglarVendedor = shippingMethodRaw === "arreglar_vendedor"
 
   const mpStatus = searchParams.get("status")
   const mpOrderId = searchParams.get("order_id")
@@ -123,6 +127,17 @@ function Paso3Content() {
           setStatus("success")
           clearCart()
           ;["checkout_address", "checkout_payment", "checkout_shipping_method", "checkout_shipping_cost"].forEach(k => sessionStorage.removeItem(k))
+
+          if (shippingMethod === "arreglar_vendedor" && token && data.orderId) {
+            fetch("/api/conversaciones", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ pedido_id: data.orderId }),
+            }).catch(() => {})
+          }
         } else {
           setStatus("error")
           setErrorMsg(data.error || "Error al crear el pedido")
@@ -258,6 +273,12 @@ function Paso3Content() {
               font-semibold rounded-lg transition-colors">
             Coordinar retiro por WhatsApp
           </a>
+        )}
+
+        {isArreglarVendedor && (
+          <p className="text-text-muted text-sm mt-1">
+            Podés coordinar el envío con la vendedora desde Mis Compras
+          </p>
         )}
 
         {items.length > 0 && (
