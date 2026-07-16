@@ -4,13 +4,15 @@ import { Send, Loader2, MessageCircle } from "lucide-react"
 import { useChatStore, type Mensaje } from "@/store/useChatStore"
 import { useAuthStore } from "@/store/useAuthStore"
 
+const EMPTY: Mensaje[] = []
+
 export function ChatWindow({ pedidoId }: { pedidoId: string }) {
   const user = useAuthStore(s => s.user)
   const session = useAuthStore(s => s.session)
   const token = session?.access_token || ""
 
   const conversacion = useChatStore(s => s.conversaciones[pedidoId])
-  const mensajes = useChatStore(s => (conversacion ? s.mensajes[conversacion.id] : []) || [])
+  const mensajes = useChatStore(s => conversacion ? (s.mensajes[conversacion.id] ?? EMPTY) : EMPTY)
   const fetchConversacion = useChatStore(s => s.fetchConversacion)
   const fetchMensajes = useChatStore(s => s.fetchMensajes)
   const sendMensaje = useChatStore(s => s.sendMensaje)

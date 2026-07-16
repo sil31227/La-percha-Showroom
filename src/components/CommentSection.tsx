@@ -12,7 +12,7 @@ export function CommentSection({ productoId, isAdmin }: { productoId: string; is
   const session = useAuthStore(s => s.session)
   const token = session?.access_token || ""
 
-  const comentarios = useCommentsStore(s => (s.items[productoId] ?? []))
+  const comentarios = useCommentsStore(s => (s.items[productoId] ?? EMPTY))
   const loading = useCommentsStore(s => s.loading)
   const fetchComentarios = useCommentsStore(s => s.fetchComentarios)
   const addComentario = useCommentsStore(s => s.addComentario)
