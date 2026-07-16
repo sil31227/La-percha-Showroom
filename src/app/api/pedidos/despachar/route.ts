@@ -91,7 +91,7 @@ export async function POST(req: Request) {
   if (pedido.comprador_email) {
     const esCorreo = pedido.metodo_envio === "correo_sucursal" || pedido.metodo_envio === "correo_domicilio"
 
-    const baseUrl = req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+    const baseUrl = req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "https://laperchashowroom.com.ar"
 
     fetch(`${baseUrl}/api/email/pedido-enviado`, {
       method: "POST",

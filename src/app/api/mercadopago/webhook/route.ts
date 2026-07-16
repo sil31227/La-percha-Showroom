@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://laperchashowroom.com.ar"
 
     const { data: pedidos } = await supabase
       .from("pedidos")

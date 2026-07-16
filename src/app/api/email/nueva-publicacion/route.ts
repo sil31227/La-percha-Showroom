@@ -6,7 +6,7 @@ const RESEND_KEY = process.env.RESEND_API_KEY
 const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null
 const FROM = process.env.RESEND_FROM_EMAIL || "La Percha Showroom <onboarding@resend.dev>"
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "sil31227@gmail.com"
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://laperchashowroom.com.ar"
 
 export async function POST(req: NextRequest) {
   try {
