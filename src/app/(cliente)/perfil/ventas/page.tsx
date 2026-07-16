@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { ArrowLeft, Package, Loader2, Truck, CheckCircle, XCircle, ClipboardList, MessageCircle } from "lucide-react"
@@ -47,7 +47,7 @@ const STATUS_STYLE: Record<string, string> = {
   cancelled: "bg-error-50 text-error-500",
 }
 
-export default function VentasPage() {
+function VentasPageContent() {
   const searchParams = useSearchParams()
   const user = useAuthStore(s => s.user)
   const session = useAuthStore(s => s.session)
@@ -295,5 +295,17 @@ export default function VentasPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function VentasPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-brand animate-spin" />
+      </div>
+    }>
+      <VentasPageContent />
+    </Suspense>
   )
 }
