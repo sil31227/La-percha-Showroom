@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server"
 const RESEND_KEY = process.env.RESEND_API_KEY
 const resend = RESEND_KEY ? new Resend(RESEND_KEY) : null
 const FROM = process.env.RESEND_FROM_EMAIL || "La Percha Showroom <onboarding@resend.dev>"
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://laperchashowroom.com.ar"
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 

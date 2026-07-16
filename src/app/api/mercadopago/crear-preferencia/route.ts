@@ -3,7 +3,7 @@ import { sendSellerPush } from "@/lib/push"
 import { MercadoPagoConfig, Preference } from "mercadopago"
 import { createAdminClient } from "@/lib/supabase-admin"
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://laperchashowroom.com.ar"
 
 interface CheckoutItem {
   productId: string
