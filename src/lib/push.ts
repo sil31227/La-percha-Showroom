@@ -90,3 +90,15 @@ export async function sendSellerPush(userId: string, payload: PushPayload): Prom
 export async function sendBuyerPush(userId: string, payload: PushPayload): Promise<void> {
   await sendPush({ audience: "buyer", userId }, payload)
 }
+
+export async function sendPushToUser(
+  userId: string,
+  audience: "seller" | "buyer",
+  payload: PushPayload
+): Promise<void> {
+  if (audience === "seller") {
+    await sendSellerPush(userId, payload)
+  } else {
+    await sendBuyerPush(userId, payload)
+  }
+}
