@@ -22,27 +22,37 @@ export function ChatWindow({ pedidoId }: { pedidoId: string }) {
   const [sending, setSending] = useState(false)
   const [shown, setShown] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const convIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!token) return
     let cancelled = false
     setLoading(true)
-    fetchConversacion(pedidoId, token).then(conv => {
-      if (cancelled) return
-      if (conv) {
-        fetchMensajes(conv.id, token).then(() => {
-          if (!cancelled) {
-            startPolling(conv.id, token)
-            setLoading(false)
-          }
-        })
-      } else {
-        setLoading(false)
-      }
-    })
+    try {
+      fetchConversacion(pedidoId, token).then(conv => {
+        if (cancelled) return
+        if (conv) {
+          fetchMensajes(conv.id, token).then(() => {
+            if (!cancelled) {
+              convIdRef.current = conv.id
+              startPolling(conv.id, token)
+              setLoading(false)
+            }
+          }).catch(() => {
+            if (!cancelled) setLoading(false)
+          })
+        } else {
+          setLoading(false)
+        }
+      }).catch(() => {
+        if (!cancelled) setLoading(false)
+      })
+    } catch {
+      if (!cancelled) setLoading(false)
+    }
     return () => {
       cancelled = true
-      if (conversacion) stopPolling(conversacion.id)
+      if (convIdRef.current !== null) stopPolling(convIdRef.current)
     }
   }, [pedidoId, token])
 
