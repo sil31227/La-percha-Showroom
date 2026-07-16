@@ -92,22 +92,30 @@ export function useApprovedProductos() {
 export function useProductoById(id: string) {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
+    setLoading(true)
+    setError(null)
     supabase
       .from("productos")
       .select("*")
       .eq("id", id)
       .single()
-      .then(({ data, error }) => {
-        if (error || !data) {
+      .then(({ data, error: queryError }) => {
+        if (queryError || !data) {
           setLoading(false)
+          if (queryError) setError(queryError)
           return
         }
-        setProduct(mapProducto(data as unknown as Record<string, unknown>))
+        try {
+          setProduct(mapProducto(data as unknown as Record<string, unknown>))
+        } catch (e) {
+          setError(e instanceof Error ? e : new Error("Error al procesar el producto"))
+        }
         setLoading(false)
       })
   }, [id])
 
-  return { product, loading }
+  return { product, loading, error }
 }
