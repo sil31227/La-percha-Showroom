@@ -6,7 +6,7 @@ import { useAuthStore } from "@/store/useAuthStore"
 import type { VentaRecord, RetiroRecord } from "@/store/useAuthStore"
 
 export default function SaldoPage() {
-  const { user, withdraw, fetchVentas, fetchRetiros } = useAuthStore()
+  const { user, withdraw, fetchVentas, fetchRetiros, refreshProfile } = useAuthStore()
   const [ventas, setVentas] = useState<VentaRecord[]>([])
   const [retiros, setRetiros] = useState<RetiroRecord[]>([])
   const [showRetiro, setShowRetiro] = useState(false)
@@ -17,7 +17,7 @@ export default function SaldoPage() {
 
   useEffect(() => {
     if (user?.id) {
-      Promise.all([fetchVentas(), fetchRetiros()]).then(([v, r]) => {
+      Promise.all([refreshProfile(), fetchVentas(), fetchRetiros()]).then(([, v, r]) => {
         setVentas(v)
         setRetiros(r)
       })
@@ -54,7 +54,6 @@ export default function SaldoPage() {
       setShowRetiro(false)
       setRetiroAmount("")
       fetchRetiros().then(setRetiros)
-      setTimeout(() => setRetiroDone(false), 4000)
     } else {
       setRetiroError(result.error || "Error al procesar el retiro")
     }
@@ -62,26 +61,30 @@ export default function SaldoPage() {
 
   if (retiroDone) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <header className="h-16 flex items-center gap-3 px-5 bg-bg-page border-b border-border-subtle sticky top-0 z-10 lg:top-16">
-          <Link href="/perfil" className="w-9 h-9 rounded-full bg-surface-sunken flex items-center justify-center shrink-0">
-            <ArrowLeft className="w-4 h-4 text-text-muted" />
-          </Link>
-          <h1 className="font-display text-xl text-text-strong">Saldo</h1>
-        </header>
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-5 text-center">
-          <div className="w-16 h-16 rounded-full bg-success-50 flex items-center justify-center">
-            <CheckCircle className="w-8 h-8 text-success-500" />
-          </div>
-          <p className="text-text-strong font-semibold text-lg">¡Retiro solicitado!</p>
-          <p className="text-text-muted text-sm max-w-xs">
-            Recibirás <strong>$ {Number(retiroAmount).toLocaleString('es-AR')}</strong> en tu cuenta bancaria en las próximas 48 horas hábiles.
-          </p>
-          <Link href="/perfil"
-            className="mt-2 px-6 py-2.5 rounded-full bg-brand text-white font-semibold text-sm">
-            Volver al perfil
-          </Link>
+      <div className="fixed inset-0 z-50 bg-bg-page flex flex-col items-center justify-center gap-5 px-5 text-center">
+        <button
+          onClick={() => setRetiroDone(false)}
+          className="absolute top-6 right-6 w-10 h-10 rounded-full bg-surface-sunken hover:bg-surface-hover flex items-center justify-center transition-colors"
+          aria-label="Cerrar"
+        >
+          <XCircle className="w-6 h-6 text-text-muted" />
+        </button>
+        <div className="w-16 h-16 rounded-full bg-success-50 flex items-center justify-center">
+          <CheckCircle className="w-8 h-8 text-success-500" />
         </div>
+        <p className="text-text-strong font-semibold text-lg">¡Retiro solicitado!</p>
+        <p className="text-3xl font-bold text-text-strong">
+          $ {Number(retiroAmount).toLocaleString('es-AR')}
+        </p>
+        <p className="text-text-muted text-sm max-w-xs">
+          Recibirás el dinero en tu cuenta bancaria en las próximas <strong>48 horas hábiles</strong>.
+        </p>
+        <button
+          onClick={() => setRetiroDone(false)}
+          className="mt-4 px-6 py-2.5 rounded-full bg-brand text-white font-semibold text-sm hover:bg-brand-hover transition-colors"
+        >
+          Entendido
+        </button>
       </div>
     )
   }
