@@ -280,6 +280,7 @@ export default function ClienteNavbar() {
         flex items-center justify-between px-4 z-50">
 
         <Link href="/home"
+          onClick={() => { if (isHome) resetFilters() }}
           className="flex flex-col items-center gap-0.5 w-14 h-14 justify-center">
           <Home className={`w-5.5 h-5.5 ${isHome ? 'text-text-strong' : 'text-text-muted'}`} />
           <span className={`text-[10px] ${isHome ? 'text-text-strong font-semibold' : 'text-text-muted'}`}>
