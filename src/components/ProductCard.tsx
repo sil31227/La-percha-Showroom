@@ -174,10 +174,14 @@ export function ProductCard({ product }: { product: Product }) {
             <p className="text-sm font-bold text-price">
               $ {product.price.toLocaleString('es-AR')}
             </p>
-            {commentCount > 0 && (
+            {commentCount > 0 ? (
               <span className="flex items-center gap-0.5 text-[10px] text-text-muted">
                 <MessageCircle className="w-3 h-3" />
                 {commentCount}
+              </span>
+            ) : (
+              <span className="flex items-center gap-0.5 text-[10px] text-text-subtle">
+                <MessageCircle className="w-3 h-3" />
               </span>
             )}
           </div>
