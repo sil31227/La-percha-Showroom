@@ -1,11 +1,12 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { ArrowLeft, Package, Loader2, CheckCircle, AlertCircle } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { ArrowLeft, Package, Loader2, CheckCircle, AlertCircle, MessageCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/useAuthStore"
 import { EnableBuyerPush } from "./EnableBuyerPush"
+import { ChatWindow } from "@/components/ChatWindow"
 
 interface Pedido {
   id: string
@@ -41,6 +42,7 @@ function esCorreoArgentino(metodo: string | null) {
 
 export default function ComprasPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const user = useAuthStore(s => s.user)
   const session = useAuthStore(s => s.session)
   const initialized = useAuthStore(s => s.initialized)
@@ -48,6 +50,9 @@ export default function ComprasPage() {
   const [loading, setLoading] = useState(true)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [confirmError, setConfirmError] = useState<string | null>(null)
+  const [chatPedidoId, setChatPedidoId] = useState<string | null>(null)
+
+  const pedidoParam = searchParams.get("pedido")
 
   useEffect(() => {
     if (!initialized) return
@@ -57,6 +62,13 @@ export default function ComprasPage() {
     }
     fetchPedidos()
   }, [user, initialized])
+
+  useEffect(() => {
+    if (pedidoParam && pedidos.length > 0) {
+      const match = pedidos.find(p => p.id === pedidoParam)
+      if (match) setChatPedidoId(match.id)
+    }
+  }, [pedidoParam, pedidos])
 
   function fetchPedidos() {
     if (!user?.email) return
@@ -186,6 +198,22 @@ export default function ComprasPage() {
                       <><CheckCircle className="w-3.5 h-3.5" /> Ya recibí mi pedido</>
                     )}
                   </button>
+                )}
+                {pedido.metodo_envio === "arreglar_vendedor" && pedido.status !== "cancelled" && (
+                  <>
+                    {chatPedidoId === pedido.id ? (
+                      <ChatWindow pedidoId={pedido.id} />
+                    ) : (
+                      <button
+                        onClick={() => setChatPedidoId(pedido.id)}
+                        className="mt-1 w-full h-9 bg-surface-sunken hover:bg-surface-inverse/10 text-text-body font-semibold rounded-full text-xs
+                          transition-colors flex items-center justify-center gap-2 border border-border-default"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        Coordinar envío
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>

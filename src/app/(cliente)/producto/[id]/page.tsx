@@ -6,6 +6,7 @@ import { ArrowLeft, ShoppingBag, Heart, Loader2, Minus, Plus } from "lucide-reac
 import { useProductoById } from "@/lib/useProductos"
 import { useShopStore } from "@/store/useShopStore"
 import { ProductGallery } from "@/components/ProductGallery"
+import { CommentSection } from "@/components/CommentSection"
 import { SizeSelector } from "@/components/SizeSelector"
 import { SellerCard } from "@/components/SellerCard"
 import { Toast } from "@/components/Toast"
@@ -189,6 +190,9 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
 
           {/* Descripción */}
           <p className="text-sm text-text-muted leading-relaxed">{product.description}</p>
+
+          {/* Comentarios */}
+          <CommentSection productoId={product.id} />
 
           {/* Selector de talle */}
           {showSizeSelector && (

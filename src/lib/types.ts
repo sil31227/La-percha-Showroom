@@ -86,6 +86,8 @@ export type NotificationType =
   | "order_shipped"
   | "order_delivered"
   | "product_sold"
+  | "new_message"
+  | "new_comment"
 
 export type ModerationActionType = 'approved' | 'rejected' | 'changes_requested'
 
