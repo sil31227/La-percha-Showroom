@@ -1,7 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Package, Loader2, CheckCircle, AlertCircle, MessageCircle } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { useAuthStore } from "@/store/useAuthStore"
@@ -42,6 +42,7 @@ function esCorreoArgentino(metodo: string | null) {
 
 export default function ComprasPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const user = useAuthStore(s => s.user)
   const session = useAuthStore(s => s.session)
   const initialized = useAuthStore(s => s.initialized)
@@ -51,6 +52,8 @@ export default function ComprasPage() {
   const [confirmError, setConfirmError] = useState<string | null>(null)
   const [chatPedidoId, setChatPedidoId] = useState<string | null>(null)
 
+  const pedidoParam = searchParams.get("pedido")
+
   useEffect(() => {
     if (!initialized) return
     if (!user?.email) {
@@ -59,6 +62,13 @@ export default function ComprasPage() {
     }
     fetchPedidos()
   }, [user, initialized])
+
+  useEffect(() => {
+    if (pedidoParam && pedidos.length > 0) {
+      const match = pedidos.find(p => p.id === pedidoParam)
+      if (match) setChatPedidoId(match.id)
+    }
+  }, [pedidoParam, pedidos])
 
   function fetchPedidos() {
     if (!user?.email) return

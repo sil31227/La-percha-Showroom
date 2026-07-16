@@ -60,7 +60,7 @@ export function CommentSection({ productoId, isAdmin }: { productoId: string; is
               type="text"
               value={texto}
               onChange={e => setTexto(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleSubmit() }}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSubmit() } }}
               placeholder="Escribí un comentario..."
               className="flex-1 h-9 px-3 rounded-full bg-surface-sunken text-xs text-text-body
                 border border-transparent focus:border-brand focus:outline-none focus:bg-surface-card transition-colors"

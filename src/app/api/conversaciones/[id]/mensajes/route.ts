@@ -65,19 +65,21 @@ export async function POST(
     tag: `chat-${conversacionId}`,
   }
 
-  // In-app notification
-  const notifId = crypto.randomUUID()
-  await supabase.from("notifications").insert({
-    id: notifId,
-    user_id: otherUserId,
-    type: "new_message",
-    title: pushPayload.title,
-    body: pushPayload.body,
-    link: pushPayload.url,
-  })
+  try {
+    const notifId = crypto.randomUUID()
+    await supabase.from("notifications").insert({
+      id: notifId,
+      user_id: otherUserId,
+      type: "new_message",
+      title: pushPayload.title,
+      body: pushPayload.body,
+      link: pushPayload.url,
+    })
 
-  // Push notification
-  await sendPushToUser(otherUserId, audience, pushPayload)
+    await sendPushToUser(otherUserId, audience, pushPayload)
+  } catch (err) {
+    console.error("[mensajes] Error enviando notificación:", err)
+  }
 
   return NextResponse.json({
     ok: true,

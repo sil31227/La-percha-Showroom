@@ -70,6 +70,7 @@ export async function POST(
     })
 
     await sendPushToUser(producto.vendedor_id, "seller", pushPayload)
+    await sendPushToUser(producto.vendedor_id, "buyer", pushPayload)
   }
 
   return NextResponse.json({

@@ -76,7 +76,11 @@ export function ChatWindow({ pedidoId }: { pedidoId: string }) {
           transition-colors flex items-center justify-center gap-2"
       >
         <MessageCircle className="w-3.5 h-3.5" />
-        Chat con la vendedora
+        {user?.id === conversacion?.vendedor_id
+          ? "Chat con la compradora"
+          : user?.id === conversacion?.comprador_id
+            ? "Chat con la vendedora"
+            : "Chat de envío"}
       </button>
     )
   }
@@ -114,7 +118,7 @@ export function ChatWindow({ pedidoId }: { pedidoId: string }) {
               type="text"
               value={texto}
               onChange={e => setTexto(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") handleSend() }}
+              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleSend() } }}
               placeholder="Escribí un mensaje..."
               className="flex-1 h-9 px-3 rounded-full bg-surface-card text-xs text-text-body
                 border border-border-default focus:border-brand focus:outline-none transition-colors"

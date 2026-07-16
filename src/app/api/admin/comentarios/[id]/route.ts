@@ -12,17 +12,12 @@ export async function DELETE(
     return NextResponse.json({ error: "No autenticado" }, { status: 401 })
   }
 
-  const supabase = createAdminClient()
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", user.id)
-    .single()
-
-  if (!profile) {
+  const adminEmail = process.env.ADMIN_EMAIL
+  if (!adminEmail || user.email !== adminEmail) {
     return NextResponse.json({ error: "No autorizado" }, { status: 403 })
   }
+
+  const supabase = createAdminClient()
 
   const { error } = await supabase
     .from("comentarios_producto")

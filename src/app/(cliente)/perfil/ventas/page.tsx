@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { ArrowLeft, Package, Loader2, Truck, CheckCircle, XCircle, ClipboardList, MessageCircle } from "lucide-react"
 import { ChatWindow } from "@/components/ChatWindow"
 import { supabase } from "@/lib/supabase"
@@ -47,11 +48,14 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 export default function VentasPage() {
+  const searchParams = useSearchParams()
   const user = useAuthStore(s => s.user)
   const session = useAuthStore(s => s.session)
   const [pedidos, setPedidos] = useState<PedidoVenta[]>([])
   const [loading, setLoading] = useState(true)
   const [chatPedidoId, setChatPedidoId] = useState<string | null>(null)
+
+  const pedidoParam = searchParams.get("pedido")
   const [despachandoId, setDespachandoId] = useState<string | null>(null)
   const [seguimiento, setSeguimiento] = useState("")
   const [errorMsg, setErrorMsg] = useState("")
@@ -62,6 +66,13 @@ export default function VentasPage() {
     if (!user?.id) { setLoading(false); return }
     fetchPedidos()
   }, [user])
+
+  useEffect(() => {
+    if (pedidoParam && pedidos.length > 0) {
+      const match = pedidos.find(p => p.id === pedidoParam)
+      if (match) setChatPedidoId(match.id)
+    }
+  }, [pedidoParam, pedidos])
 
   function fetchPedidos() {
     if (!user?.id) return
