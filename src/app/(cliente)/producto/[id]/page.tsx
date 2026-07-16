@@ -1,6 +1,6 @@
 "use client"
-import { use, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
+import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, ShoppingBag, Heart, Loader2, Minus, Plus } from "lucide-react"
 import { useProductoById } from "@/lib/useProductos"
@@ -22,8 +22,8 @@ function variantLabel(v: { talle: string; color: string }): string {
   return [v.talle, v.color].filter(Boolean).join(" / ") || "Único"
 }
 
-export default function ProductoPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function ProductoPage() {
+  const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedVariantIdx, setSelectedVariantIdx] = useState<number[]>([])
@@ -35,12 +35,25 @@ export default function ProductoPage({ params }: { params: Promise<{ id: string 
   const toggleFavorite = useShopStore(s => s.toggleFavorite)
   const isFav = useShopStore(s => s.isFavorite(id))
 
-  const { product, loading } = useProductoById(id)
+  const { product, loading, error } = useProductoById(id)
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-brand animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
+        <p className="text-text-muted">No se pudo cargar el producto</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-brand font-semibold text-sm hover:underline">
+          Reintentar
+        </button>
       </div>
     )
   }
