@@ -64,9 +64,9 @@ export default function PedidosPage() {
                 <div className="flex items-start gap-3">
                   <img src={o.producto_imagen || ""} alt="" className="w-14 h-18 rounded-lg object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5"><p className="text-sm font-semibold text-text-strong truncate">{o.producto_titulo}</p><span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold shrink-0 ${st.className}`}>{st.label}</span></div>
-                    <p className="text-xs text-text-muted">Comprador: {compradorNombre} · {compradorEmail}</p>
-                    <p className="text-xs text-text-muted">Vendedor: {o.vendedor_nombre} · Talle {o.talle} {o.vendedor_tipo === "feria" ? <span className="ml-1 px-1 py-0.5 rounded text-[9px] font-semibold bg-info-50 text-info-600">Feria</span> : o.vendedor_tipo === "oficial" ? <span className="ml-1 px-1 py-0.5 rounded text-[9px] font-semibold bg-matcha-100 text-matcha-600">Oficial</span> : null}</p>
+                    <div className="flex items-start gap-2 mb-0.5 min-w-0"><p className="text-sm font-semibold text-text-strong truncate min-w-0">{o.producto_titulo}</p><span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold shrink-0 ${st.className}`}>{st.label}</span></div>
+                    <p className="text-xs text-text-muted truncate">Comprador: {compradorNombre} · {compradorEmail}</p>
+                    <p className="text-xs text-text-muted truncate">Vendedor: {o.vendedor_nombre} · Talle {o.talle} {o.vendedor_tipo === "feria" ? <span className="ml-1 px-1 py-0.5 rounded text-[9px] font-semibold bg-info-50 text-info-600">Feria</span> : o.vendedor_tipo === "oficial" ? <span className="ml-1 px-1 py-0.5 rounded text-[9px] font-semibold bg-matcha-100 text-matcha-600">Oficial</span> : null}</p>
                     <div className="flex items-center gap-3 mt-1.5"><p className="text-sm font-bold text-price">${o.precio.toLocaleString("es-AR")}</p></div>
                   </div>
                   <div className="flex flex-col gap-1.5 shrink-0">
