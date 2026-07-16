@@ -37,6 +37,15 @@ export default function ProductoPage() {
 
   const { product, loading, error } = useProductoById(id)
 
+  const sizes = useMemo(
+    () => product?.sizes?.length ? product.sizes : ["Único"],
+    [product?.sizes],
+  )
+  const showSizeSelector = useMemo(
+    () => (product?.tipo === "ropa") || sizes.length > 1 || sizes[0] !== "Único",
+    [product?.tipo, sizes],
+  )
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -69,15 +78,6 @@ export default function ProductoPage() {
       </div>
     )
   }
-
-  const sizes = useMemo(
-    () => product.sizes?.length ? product.sizes : ["Único"],
-    [product.sizes],
-  )
-  const showSizeSelector = useMemo(
-    () => product.tipo === "ropa" || sizes.length > 1 || sizes[0] !== "Único",
-    [product.tipo, sizes],
-  )
 
   console.log("[producto page]", product.id, "tipo:", product.tipo, "variantes:", product.variantes?.length, product.variantes)
 
