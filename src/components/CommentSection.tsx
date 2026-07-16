@@ -5,12 +5,14 @@ import { useCommentsStore, type Comentario } from "@/store/useCommentsStore"
 import { useAuthStore } from "@/store/useAuthStore"
 import Link from "next/link"
 
+const EMPTY: Comentario[] = []
+
 export function CommentSection({ productoId, isAdmin }: { productoId: string; isAdmin?: boolean }) {
   const user = useAuthStore(s => s.user)
   const session = useAuthStore(s => s.session)
   const token = session?.access_token || ""
 
-  const comentarios = useCommentsStore(s => s.items[productoId] || [])
+  const comentarios = useCommentsStore(s => (s.items[productoId] ?? []))
   const loading = useCommentsStore(s => s.loading)
   const fetchComentarios = useCommentsStore(s => s.fetchComentarios)
   const addComentario = useCommentsStore(s => s.addComentario)

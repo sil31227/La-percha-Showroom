@@ -56,7 +56,9 @@ export default function ClienteNavbar() {
   const pathname = usePathname()
   const router = useRouter()
   const cartCount = useShopStore(s => s.cartCount())
-  const { filters, setFilter, resetFilters } = useShopStore()
+  const filters = useShopStore(s => s.filters)
+  const setFilter = useShopStore(s => s.setFilter)
+  const resetFilters = useShopStore(s => s.resetFilters)
   const user = useAuthStore(s => s.user)
   const isHome = pathname === '/' || pathname === '/home'
   const isCart = pathname === '/carrito'

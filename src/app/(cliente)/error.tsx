@@ -9,6 +9,8 @@ export default function ClienteError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  console.error("[ClienteError boundary]", error.message, error.digest, error.stack)
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 text-center gap-4">
       <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center">
