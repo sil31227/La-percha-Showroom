@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import type { Product } from "@/lib/types"
 
@@ -58,6 +58,7 @@ function mapProducto(row: Record<string, unknown>): Product {
       sales_count: 0,
     },
     tipo: (row.tipo as Product["tipo"]) || "ropa",
+    stock: Number(row.stock) || 0,
     accepts_offers: false,
     free_shipping: (row.envio_gratis as boolean) || false,
     created_at: (row.created_at as string) || new Date().toISOString(),
@@ -93,19 +94,20 @@ export function useProductoById(id: string) {
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const mountedRef = useRef(true)
 
   useEffect(() => {
-    let aborted = false
+    mountedRef.current = true
     setLoading(true)
     setError(null)
-    ;(async () => {
-      try {
-        const { data, error: queryError } = await supabase
-          .from("productos")
-          .select("*")
-          .eq("id", id)
-          .single()
-        if (aborted) return
+    const query = supabase
+      .from("productos")
+      .select("*")
+      .eq("id", id)
+      .single()
+    Promise.resolve(query)
+      .then(({ data, error: queryError }) => {
+        if (!mountedRef.current) return
         if (queryError || !data) {
           setLoading(false)
           if (queryError) setError(queryError)
@@ -118,13 +120,13 @@ export function useProductoById(id: string) {
           setError(e instanceof Error ? e : new Error("Error al procesar el producto"))
         }
         setLoading(false)
-      } catch (e) {
-        if (aborted) return
+      })
+      .catch((e: unknown) => {
+        if (!mountedRef.current) return
         setError(e instanceof Error ? e : new Error("Error al conectar con el servidor"))
         setLoading(false)
-      }
-    })()
-    return () => { aborted = true }
+      })
+    return () => { mountedRef.current = false }
   }, [id])
 
   return { product, loading, error }
