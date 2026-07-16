@@ -20,6 +20,26 @@ export interface VendorRequest {
   cbu?: string; banco?: string; tipo_cuenta?: string; alias?: string; titular?: string
   productos_count?: number; status: VendorStatus; created_at?: string
 }
+export type RetiroStatus = "solicitado" | "pagado" | "rechazado"
+export interface AdminRetiro {
+  id: string
+  vendedor_id: string
+  monto: number
+  cbu: string
+  status: RetiroStatus
+  created_at: string
+  pagado_at: string | null
+  vendedores: {
+    nombre: string
+    email: string
+    avatar: string
+    cbu: string
+    banco: string | null
+    tipo_cuenta: string | null
+    alias: string | null
+    titular: string | null
+  } | null
+}
 export type OrderStatus = "pending_shipment" | "shipped" | "delivered" | "cancelled"
 export interface AdminOrder {
   id: string; producto_titulo: string; producto_imagen?: string; producto_id?: string; precio: number
@@ -42,12 +62,14 @@ export interface StoreProductForm {
 
 interface AdminState {
   products: AdminProduct[]; vendors: VendorRequest[]; orders: AdminOrder[]
+  retiros: AdminRetiro[]; retirosLoaded: boolean
   categories: AdminCategory[]; faq: FAQItem[];   terms: string
   shippingConfig: ShippingConfig | null
   shippingConfigLoaded: boolean
   loaded: boolean
   moderationNotes: Record<string, ModerationNote[]>
   loadFromSupabase: () => Promise<void>
+  loadRetiros: () => Promise<void>
   loadShippingConfig: () => Promise<void>
   updateShippingConfig: (config: ShippingConfig) => Promise<void>
   updateProductStatus: (id: string, status: ProductStatus, texto?: string) => Promise<void>
@@ -73,6 +95,8 @@ interface AdminState {
   toggleProductSold: (id: string, vendido: boolean) => Promise<void>
   updateFeriaProduct: (id: string, updates: Partial<AdminProduct>) => Promise<void>
   deleteFeriaProduct: (id: string) => Promise<void>
+  markRetiroPagado: (id: string) => Promise<void>
+  rejectRetiro: (id: string) => Promise<void>
 }
 
 async function createNotification(userId: string | undefined, type: NotificationType, title: string, body: string, link: string | null) {
@@ -85,7 +109,8 @@ async function createNotification(userId: string | undefined, type: Notification
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
-  products: [], vendors: [], orders: [], categories: [], faq: [], terms: "", shippingConfig: null, shippingConfigLoaded: false, loaded: false, moderationNotes: {},
+  products: [], vendors: [], orders: [], retiros: [], retirosLoaded: false,
+  categories: [], faq: [], terms: "", shippingConfig: null, shippingConfigLoaded: false, loaded: false, moderationNotes: {},
 
   loadFromSupabase: async () => {
     const [pRes, vRes, oRes, cRes, fRes, tRes] = await Promise.all([
@@ -474,6 +499,43 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }
 
     set(s => ({ products: s.products.filter(p => p.id !== id) }))
+  },
+
+  loadRetiros: async () => {
+    const res = await fetch("/api/admin/retiros")
+    if (!res.ok) return
+    const data = await res.json()
+    set({ retiros: data.retiros as AdminRetiro[], retirosLoaded: true })
+  },
+
+  markRetiroPagado: async (id) => {
+    const res = await fetch("/api/admin/retiros", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "pagar", retiroId: id }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || "Error al marcar retiro como pagado")
+    }
+    set(s => ({
+      retiros: s.retiros.map(r => r.id === id ? { ...r, status: "pagado" as const, pagado_at: new Date().toISOString() } : r),
+    }))
+  },
+
+  rejectRetiro: async (id) => {
+    const res = await fetch("/api/admin/retiros", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "rechazar", retiroId: id }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || "Error al rechazar retiro")
+    }
+    set(s => ({
+      retiros: s.retiros.map(r => r.id === id ? { ...r, status: "rechazado" as const } : r),
+    }))
   },
 
   loadShippingConfig: async () => {
