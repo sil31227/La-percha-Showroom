@@ -6,7 +6,7 @@ import { useAuthStore } from "@/store/useAuthStore"
 import type { VentaRecord, RetiroRecord } from "@/store/useAuthStore"
 
 export default function SaldoPage() {
-  const { user, withdraw, fetchVentas, fetchRetiros } = useAuthStore()
+  const { user, withdraw, fetchVentas, fetchRetiros, refreshProfile } = useAuthStore()
   const [ventas, setVentas] = useState<VentaRecord[]>([])
   const [retiros, setRetiros] = useState<RetiroRecord[]>([])
   const [showRetiro, setShowRetiro] = useState(false)
@@ -17,7 +17,7 @@ export default function SaldoPage() {
 
   useEffect(() => {
     if (user?.id) {
-      Promise.all([fetchVentas(), fetchRetiros()]).then(([v, r]) => {
+      Promise.all([refreshProfile(), fetchVentas(), fetchRetiros()]).then(([, v, r]) => {
         setVentas(v)
         setRetiros(r)
       })
