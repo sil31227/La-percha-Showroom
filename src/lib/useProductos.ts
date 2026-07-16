@@ -95,14 +95,17 @@ export function useProductoById(id: string) {
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
+    let aborted = false
     setLoading(true)
     setError(null)
-    supabase
-      .from("productos")
-      .select("*")
-      .eq("id", id)
-      .single()
-      .then(({ data, error: queryError }) => {
+    ;(async () => {
+      try {
+        const { data, error: queryError } = await supabase
+          .from("productos")
+          .select("*")
+          .eq("id", id)
+          .single()
+        if (aborted) return
         if (queryError || !data) {
           setLoading(false)
           if (queryError) setError(queryError)
@@ -110,11 +113,18 @@ export function useProductoById(id: string) {
         }
         try {
           setProduct(mapProducto(data as unknown as Record<string, unknown>))
+          setError(null)
         } catch (e) {
           setError(e instanceof Error ? e : new Error("Error al procesar el producto"))
         }
         setLoading(false)
-      })
+      } catch (e) {
+        if (aborted) return
+        setError(e instanceof Error ? e : new Error("Error al conectar con el servidor"))
+        setLoading(false)
+      }
+    })()
+    return () => { aborted = true }
   }, [id])
 
   return { product, loading, error }
