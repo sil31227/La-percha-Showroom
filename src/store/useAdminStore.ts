@@ -502,10 +502,14 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   loadRetiros: async () => {
-    const res = await fetch("/api/admin/retiros")
-    if (!res.ok) return
-    const data = await res.json()
-    set({ retiros: data.retiros as AdminRetiro[], retirosLoaded: true })
+    try {
+      const res = await fetch("/api/admin/retiros")
+      if (!res.ok) throw new Error("Error al cargar retiros")
+      const data = await res.json()
+      set({ retiros: data.retiros as AdminRetiro[], retirosLoaded: true })
+    } catch {
+      set({ retirosLoaded: true })
+    }
   },
 
   markRetiroPagado: async (id) => {
