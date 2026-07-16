@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
           producto: producto_titulo || "tu pedido",
           correo: esCorreoArgentino(metodo_envio),
           seguimiento: seguimiento || "",
-          comprasUrl: `${SITE_URL}/perfil/compras`,
+          comprasUrl: `${SITE_URL}/perfil/compras?pedido=${orderId}`,
         }),
       })
       if (error) {

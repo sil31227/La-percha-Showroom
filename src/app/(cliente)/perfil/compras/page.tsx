@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, Package, Loader2, CheckCircle, AlertCircle, MessageCircle } from "lucide-react"
@@ -40,7 +40,7 @@ function esCorreoArgentino(metodo: string | null) {
   return metodo === "correo_sucursal" || metodo === "correo_domicilio"
 }
 
-export default function ComprasPage() {
+function ComprasPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const user = useAuthStore(s => s.user)
@@ -221,5 +221,17 @@ export default function ComprasPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function ComprasPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-8 h-8 text-brand animate-spin" />
+      </div>
+    }>
+      <ComprasPageContent />
+    </Suspense>
   )
 }

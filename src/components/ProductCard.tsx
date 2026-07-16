@@ -1,8 +1,9 @@
 "use client"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import Link from "next/link"
-import { Heart, ShoppingBag, Truck, Plus, ChevronLeft, ChevronRight } from "lucide-react"
+import { Heart, ShoppingBag, Truck, Plus, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react"
 import { useShopStore } from "@/store/useShopStore"
+import { supabase } from "@/lib/supabase"
 import type { Product } from "@/lib/types"
 
 const CONDITION_LABEL: Record<string, string> = {
@@ -21,8 +22,20 @@ export function ProductCard({ product }: { product: Product }) {
 
   const [imgIdx, setImgIdx] = useState(0)
   const [imgError, setImgError] = useState<Record<number, boolean>>({})
+  const [commentCount, setCommentCount] = useState(0)
   const images = product.images?.length ? product.images : []
   const hasMultiple = images.length > 1
+
+  useEffect(() => {
+    supabase
+      .from("comentarios_producto")
+      .select("*", { count: "exact", head: true })
+      .eq("producto_id", product.id)
+      .eq("deleted", false)
+      .then(({ count }) => {
+        if (count !== null) setCommentCount(count)
+      })
+  }, [product.id])
 
   const prevImage = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
@@ -157,9 +170,21 @@ export function ProductCard({ product }: { product: Product }) {
             {product.store_type === 'oficial' ? 'Tienda Oficial' : 'Feria'}
           </p>
           <h3 className="text-sm font-semibold text-text-strong truncate mt-0.5">{product.title}</h3>
-          <p className="text-sm font-bold text-price mt-0.5">
-            $ {product.price.toLocaleString('es-AR')}
-          </p>
+          <div className="flex items-center justify-between mt-0.5">
+            <p className="text-sm font-bold text-price">
+              $ {product.price.toLocaleString('es-AR')}
+            </p>
+            {commentCount > 0 ? (
+              <span className="flex items-center gap-0.5 text-[10px] text-text-muted">
+                <MessageCircle className="w-3 h-3" />
+                {commentCount}
+              </span>
+            ) : (
+              <span className="flex items-center gap-0.5 text-[10px] text-text-subtle">
+                <MessageCircle className="w-3 h-3" />
+              </span>
+            )}
+          </div>
         </div>
       </Link>
 
