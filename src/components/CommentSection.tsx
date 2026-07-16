@@ -100,7 +100,7 @@ export function CommentSection({ productoId, isAdmin }: { productoId: string; is
               {c.user_avatar ? (
                 <img src={c.user_avatar} alt="" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-[10px] font-semibold text-text-muted">{c.user_name.charAt(0).toUpperCase()}</span>
+                <span className="text-[10px] font-semibold text-text-muted">{(c.user_name || "U").charAt(0).toUpperCase()}</span>
               )}
             </div>
             <div className="flex-1 min-w-0">
