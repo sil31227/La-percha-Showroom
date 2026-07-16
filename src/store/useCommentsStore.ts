@@ -19,7 +19,7 @@ interface CommentsState {
   addComentario: (productoId: string, texto: string, token: string) => Promise<boolean>
 }
 
-export const useCommentsStore = create<CommentsState>((set, get) => ({
+export const useCommentsStore = create<CommentsState>((set) => ({
   items: {},
   loading: false,
 
