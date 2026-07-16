@@ -67,7 +67,7 @@ const DEFAULT_FILTERS: Filters = {
 }
 
 export const useShopStore = create<ShopStore>()((set, get) => ({
-  cart: [],
+  cart: typeof window !== "undefined" ? loadCart() : [],
   shippingMethod: null,
   shippingCost: 0,
   addToCart: (item) =>
@@ -113,7 +113,7 @@ export const useShopStore = create<ShopStore>()((set, get) => ({
 
   setShipping: (method, cost) => set({ shippingMethod: method, shippingCost: cost }),
 
-  favorites: [],
+  favorites: typeof window !== "undefined" ? loadFavs() : [],
   toggleFavorite: (productId) =>
     set((s) => {
       const next = {
@@ -132,6 +132,3 @@ export const useShopStore = create<ShopStore>()((set, get) => ({
   resetFilters: () => set({ filters: DEFAULT_FILTERS }),
 }))
 
-if (typeof window !== "undefined") {
-  useShopStore.setState({ cart: loadCart(), favorites: loadFavs() })
-}

@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, ShoppingBag, Heart, Loader2, Minus, Plus } from "lucide-react"
@@ -70,8 +70,14 @@ export default function ProductoPage() {
     )
   }
 
-  const sizes = product.sizes?.length ? product.sizes : ["Único"]
-  const showSizeSelector = product.tipo === "ropa" || sizes.length > 1 || sizes[0] !== "Único"
+  const sizes = useMemo(
+    () => product.sizes?.length ? product.sizes : ["Único"],
+    [product.sizes],
+  )
+  const showSizeSelector = useMemo(
+    () => product.tipo === "ropa" || sizes.length > 1 || sizes[0] !== "Único",
+    [product.tipo, sizes],
+  )
 
   console.log("[producto page]", product.id, "tipo:", product.tipo, "variantes:", product.variantes?.length, product.variantes)
 
