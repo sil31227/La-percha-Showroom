@@ -9,7 +9,7 @@ type Tab = "pending" | "approved" | "rejected" | "publicaciones"
 
 export default function VendedoresContent() {
   const {
-    vendors, products, orders, loaded, loadFromSupabase,
+    vendors, products, orders, ventas, loaded, loadFromSupabase,
     approveVendor, rejectVendor,
     toggleProductSold, updateFeriaProduct, deleteFeriaProduct, updateProductStatus,
   } = useAdminStore()
@@ -192,7 +192,7 @@ export default function VendedoresContent() {
                   {isExpanded && (
                     <div className="border-t border-border-subtle">
                       {viewingProfile === v.id && (
-                        <VendorProfile vendor={v} products={vendorProducts} orders={orders} />
+                        <VendorProfile vendor={v} ventas={ventas} />
                       )}
                       {vendorProducts.length === 0 ? (
                         <div className="px-4 py-10 text-center text-sm text-text-muted">Esta vendedora no tiene prendas publicadas</div>
@@ -336,24 +336,19 @@ export default function VendedoresContent() {
 /* ─── Vendor Profile ─── */
 function VendorProfile({
   vendor,
-  products,
-  orders,
+  ventas,
 }: {
   vendor: ReturnType<typeof useAdminStore.getState>["vendors"][number]
-  products: ReturnType<typeof useAdminStore.getState>["products"]
-  orders: ReturnType<typeof useAdminStore.getState>["orders"]
+  ventas: ReturnType<typeof useAdminStore.getState>["ventas"]
 }) {
   const [copiedField, setCopiedField] = useState<string | null>(null)
 
-  const soldProducts = products.filter(p => p.vendido)
-  const totalSold = soldProducts.reduce((sum, p) => sum + (p.precio || 0), 0)
-  const commission = Math.round(totalSold * 0.2)
-  const toTransfer = totalSold - commission
-
-  const deliveredOrders = orders.filter(
-    o => o.vendedor_id === vendor.id && o.status === "delivered"
-  )
-  const pendingRelease = deliveredOrders.reduce((sum, o) => sum + (o.precio || 0), 0)
+  const vendorVentas = ventas.filter(v => v.vendedor_id === vendor.id && v.status !== "cancelada")
+  const totalSold = vendorVentas.reduce((sum, v) => sum + v.monto_bruto, 0)
+  const totalCommission = vendorVentas.reduce((sum, v) => sum + v.comision, 0)
+  const toTransfer = vendorVentas.reduce((sum, v) => sum + v.monto_neto, 0)
+  const liberado = vendorVentas.filter(v => v.status === "liberado").reduce((sum, v) => sum + v.monto_neto, 0)
+  const pendiente = vendorVentas.filter(v => v.status === "pendiente").reduce((sum, v) => sum + v.monto_neto, 0)
 
   async function copyField(value: string, field: string) {
     await navigator.clipboard.writeText(value)
@@ -433,16 +428,23 @@ function VendorProfile({
         </div>
         <div className="flex justify-between text-xs">
           <span className="text-text-muted">Comisión (20%)</span>
-          <span className="text-error-500 font-semibold">−${commission.toLocaleString("es-AR")}</span>
+          <span className="text-error-500 font-semibold">−${totalCommission.toLocaleString("es-AR")}</span>
         </div>
         <div className="flex justify-between text-xs font-semibold border-t border-matcha-200 pt-1.5">
           <span className="text-text-strong">A transferir</span>
           <span className="text-success-600">${toTransfer.toLocaleString("es-AR")}</span>
         </div>
-        {pendingRelease > 0 && (
-          <p className="text-[10px] text-warning-600 mt-1">
-            Hay ${pendingRelease.toLocaleString("es-AR")} en pedidos entregados pendientes de liberación
-          </p>
+        {vendorVentas.length > 0 && (
+          <div className="flex justify-between text-[11px] pt-1">
+            <span className="text-text-muted">Liberado</span>
+            <span className="text-success-600 font-semibold">${liberado.toLocaleString("es-AR")}</span>
+          </div>
+        )}
+        {pendiente > 0 && (
+          <div className="flex justify-between text-[11px]">
+            <span className="text-text-muted">Pendiente de liberar</span>
+            <span className="text-warning-600 font-semibold">${pendiente.toLocaleString("es-AR")}</span>
+          </div>
         )}
       </div>
     </div>

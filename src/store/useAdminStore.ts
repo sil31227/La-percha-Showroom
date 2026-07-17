@@ -20,6 +20,12 @@ export interface VendorRequest {
   cbu?: string; banco?: string; tipo_cuenta?: string; alias?: string; titular?: string
   productos_count?: number; status: VendorStatus; created_at?: string
 }
+export type VentaStatus = "pendiente" | "liberado" | "cancelada"
+export interface AdminVenta {
+  id: string; pedido_id: string; vendedor_id: string; producto_titulo: string
+  monto_bruto: number; comision: number; monto_neto: number
+  status: VentaStatus; created_at?: string; liberado_at?: string
+}
 export type RetiroStatus = "solicitado" | "pagado" | "rechazado"
 export interface AdminRetiro {
   id: string
@@ -62,6 +68,7 @@ export interface StoreProductForm {
 
 interface AdminState {
   products: AdminProduct[]; vendors: VendorRequest[]; orders: AdminOrder[]
+  ventas: AdminVenta[]
   retiros: AdminRetiro[]; retirosLoaded: boolean
   categories: AdminCategory[]; faq: FAQItem[];   terms: string
   shippingConfig: ShippingConfig | null
@@ -69,6 +76,7 @@ interface AdminState {
   loaded: boolean
   moderationNotes: Record<string, ModerationNote[]>
   loadFromSupabase: () => Promise<void>
+  loadOrders: () => Promise<void>
   loadRetiros: () => Promise<void>
   loadShippingConfig: () => Promise<void>
   updateShippingConfig: (config: ShippingConfig) => Promise<void>
@@ -109,14 +117,15 @@ async function createNotification(userId: string | undefined, type: Notification
 }
 
 export const useAdminStore = create<AdminState>((set, get) => ({
-  products: [], vendors: [], orders: [], retiros: [], retirosLoaded: false,
+  products: [], vendors: [], orders: [], ventas: [], retiros: [], retirosLoaded: false,
   categories: [], faq: [], terms: "", shippingConfig: null, shippingConfigLoaded: false, loaded: false, moderationNotes: {},
 
   loadFromSupabase: async () => {
-    const [pRes, vRes, oRes, cRes, fRes, tRes] = await Promise.all([
+    const [pRes, vRes, oRes, vtRes, cRes, fRes, tRes] = await Promise.all([
       supabase.from("productos").select("*").order("created_at", { ascending: false }),
       supabase.from("vendedores").select("*").order("created_at", { ascending: false }),
       supabase.from("pedidos").select("*").order("created_at", { ascending: false }),
+      supabase.from("ventas").select("*").order("created_at", { ascending: false }),
       supabase.from("categorias").select("*, subcategorias(*)").order("orden"),
       supabase.from("faq").select("*").order("orden"),
       supabase.from("terminos").select("*").single(),
@@ -141,12 +150,18 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       products: (pRes.data || []) as AdminProduct[],
       vendors: (vRes.data || []) as VendorRequest[],
       orders: (oRes.data || []) as AdminOrder[],
+      ventas: (vtRes.data || []) as AdminVenta[],
       categories: (cRes.data || []) as unknown as AdminCategory[],
       faq: (fRes.data || []) as FAQItem[],
       terms: tRes.data?.contenido || "",
       moderationNotes,
       loaded: true,
     })
+  },
+
+  loadOrders: async () => {
+    const { data } = await supabase.from("pedidos").select("*").order("created_at", { ascending: false })
+    if (data) set({ orders: data as AdminOrder[] })
   },
 
   updateProductStatus: async (id, status, texto) => {

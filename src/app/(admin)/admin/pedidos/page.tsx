@@ -41,6 +41,17 @@ export default function PedidosPage() {
 
   useEffect(() => { loadFromSupabase() }, [])
 
+  useEffect(() => {
+    const onFocus = () => { loadFromSupabase() }
+    const onVisible = () => { if (document.visibilityState === "visible") loadFromSupabase() }
+    window.addEventListener("focus", onFocus)
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      window.removeEventListener("focus", onFocus)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [])
+
   if (!loaded) return <div className="p-5 lg:pt-7 text-sm text-text-muted">Cargando...</div>
 
   const filtered = orders.filter(o => filter === "all" ? true : o.status === filter)
