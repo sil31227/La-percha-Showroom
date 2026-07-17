@@ -242,7 +242,7 @@ CREATE POLICY "retiros_insert_own" ON retiros FOR INSERT WITH CHECK (auth.uid() 
 
 -- Confirmar entrega + acreditar 80% (atómica, idempotente)
 CREATE OR REPLACE FUNCTION confirmar_entrega(p_pedido_id TEXT)
-RETURNS void
+RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
@@ -253,7 +253,7 @@ DECLARE
 BEGIN
   SELECT status INTO v_pedido_status FROM pedidos WHERE id = p_pedido_id;
   IF v_pedido_status IS DISTINCT FROM 'shipped' THEN
-    RETURN;
+    RETURN false;
   END IF;
 
   UPDATE pedidos SET status = 'delivered' WHERE id = p_pedido_id;
@@ -267,6 +267,8 @@ BEGIN
       RAISE EXCEPTION 'No se pudo acreditar el saldo al vendedor %', v_venta.vendedor_id;
     END IF;
   END IF;
+
+  RETURN true;
 END;
 $$;
 

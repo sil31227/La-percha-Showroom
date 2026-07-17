@@ -48,7 +48,14 @@ async function sendPush(
 
     const { data: subs, error } = await query
 
-    if (error || !subs?.length) return
+    if (error) {
+      console.error("[push] Error consultando suscripciones:", error)
+      return
+    }
+    if (!subs?.length) {
+      console.log("[push] Sin suscripciones para audience:", opts.audience, opts.userId ? `user:${opts.userId}` : "")
+      return
+    }
 
     const body = JSON.stringify({
       title: payload.title,

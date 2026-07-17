@@ -69,6 +69,7 @@ interface AdminState {
   loaded: boolean
   moderationNotes: Record<string, ModerationNote[]>
   loadFromSupabase: () => Promise<void>
+  loadOrders: () => Promise<void>
   loadRetiros: () => Promise<void>
   loadShippingConfig: () => Promise<void>
   updateShippingConfig: (config: ShippingConfig) => Promise<void>
@@ -147,6 +148,11 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       moderationNotes,
       loaded: true,
     })
+  },
+
+  loadOrders: async () => {
+    const { data } = await supabase.from("pedidos").select("*").order("created_at", { ascending: false })
+    if (data) set({ orders: data as AdminOrder[] })
   },
 
   updateProductStatus: async (id, status, texto) => {

@@ -64,6 +64,17 @@ function ComprasPageContent() {
   }, [user, initialized])
 
   useEffect(() => {
+    const onFocus = () => { if (user?.email) fetchPedidos() }
+    const onVisible = () => { if (document.visibilityState === "visible" && user?.email) fetchPedidos() }
+    window.addEventListener("focus", onFocus)
+    document.addEventListener("visibilitychange", onVisible)
+    return () => {
+      window.removeEventListener("focus", onFocus)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [user?.email])
+
+  useEffect(() => {
     if (pedidoParam && pedidos.length > 0) {
       const match = pedidos.find(p => p.id === pedidoParam)
       if (match) setChatPedidoId(match.id)
@@ -85,7 +96,15 @@ function ComprasPageContent() {
   }
 
   async function confirmarRecepcion(pedidoId: string) {
-    if (!session?.access_token) return
+    let token = session?.access_token
+    if (!token) {
+      const refresh = await supabase.auth.refreshSession()
+      token = refresh.data.session?.access_token
+      if (!token) {
+        setConfirmError("Sesión expirada. Recargá la página e intentá de nuevo.")
+        return
+      }
+    }
     setConfirmingId(pedidoId)
     setConfirmError(null)
     try {
@@ -93,13 +112,13 @@ function ComprasPageContent() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ pedidoId }),
       })
-      const data = await res.json().catch(() => ({ error: "Error de conexión" }))
+      const json = await res.json().catch(() => ({ error: "Error de conexión" }))
       if (!res.ok) {
-        setConfirmError(data.error || "No se pudo confirmar la entrega")
+        setConfirmError(json.error || "No se pudo confirmar la entrega")
         setConfirmingId(null)
         return
       }

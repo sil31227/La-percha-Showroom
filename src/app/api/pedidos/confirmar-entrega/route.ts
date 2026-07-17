@@ -54,10 +54,14 @@ export async function POST(req: Request) {
       }
     }
 
-    const { error: rpcError } = await supabase.rpc("confirmar_entrega", { p_pedido_id: pedidoId })
+    const { data: rpcResult, error: rpcError } = await supabase.rpc("confirmar_entrega", { p_pedido_id: pedidoId })
     if (rpcError) {
       console.error("[confirmar-entrega] RPC error:", JSON.stringify(rpcError), "pedidoId:", pedidoId)
       return NextResponse.json({ error: "No se pudo confirmar la entrega", detail: rpcError.message }, { status: 500 })
+    }
+    if (!rpcResult) {
+      console.warn("[confirmar-entrega] RPC retornó false — pedido ya procesado o status inválido:", pedidoId)
+      return NextResponse.json({ error: "El pedido ya fue procesado o no está en camino" }, { status: 409 })
     }
 
     const compradorNombre = pedido.comprador_nombre || user.email
@@ -73,7 +77,7 @@ export async function POST(req: Request) {
       body: `${compradorNombre} confirmó la entrega de "${productoTitulo}". Vendedora: ${vendedorNombre}`,
       url: notificationLink,
       tag: `entrega-${pedidoId}`,
-    }).catch(() => {})
+    }).catch((e) => console.error("[confirmar-entrega] Error enviando push admin:", e))
 
     if (vendedorId) {
       const sellerNotifId = `order-delivered-seller-${pedidoId}-${Date.now()}`
@@ -94,7 +98,7 @@ export async function POST(req: Request) {
         body: `${compradorNombre} confirmó la entrega de "${productoTitulo}".`,
         url: "/perfil/saldo",
         tag: `entrega-seller-${pedidoId}`,
-      }).catch(() => {})
+      }).catch((e) => console.error("[confirmar-entrega] Error enviando push vendedora:", e))
     }
 
     const { data: adminSubs } = await supabase
