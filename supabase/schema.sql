@@ -51,7 +51,7 @@ CREATE TABLE productos (
   envio_gratis BOOLEAN DEFAULT false,
   destacado BOOLEAN DEFAULT false,
   retiro_local BOOLEAN DEFAULT true,
-  tipo TEXT CHECK (tipo IN ('ropa','tienda')) DEFAULT 'ropa',
+  tipo TEXT CHECK (tipo IN ('ropa','tienda','regaleria','bazar','decoracion')) DEFAULT 'ropa',
   vendedor_nombre TEXT NOT NULL DEFAULT 'Tienda Oficial',
   vendedor_id UUID REFERENCES profiles(id),
   vendedor_tipo TEXT NOT NULL CHECK (vendedor_tipo IN ('oficial','feria')) DEFAULT 'oficial',
