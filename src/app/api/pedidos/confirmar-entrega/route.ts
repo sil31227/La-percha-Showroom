@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const { data: rpcResult, error: rpcError } = await supabase.rpc("confirmar_entrega", { p_pedido_id: pedidoId })
+    const { data: rpcResult, error: rpcError } = await supabase.rpc("confirmar_entrega", { p_pedido_id: pedidoId, p_liberacion_automatica: false })
     if (rpcError) {
       console.error("[confirmar-entrega] RPC error:", JSON.stringify(rpcError), "pedidoId:", pedidoId)
       return NextResponse.json({ error: "No se pudo confirmar la entrega", detail: rpcError.message }, { status: 500 })
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
         user_id: vendedorId,
         type: "order_delivered",
         title: "📦 Compradora recibió el pedido",
-        body: `${compradorNombre} confirmó la entrega de "${productoTitulo}". Tu saldo fue liberado.`,
+        body: `${compradorNombre} confirmó la entrega de "${productoTitulo}". El pago será liberado próximamente.`,
         link: "/perfil/saldo",
         read: false,
       }).then(({ error: notifErr }) => {
@@ -116,8 +116,8 @@ export async function POST(req: Request) {
             user_id: uid,
             type: "order_delivered",
             title: "📦 Compradora recibió el pedido",
-            body: `${compradorNombre} confirmó la entrega de "${productoTitulo}". Liberá el pago a ${vendedorNombre}.`,
-            link: notificationLink,
+             body: `${compradorNombre} confirmó la entrega de "${productoTitulo}". Liberá el pago a ${vendedorNombre}.`,
+             link: "/admin/ventas",
             read: false,
           }).then(({ error: notifErr }) => {
             if (notifErr) console.error("[confirmar-entrega] Error insertando notificación admin:", notifErr)

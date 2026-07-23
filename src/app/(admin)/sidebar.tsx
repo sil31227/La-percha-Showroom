@@ -2,7 +2,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
-import { LayoutDashboard, ShieldCheck, Users, Store, Package, ShoppingBag, Tags, HelpCircle, UserPlus, Menu, X, LogOut, MoreHorizontal, Truck, MessageSquareText, ArrowDownCircle } from "lucide-react"
+import { LayoutDashboard, ShieldCheck, Users, Store, Package, ShoppingBag, Tags, HelpCircle, UserPlus, Menu, X, LogOut, MoreHorizontal, Truck, MessageSquareText, ArrowDownCircle, DollarSign } from "lucide-react"
 import { useAdminStore } from "@/store/useAdminStore"
 import { EnableAdminPush } from "./EnableAdminPush"
 
@@ -15,6 +15,7 @@ const NAV = [
   { href: "/admin/tienda", label: "Tienda", icon: Store },
   { href: "/admin/stock", label: "Stock", icon: Package },
   { href: "/admin/pedidos", label: "Pedidos", icon: ShoppingBag },
+  { href: "/admin/ventas", label: "Ventas", icon: DollarSign },
   { href: "/admin/envio", label: "Envío", icon: Truck },
   { href: "/admin/categorias", label: "Categorías", icon: Tags },
   { href: "/admin/faq", label: "FAQ / Términos", icon: HelpCircle },

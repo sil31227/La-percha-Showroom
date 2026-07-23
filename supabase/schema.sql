@@ -240,8 +240,10 @@ CREATE POLICY "retiros_insert_own" ON retiros FOR INSERT WITH CHECK (auth.uid() 
 
 -- ===== RPC FUNCTIONS =====
 
--- Confirmar entrega + acreditar 80% (atómica, idempotente)
-CREATE OR REPLACE FUNCTION confirmar_entrega(p_pedido_id TEXT)
+-- Confirmar entrega (atómica, idempotente)
+-- p_liberacion_automatica = true (default): marca delivered + libera fondos (admin/oficial)
+-- p_liberacion_automatica = false: solo marca delivered, no toca ventas ni balance (compradora feria)
+CREATE OR REPLACE FUNCTION confirmar_entrega(p_pedido_id TEXT, p_liberacion_automatica BOOLEAN DEFAULT true)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -258,14 +260,54 @@ BEGIN
 
   UPDATE pedidos SET status = 'delivered' WHERE id = p_pedido_id;
 
-  SELECT * INTO v_venta FROM ventas WHERE pedido_id = p_pedido_id AND status = 'pendiente' LIMIT 1;
-  IF FOUND THEN
-    UPDATE ventas SET status = 'liberado', liberado_at = NOW() WHERE id = v_venta.id;
-    UPDATE profiles SET balance = balance + v_venta.monto_neto WHERE id = v_venta.vendedor_id;
-    GET DIAGNOSTICS v_pedido_status = ROW_COUNT;
-    IF v_pedido_status = 0 THEN
-      RAISE EXCEPTION 'No se pudo acreditar el saldo al vendedor %', v_venta.vendedor_id;
+  IF p_liberacion_automatica THEN
+    SELECT * INTO v_venta FROM ventas WHERE pedido_id = p_pedido_id AND status = 'pendiente' LIMIT 1;
+    IF FOUND THEN
+      UPDATE ventas SET status = 'liberado', liberado_at = NOW() WHERE id = v_venta.id;
+      UPDATE profiles SET balance = balance + v_venta.monto_neto WHERE id = v_venta.vendedor_id;
+      GET DIAGNOSTICS v_pedido_status = ROW_COUNT;
+      IF v_pedido_status = 0 THEN
+        RAISE EXCEPTION 'No se pudo acreditar el saldo al vendedor %', v_venta.vendedor_id;
+      END IF;
     END IF;
+  END IF;
+
+  RETURN true;
+END;
+$$;
+
+-- Liberar fondos de una venta manualmente (admin)
+-- Solo permite liberar si la venta está pendiente y el pedido asociado está delivered
+CREATE OR REPLACE FUNCTION liberar_fondos(p_venta_id TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_venta ventas%ROWTYPE;
+  v_pedido_status TEXT;
+  v_affected INTEGER;
+BEGIN
+  SELECT * INTO v_venta FROM ventas WHERE id = p_venta_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Venta no encontrada';
+  END IF;
+
+  IF v_venta.status <> 'pendiente' THEN
+    RAISE EXCEPTION 'La venta no está pendiente (status: %)', v_venta.status;
+  END IF;
+
+  SELECT status INTO v_pedido_status FROM pedidos WHERE id = v_venta.pedido_id;
+  IF v_pedido_status IS DISTINCT FROM 'delivered' THEN
+    RAISE EXCEPTION 'El pedido asociado no está entregado (status: %)', v_pedido_status;
+  END IF;
+
+  UPDATE ventas SET status = 'liberado', liberado_at = NOW() WHERE id = p_venta_id;
+  UPDATE profiles SET balance = balance + v_venta.monto_neto WHERE id = v_venta.vendedor_id;
+  GET DIAGNOSTICS v_affected = ROW_COUNT;
+  IF v_affected = 0 THEN
+    RAISE EXCEPTION 'No se pudo acreditar el saldo al vendedor %', v_venta.vendedor_id;
   END IF;
 
   RETURN true;
@@ -336,7 +378,8 @@ END;
 $$;
 
 -- Permisos de ejecución
-GRANT EXECUTE ON FUNCTION confirmar_entrega(TEXT) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION confirmar_entrega(TEXT, BOOLEAN) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION liberar_fondos(TEXT) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION solicitar_retiro(UUID, INTEGER, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION marcar_retiro_pagado(TEXT) TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION rechazar_retiro(TEXT, TEXT) TO anon, authenticated, service_role;

@@ -58,6 +58,18 @@ export interface FAQItem { id: string; pregunta: string; respuesta: string; orde
 export interface AdminCategory { id: string; nombre: string; tipo?: ProductType; destacada?: boolean; orden?: number; subcategorias: AdminSubcategory[] }
 export interface AdminSubcategory { id: string; categoria_id: string; nombre: string; orden?: number }
 
+export interface PendienteLiberacion {
+  venta_id: string
+  pedido_id: string
+  producto_titulo: string
+  vendedor_id: string
+  vendedor_nombre: string
+  monto_bruto: number
+  comision: number
+  monto_neto: number
+  created_at: string
+}
+
 export interface StoreProductForm {
   titulo: string; precio: number; precio_anterior?: number; descripcion: string
   marca?: string; material?: string; categoria_id: string; subcategoria_id: string; estado: string
@@ -70,6 +82,7 @@ interface AdminState {
   products: AdminProduct[]; vendors: VendorRequest[]; orders: AdminOrder[]
   ventas: AdminVenta[]
   retiros: AdminRetiro[]; retirosLoaded: boolean
+  ventasPendientes: PendienteLiberacion[]; ventasPendientesLoaded: boolean
   categories: AdminCategory[]; faq: FAQItem[];   terms: string
   shippingConfig: ShippingConfig | null
   shippingConfigLoaded: boolean
@@ -78,6 +91,8 @@ interface AdminState {
   loadFromSupabase: () => Promise<void>
   loadOrders: () => Promise<void>
   loadRetiros: () => Promise<void>
+  loadVentasPendientes: () => Promise<void>
+  liberarFondos: (ventaId: string) => Promise<void>
   loadShippingConfig: () => Promise<void>
   updateShippingConfig: (config: ShippingConfig) => Promise<void>
   updateProductStatus: (id: string, status: ProductStatus, texto?: string) => Promise<void>
@@ -118,6 +133,7 @@ async function createNotification(userId: string | undefined, type: Notification
 
 export const useAdminStore = create<AdminState>((set, get) => ({
   products: [], vendors: [], orders: [], ventas: [], retiros: [], retirosLoaded: false,
+  ventasPendientes: [], ventasPendientesLoaded: false,
   categories: [], faq: [], terms: "", shippingConfig: null, shippingConfigLoaded: false, loaded: false, moderationNotes: {},
 
   loadFromSupabase: async () => {
@@ -554,6 +570,32 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }
     set(s => ({
       retiros: s.retiros.map(r => r.id === id ? { ...r, status: "rechazado" as const } : r),
+    }))
+  },
+
+  loadVentasPendientes: async () => {
+    try {
+      const res = await fetch("/api/admin/ventas")
+      if (!res.ok) throw new Error("Error al cargar ventas pendientes")
+      const data = await res.json()
+      set({ ventasPendientes: data.ventas as PendienteLiberacion[], ventasPendientesLoaded: true })
+    } catch {
+      set({ ventasPendientesLoaded: true })
+    }
+  },
+
+  liberarFondos: async (ventaId) => {
+    const res = await fetch("/api/admin/ventas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ventaId }),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || "Error al liberar fondos")
+    }
+    set(s => ({
+      ventasPendientes: s.ventasPendientes.filter(v => v.venta_id !== ventaId),
     }))
   },
 
