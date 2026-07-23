@@ -25,14 +25,26 @@ export async function GET(req: Request) {
     const vendedoresMap: Record<string, unknown> = {}
 
     if (vendedorIds.length > 0) {
-      const { data: vendedores } = await supabase
-        .from("vendedores")
-        .select("id, nombre, email, avatar, cbu, banco, tipo_cuenta, alias, titular")
-        .in("id", vendedorIds)
+      const [{ data: profiles }, { data: vendedores }] = await Promise.all([
+        supabase.from("profiles").select("id, full_name, email, avatar_url").in("id", vendedorIds),
+        supabase.from("vendedores").select("id, cbu, banco, tipo_cuenta, alias, titular").in("id", vendedorIds),
+      ])
 
-      if (vendedores) {
-        for (const v of vendedores) {
-          vendedoresMap[v.id] = v
+      const profilesMap = new Map((profiles || []).map(p => [p.id, p]))
+      const vendorsMap = new Map((vendedores || []).map(v => [v.id, v]))
+
+      for (const id of vendedorIds) {
+        const profile = profilesMap.get(id)
+        const vendor = vendorsMap.get(id)
+        vendedoresMap[id] = {
+          nombre: profile?.full_name || "Vendedora",
+          email: profile?.email || "",
+          avatar: profile?.avatar_url || "",
+          cbu: vendor?.cbu || null,
+          banco: vendor?.banco || null,
+          tipo_cuenta: vendor?.tipo_cuenta || null,
+          alias: vendor?.alias || null,
+          titular: vendor?.titular || null,
         }
       }
     }
