@@ -59,14 +59,14 @@ export async function GET() {
     const vendedoresMap: Record<string, { nombre: string }> = {}
 
     if (vendedorIds.length > 0) {
-      const { data: vendedores } = await supabase
-        .from("vendedores")
-        .select("id, nombre")
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name")
         .in("id", vendedorIds)
 
-      if (vendedores) {
-        for (const v of vendedores) {
-          vendedoresMap[v.id] = v
+      if (profiles) {
+        for (const p of profiles) {
+          vendedoresMap[p.id] = { nombre: p.full_name || "Vendedora" }
         }
       }
     }
