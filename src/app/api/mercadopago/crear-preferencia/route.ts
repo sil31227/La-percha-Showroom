@@ -164,7 +164,7 @@ export async function POST(req: Request) {
 
     const subtotal = validItems.reduce((sum, i) => sum + i.price, 0)
 
-    const { data: cfgData } = await supabase.from("configuracion_envio").select("*").single()
+    const { data: cfgData } = await supabase.from("configuracion_envio").select("sucursal_price, domicilio_price, free_threshold, domicilio_surcharge").single()
     const metodo = metodo_envio || "arreglar_vendedor"
     let shipping = 0
 

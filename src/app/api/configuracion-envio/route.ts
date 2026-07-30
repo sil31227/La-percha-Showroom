@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 
 export async function GET() {
   const supabase = createAdminClient()
-  const { data, error } = await supabase.from("configuracion_envio").select("*").single()
+  const { data, error } = await supabase.from("configuracion_envio").select("sucursal_price, domicilio_price, free_threshold, domicilio_surcharge").single()
 
   if (error || !data) {
     return NextResponse.json({ error: "Configuración no encontrada" }, { status: 500 })

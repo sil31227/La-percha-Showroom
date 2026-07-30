@@ -9,7 +9,7 @@ export async function GET(req: Request) {
 
     let query = supabase
       .from("retiros")
-      .select("*")
+      .select("id, vendedor_id, monto, cbu, status, created_at, pagado_at")
       .order("created_at", { ascending: false })
 
     if (status && ["solicitado", "pagado", "rechazado"].includes(status)) {
@@ -26,8 +26,8 @@ export async function GET(req: Request) {
 
     if (vendedorIds.length > 0) {
       const [{ data: profiles }, { data: vendedores }] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, email, avatar_url").in("id", vendedorIds),
-        supabase.from("vendedores").select("id, cbu, banco, tipo_cuenta, alias, titular").in("id", vendedorIds),
+        supabase.from("profiles").select("id, full_name, avatar_url").in("id", vendedorIds),
+        supabase.from("vendedores").select("id, email, avatar, cbu, banco, tipo_cuenta, alias, titular").in("id", vendedorIds),
       ])
 
       const profilesMap = new Map((profiles || []).map(p => [p.id, p]))
@@ -38,8 +38,8 @@ export async function GET(req: Request) {
         const vendor = vendorsMap.get(id)
         vendedoresMap[id] = {
           nombre: profile?.full_name || "Vendedora",
-          email: profile?.email || "",
-          avatar: profile?.avatar_url || "",
+          email: vendor?.email || "",
+          avatar: vendor?.avatar || profile?.avatar_url || "",
           cbu: vendor?.cbu || null,
           banco: vendor?.banco || null,
           tipo_cuenta: vendor?.tipo_cuenta || null,

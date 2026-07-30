@@ -73,7 +73,7 @@ function mapProfile(profile: Record<string, unknown> | null, email: string, user
 async function fetchProfile(userId: string): Promise<Record<string, unknown> | null> {
   const { data } = await supabase
     .from("profiles")
-    .select("*")
+    .select("id, full_name, avatar_url, phone, is_seller, seller_status, balance")
     .eq("id", userId)
     .single()
   return data
