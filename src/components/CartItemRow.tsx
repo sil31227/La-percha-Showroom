@@ -4,12 +4,12 @@ import { useShopStore } from "@/store/useShopStore"
 
 interface Props {
   item: CartItem
-  onRemove: (productId: string) => void
+  onRemove: (item: CartItem) => void
 }
 
 export function CartItemRow({ item, onRemove }: Props) {
   const updateQuantity = useShopStore(s => s.updateQuantity)
-  const qty = item.quantity || 1
+  const qty = item.quantity ?? 1
   const showQuantity = item.store_type === "oficial"
 
   return (
@@ -34,7 +34,7 @@ export function CartItemRow({ item, onRemove }: Props) {
       {showQuantity && (
         <div className="flex items-center gap-1 shrink-0 mr-1">
           <button
-            onClick={() => updateQuantity(item.productId, qty - 1)}
+            onClick={() => updateQuantity(item.productId, item.size, item.variantLabel, qty - 1)}
             data-testid="cart-qty-dec"
             className="w-7 h-7 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-surface-inverse/10 transition-colors"
           >
@@ -42,7 +42,7 @@ export function CartItemRow({ item, onRemove }: Props) {
           </button>
           <span className="w-7 text-center text-xs font-semibold text-text-strong" data-testid="cart-qty">{qty}</span>
           <button
-            onClick={() => updateQuantity(item.productId, qty + 1)}
+            onClick={() => updateQuantity(item.productId, item.size, item.variantLabel, qty + 1)}
             data-testid="cart-qty-inc"
             disabled={(item.variantStock ?? Infinity) > 0 && qty >= (item.variantStock ?? Infinity)}
             className="w-7 h-7 rounded-full bg-surface-sunken flex items-center justify-center hover:bg-surface-inverse/10 transition-colors disabled:opacity-30"
@@ -52,7 +52,7 @@ export function CartItemRow({ item, onRemove }: Props) {
         </div>
       )}
       <button
-        onClick={() => onRemove(item.productId)}
+        onClick={() => onRemove(item)}
         aria-label="Eliminar del carrito"
         className="w-8 h-8 rounded-full bg-surface-sunken flex items-center justify-center
           hover:bg-error-50 hover:text-error-500 transition-colors shrink-0">

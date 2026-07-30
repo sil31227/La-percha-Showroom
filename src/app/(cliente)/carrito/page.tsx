@@ -40,9 +40,9 @@ export default function CarritoPage() {
           <div className="flex flex-col pb-56 lg:pb-0 lg:flex-1">
             {cart.map(item => (
               <CartItemRow
-                key={item.productId}
+                key={`${item.productId}||${item.size}||${item.variantLabel || ""}`}
                 item={item}
-                onRemove={removeFromCart}
+                onRemove={(cartItem) => removeFromCart(cartItem.productId, cartItem.size, cartItem.variantLabel)}
               />
             ))}
           </div>
