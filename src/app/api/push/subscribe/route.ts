@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase-admin"
+import { bearerToken, getUserFromToken } from "@/lib/auth-server"
 import { NextResponse } from "next/server"
 
 interface SubscribeBody {
@@ -25,6 +26,18 @@ export async function POST(req: Request) {
     const supabase = createAdminClient()
 
     let userId: string | null = null
+    if (audience === "admin") {
+      const adminUser = await getUserFromToken(bearerToken(req))
+      if (!adminUser?.id) {
+        return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+      }
+      const adminEmail = process.env.ADMIN_EMAIL
+      if (!adminEmail || adminUser.email !== adminEmail) {
+        return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+      }
+      userId = adminUser.id
+    }
+
     if (audience === "seller") {
       if (!body.access_token) {
         return NextResponse.json({ error: "No autenticado" }, { status: 401 })

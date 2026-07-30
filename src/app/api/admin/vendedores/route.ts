@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase-admin"
+import { bearerToken, getUserFromToken } from "@/lib/auth-server"
 
 export async function PATCH(request: Request) {
   try {
+    const user = await getUserFromToken(bearerToken(request))
+    if (!user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    }
+    const adminEmail = process.env.ADMIN_EMAIL
+    if (!adminEmail || user.email !== adminEmail) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+    }
+
     const { id, status } = await request.json()
 
     if (!id || !status) {
