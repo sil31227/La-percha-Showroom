@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase-admin"
+import { bearerToken, getUserFromToken } from "@/lib/auth-server"
 
 export async function POST(request: Request) {
   try {
+    const user = await getUserFromToken(bearerToken(request))
+    if (!user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    }
+
     const formData = await request.formData()
     const file = formData.get("file") as File | null
 

@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase-admin"
+import { bearerToken, getUserFromToken } from "@/lib/auth-server"
 
 const VALID_ACTIONS = ["approved", "rejected", "changes_requested"]
 
 export async function POST(request: Request) {
   try {
+    const user = await getUserFromToken(bearerToken(request))
+    if (!user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    }
+    const adminEmail = process.env.ADMIN_EMAIL
+    if (!adminEmail || user.email !== adminEmail) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+    }
+
     const { producto_id, tipo_accion, texto } = await request.json()
 
     if (!producto_id || !tipo_accion) {

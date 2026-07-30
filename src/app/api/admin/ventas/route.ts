@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase-admin"
+import { bearerToken, getUserFromToken } from "@/lib/auth-server"
 import { NextResponse } from "next/server"
 
 interface VentaPendiente {
@@ -12,8 +13,17 @@ interface VentaPendiente {
   created_at: string
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const user = await getUserFromToken(bearerToken(req))
+    if (!user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    }
+    const adminEmail = process.env.ADMIN_EMAIL
+    if (!adminEmail || user.email !== adminEmail) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+    }
+
     const supabase = createAdminClient()
 
     const { data: ventas, error } = await supabase
@@ -85,6 +95,15 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const user = await getUserFromToken(bearerToken(req))
+    if (!user?.id) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    }
+    const adminEmail = process.env.ADMIN_EMAIL
+    if (!adminEmail || user.email !== adminEmail) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+    }
+
     const { ventaId } = await req.json().catch(() => ({}))
     if (!ventaId) {
       return NextResponse.json({ error: "Falta ventaId" }, { status: 400 })
@@ -121,9 +140,13 @@ export async function POST(req: Request) {
         if (notifErr) console.error("[admin/ventas POST] Error insertando notificación vendedora:", notifErr)
       })
 
+      const token = bearerToken(req)
       fetch(`${new URL(req.url).origin}/api/push/notify-seller`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           userId: venta.vendedor_id,
           title: "Pago liberado",

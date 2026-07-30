@@ -1,8 +1,24 @@
 import { createAdminClient } from "@/lib/supabase-admin"
+import { bearerToken, getUserFromToken } from "@/lib/auth-server"
 import { NextResponse } from "next/server"
+
+async function checkAdmin(req: Request) {
+  const user = await getUserFromToken(bearerToken(req))
+  if (!user?.id) {
+    return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+  }
+  const adminEmail = process.env.ADMIN_EMAIL
+  if (!adminEmail || user.email !== adminEmail) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 })
+  }
+  return null
+}
 
 export async function GET(req: Request) {
   try {
+    const authError = await checkAdmin(req)
+    if (authError) return authError
+
     const { searchParams } = new URL(req.url)
     const status = searchParams.get("status")
     const supabase = createAdminClient()
@@ -61,6 +77,9 @@ export async function GET(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  const authError = await checkAdmin(req)
+  if (authError) return authError
+
   const { action, retiroId, motivo } = await req.json().catch(() => ({}))
   if (!retiroId || !["pagar", "rechazar"].includes(action)) {
     return NextResponse.json({ error: "Faltan action o retiroId" }, { status: 400 })
