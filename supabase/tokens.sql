@@ -4,7 +4,9 @@ CREATE TABLE verification_tokens (
   email TEXT NOT NULL,
   token TEXT NOT NULL UNIQUE,
   name TEXT,
+  type TEXT DEFAULT 'email_verification',
   verified BOOLEAN DEFAULT false,
+  used_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
