@@ -342,25 +342,11 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set(s => ({ products: s.products.map(p => p.id === id ? { ...p, ...form } : p) }))
   },
   removeStoreProduct: async (id) => {
-    const product = get().products.find(p => p.id === id)
-    const imagePaths = (product?.imagenes || [])
-      .filter((url: string) => url.includes("hvmctiqzjbqsghuwhquk.supabase.co"))
-      .map((url: string) => {
-        const parts = url.split("/productos/")
-        return parts[1]?.split("?")[0]
-      })
-      .filter(Boolean) as string[]
-
-    await supabase.from("productos").delete().eq("id", id)
-
-    if (imagePaths.length > 0) {
-      fetch("/api/imagenes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paths: imagePaths }),
-      }).catch(() => {})
+    const res = await fetch(`/api/productos/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: "Error desconocido" }))
+      throw new Error(body.error || "Error al eliminar producto")
     }
-
     set(s => ({ products: s.products.filter(p => p.id !== id) }))
   },
   updateProductStock: async (id, stock, variantes) => {
@@ -510,25 +496,11 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }))
   },
   deleteFeriaProduct: async (id) => {
-    const product = get().products.find(p => p.id === id)
-    const imagePaths = (product?.imagenes || [])
-      .filter((url: string) => url.includes("hvmctiqzjbqsghuwhquk.supabase.co"))
-      .map((url: string) => {
-        const parts = url.split("/productos/")
-        return parts[1]?.split("?")[0]
-      })
-      .filter(Boolean) as string[]
-
-    await supabase.from("productos").delete().eq("id", id)
-
-    if (imagePaths.length > 0) {
-      fetch("/api/imagenes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paths: imagePaths }),
-      }).catch(() => {})
+    const res = await fetch(`/api/productos/${id}`, { method: "DELETE" })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: "Error desconocido" }))
+      throw new Error(body.error || "Error al eliminar producto")
     }
-
     set(s => ({ products: s.products.filter(p => p.id !== id) }))
   },
 
