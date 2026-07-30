@@ -3,6 +3,11 @@ import type { CartItem, Filters } from "@/lib/types"
 
 const CART_KEY = "lapercha_cart"
 const FAV_KEY = "lapercha_favs"
+const SHIPPING_KEY = "lapercha_shipping"
+
+function cartKey(productId: string, size: string, variantLabel?: string) {
+  return `${productId}||${size}||${variantLabel || ""}`
+}
 
 function loadCart(): CartItem[] {
   if (typeof window === "undefined") return []
@@ -34,11 +39,26 @@ function saveFavs(favs: string[]) {
   localStorage.setItem(FAV_KEY, JSON.stringify(favs))
 }
 
+function loadShipping(): { shippingMethod: string | null; shippingCost: number } {
+  if (typeof window === "undefined") return { shippingMethod: null, shippingCost: 0 }
+  try {
+    const raw = localStorage.getItem(SHIPPING_KEY)
+    return raw ? JSON.parse(raw) : { shippingMethod: null, shippingCost: 0 }
+  } catch {
+    return { shippingMethod: null, shippingCost: 0 }
+  }
+}
+
+function saveShipping(method: string | null, cost: number) {
+  if (typeof window === "undefined") return
+  localStorage.setItem(SHIPPING_KEY, JSON.stringify({ shippingMethod: method, shippingCost: cost }))
+}
+
 interface ShopStore {
   cart: CartItem[]
   addToCart: (item: CartItem) => void
-  removeFromCart: (productId: string) => void
-  updateQuantity: (productId: string, quantity: number) => void
+  removeFromCart: (productId: string, size: string, variantLabel?: string) => void
+  updateQuantity: (productId: string, size: string, variantLabel: string | undefined, quantity: number) => void
   clearCart: () => void
   cartCount: () => number
   cartTotal: () => number
@@ -68,11 +88,10 @@ const DEFAULT_FILTERS: Filters = {
 
 export const useShopStore = create<ShopStore>()((set, get) => ({
   cart: typeof window !== "undefined" ? loadCart() : [],
-  shippingMethod: null,
-  shippingCost: 0,
+  ...(typeof window !== "undefined" ? loadShipping() : { shippingMethod: null, shippingCost: 0 }),
   addToCart: (item) =>
     set((s) => {
-      const key = (i: CartItem) => `${i.productId}||${i.size}||${i.variantLabel || ""}`
+      const key = (i: CartItem) => cartKey(i.productId, i.size, i.variantLabel)
       const existing = s.cart.find(i => key(i) === key(item))
       if (existing) {
         const next = {
@@ -85,21 +104,23 @@ export const useShopStore = create<ShopStore>()((set, get) => ({
       saveCart(next.cart)
       return next
     }),
-  removeFromCart: (productId) =>
+  removeFromCart: (productId, size, variantLabel) =>
     set((s) => {
-      const next = { cart: s.cart.filter(i => i.productId !== productId) }
+      const targetKey = cartKey(productId, size, variantLabel)
+      const next = { cart: s.cart.filter(i => cartKey(i.productId, i.size, i.variantLabel) !== targetKey) }
       saveCart(next.cart)
       return next
     }),
-  updateQuantity: (productId, quantity) =>
+  updateQuantity: (productId, size, variantLabel, quantity) =>
     set((s) => {
+      const targetKey = cartKey(productId, size, variantLabel)
       if (quantity <= 0) {
-        const next = { cart: s.cart.filter(i => i.productId !== productId) }
+        const next = { cart: s.cart.filter(i => cartKey(i.productId, i.size, i.variantLabel) !== targetKey) }
         saveCart(next.cart)
         return next
       }
       const next = {
-        cart: s.cart.map(i => i.productId === productId ? { ...i, quantity } : i),
+        cart: s.cart.map(i => cartKey(i.productId, i.size, i.variantLabel) === targetKey ? { ...i, quantity } : i),
       }
       saveCart(next.cart)
       return next
@@ -108,10 +129,13 @@ export const useShopStore = create<ShopStore>()((set, get) => ({
     saveCart([])
     set({ cart: [] })
   },
-  cartCount: () => get().cart.reduce((sum, i) => sum + (i.quantity || 1), 0),
-  cartTotal: () => get().cart.reduce((sum, i) => sum + i.price * (i.quantity || 1), 0),
+  cartCount: () => get().cart.reduce((sum, i) => sum + (i.quantity ?? 1), 0),
+  cartTotal: () => get().cart.reduce((sum, i) => sum + i.price * (i.quantity ?? 1), 0),
 
-  setShipping: (method, cost) => set({ shippingMethod: method, shippingCost: cost }),
+  setShipping: (method, cost) => {
+    set({ shippingMethod: method, shippingCost: cost })
+    saveShipping(method, cost)
+  },
 
   favorites: typeof window !== "undefined" ? loadFavs() : [],
   toggleFavorite: (productId) =>
