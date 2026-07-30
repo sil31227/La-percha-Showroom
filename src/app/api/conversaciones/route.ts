@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
   const { data: existing, error: existingErr } = await supabase
     .from("conversaciones")
     .select("id, pedido_id, comprador_id, vendedor_id, created_at")
+    .eq("pedido_id", pedidoId)
     .maybeSingle()
 
   if (existing && !existingErr) {
