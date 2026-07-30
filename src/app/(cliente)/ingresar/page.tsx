@@ -130,7 +130,13 @@ function LoginForm() {
             </button>
           </form>
 
-          <p className="text-center text-xs text-text-muted mt-5">
+          <p className="text-center text-xs text-text-muted mt-2">
+            <Link href="/ingresar/olvide-contrasena" className="text-text-muted hover:text-brand transition-colors">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </p>
+
+          <p className="text-center text-xs text-text-muted mt-4">
             ¿No tenés cuenta?{" "}
             <Link href="/ingresar/registrarse" className="text-brand font-semibold hover:underline">
               Registrate

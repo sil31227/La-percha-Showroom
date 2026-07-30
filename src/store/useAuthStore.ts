@@ -45,6 +45,8 @@ interface AuthStore {
   login: (email: string, password: string) => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean }>
   register: (name: string, email: string, password: string) => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean; alreadyExists?: boolean }>
   resendVerification: (email: string, name?: string) => Promise<{ ok: boolean; error?: string }>
+  forgotPassword: (email: string) => Promise<{ ok: boolean; error?: string }>
+  resetPassword: (token: string, newPassword: string, confirmPassword: string) => Promise<{ ok: boolean; error?: string }>
   requestSeller: () => Promise<void>
   refreshProfile: () => Promise<void>
   fetchVentas: () => Promise<VentaRecord[]>
@@ -190,6 +192,40 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) return { ok: false, error: data.error || "No se pudo reenviar el email" }
+      return { ok: true }
+    } catch {
+      return { ok: false, error: "Error de conexión" }
+    }
+  },
+
+  forgotPassword: async (email) => {
+    if (!email) return { ok: false, error: "Ingresá tu email" }
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) return { ok: false, error: data.error || "No se pudo procesar la solicitud" }
+      return { ok: true }
+    } catch {
+      return { ok: false, error: "Error de conexión" }
+    }
+  },
+
+  resetPassword: async (token, newPassword, confirmPassword) => {
+    if (!token || !newPassword) return { ok: false, error: "Todos los campos son requeridos" }
+    if (newPassword.length < 6) return { ok: false, error: "La contraseña debe tener al menos 6 caracteres" }
+    if (newPassword !== confirmPassword) return { ok: false, error: "Las contraseñas no coinciden" }
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, newPassword }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) return { ok: false, error: data.error || "No se pudo restablecer la contraseña" }
       return { ok: true }
     } catch {
       return { ok: false, error: "Error de conexión" }
