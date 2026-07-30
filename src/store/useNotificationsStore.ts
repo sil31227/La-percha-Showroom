@@ -21,7 +21,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
     if (!userId) return
     const { data, error } = await supabase
       .from("notifications")
-      .select("*")
+      .select("id, user_id, type, title, body, link, read, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
     if (!error) set({ items: (data || []) as Notification[], loaded: true })

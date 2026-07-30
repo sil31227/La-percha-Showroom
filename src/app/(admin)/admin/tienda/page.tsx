@@ -6,6 +6,7 @@ import { Plus, X, Pencil, Trash2, ChevronLeft, ChevronDown, ChevronUp, Star, Tru
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { compressImage } from "@/lib/image-utils"
 
 const TIPOS: { v: ProductType; l: string; d: string; icon: React.ReactNode; colorClass: string }[] = [
   { v: "ropa", l: "Ropa", d: "Camisas, pantalones, vestidos, calzado, accesorios, kids", icon: <Shirt className="w-7 h-7 text-matcha-600" />, colorClass: "border-matcha-500 bg-matcha-100" },
@@ -226,8 +227,9 @@ export default function TiendaPage() {
     const files = e.target.files; if (!files?.length) return
     setUploading(true)
     for (const file of Array.from(files)) {
-      const fd = new FormData(); fd.append("file", file)
       try {
+        const compressed = await compressImage(file, 1600, 0.8)
+        const fd = new FormData(); fd.append("file", compressed)
         const res = await fetch("/api/upload", { method: "POST", body: fd })
         const data = await res.json()
         if (data.url) setForm(f => ({ ...f, imagenes: [...f.imagenes, data.url] }))

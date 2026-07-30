@@ -72,7 +72,7 @@ export function useApprovedProductos() {
   useEffect(() => {
     supabase
       .from("productos")
-      .select("*")
+      .select("id, titulo, descripcion, marca, precio, imagenes, talles, variantes, estado, vendedor_tipo, categoria_id, subcategoria_id, vendedor_nombre, tipo, stock, envio_gratis, created_at")
       .eq("status", "approved")
       .gt("stock", 0)
       .order("created_at", { ascending: false })
@@ -102,7 +102,7 @@ export function useProductoById(id: string) {
     setError(null)
     const query = supabase
       .from("productos")
-      .select("*")
+      .select("id, titulo, descripcion, marca, precio, imagenes, talles, variantes, estado, vendedor_tipo, categoria_id, subcategoria_id, vendedor_nombre, tipo, stock, envio_gratis, created_at")
       .eq("id", id)
       .single()
     Promise.resolve(query)

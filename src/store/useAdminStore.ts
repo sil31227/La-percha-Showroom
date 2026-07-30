@@ -131,6 +131,12 @@ async function createNotification(userId: string | undefined, type: Notification
   )
 }
 
+const P = "id, titulo, precio, precio_anterior, descripcion, marca, material, categoria_id, subcategoria_id, estado, talles, colores, imagenes, stock, variantes, envio_gratis, destacado, tipo, retiro_local, vendedor_nombre, vendedor_id, vendedor_tipo, status, vendido, orden, created_at"
+const O = "id, producto_titulo, producto_imagen, producto_id, precio, comprador_nombre, comprador_email, vendedor_nombre, vendedor_email, vendedor_id, vendedor_tipo, talle, direccion, status, created_at, metodo_envio, costo_envio, seguimiento"
+const V = "id, nombre, email, avatar, cbu, banco, tipo_cuenta, alias, titular, productos_count, status, created_at"
+const VT = "id, pedido_id, vendedor_id, producto_titulo, monto_bruto, comision, monto_neto, status, created_at, liberado_at"
+const M = "id, producto_id, admin_id, tipo_accion, texto, created_at"
+
 export const useAdminStore = create<AdminState>((set, get) => ({
   products: [], vendors: [], orders: [], ventas: [], retiros: [], retirosLoaded: false,
   ventasPendientes: [], ventasPendientesLoaded: false,
@@ -138,20 +144,20 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   loadFromSupabase: async () => {
     const [pRes, vRes, oRes, vtRes, cRes, fRes, tRes] = await Promise.all([
-      supabase.from("productos").select("*").order("created_at", { ascending: false }),
-      supabase.from("vendedores").select("*").order("created_at", { ascending: false }),
-      supabase.from("pedidos").select("*").order("created_at", { ascending: false }),
-      supabase.from("ventas").select("*").order("created_at", { ascending: false }),
+      supabase.from("productos").select(P).order("created_at", { ascending: false }),
+      supabase.from("vendedores").select(V).order("created_at", { ascending: false }),
+      supabase.from("pedidos").select(O).order("created_at", { ascending: false }),
+      supabase.from("ventas").select(VT).order("created_at", { ascending: false }),
       supabase.from("categorias").select("*, subcategorias(*)").order("orden"),
-      supabase.from("faq").select("*").order("orden"),
-      supabase.from("terminos").select("*").single(),
+      supabase.from("faq").select("id, pregunta, respuesta, orden").order("orden"),
+      supabase.from("terminos").select("contenido").single(),
     ])
     const moderationNotes: Record<string, ModerationNote[]> = {}
     const productIds = (pRes.data || []).map((p: { id: string }) => p.id)
     if (productIds.length > 0) {
       const { data: notes } = await supabase
         .from("comentarios_moderacion")
-        .select("*")
+        .select(M)
         .in("producto_id", productIds)
         .order("created_at", { ascending: false })
       if (notes) {
@@ -176,7 +182,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   loadOrders: async () => {
-    const { data } = await supabase.from("pedidos").select("*").order("created_at", { ascending: false })
+    const { data } = await supabase.from("pedidos").select(O).order("created_at", { ascending: false })
     if (data) set({ orders: data as AdminOrder[] })
   },
 
@@ -469,7 +475,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
   addCategory: async (nombre, tipo) => {
     const id = `cat-${Date.now()}`
-    await supabase.from("categorias").insert({ id, nombre, tipo, orden: 0 })
+    await supabase.from("categorias").insert({ id, nombre, orden: 0 })
     set(s => ({ categories: [...s.categories, { id, nombre, tipo: tipo as ProductType, subcategorias: [] }] }))
   },
 
@@ -600,7 +606,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   loadShippingConfig: async () => {
-    const { data } = await supabase.from("configuracion_envio").select("*").maybeSingle()
+    const { data } = await supabase.from("configuracion_envio").select("sucursal_price, domicilio_price, free_threshold, domicilio_surcharge, id, updated_at").maybeSingle()
     if (data) set({ shippingConfig: data as ShippingConfig })
     set({ shippingConfigLoaded: true })
   },

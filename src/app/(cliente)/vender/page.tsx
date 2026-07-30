@@ -5,6 +5,7 @@ import { ArrowLeft, Camera, Plus, X, ShieldCheck, Package, BadgePercent, Truck, 
 import { useAuthStore } from "@/store/useAuthStore"
 import { EnableSellerPush } from "./EnableSellerPush"
 import { supabase } from "@/lib/supabase"
+import { compressImage } from "@/lib/image-utils"
 
 const CONDITIONS = [
   { value: 'new_tag', label: 'Nuevo con etiqueta' },
@@ -34,7 +35,7 @@ export default function VenderPage() {
   }, [user?.seller_status])
 
   useEffect(() => {
-    supabase.from("categorias").select("id, nombre").eq("tipo", "ropa").order("orden")
+    supabase.from("categorias").select("id, nombre").order("orden")
       .then(({ data }) => {
         if (data && data.length > 0) {
           setCategories(data)
@@ -221,8 +222,9 @@ export default function VenderPage() {
     const files = e.target.files; if (!files?.length) return
     setUploading(true)
     for (const file of Array.from(files)) {
-      const fd = new FormData(); fd.append("file", file)
       try {
+        const compressed = await compressImage(file, 1600, 0.8)
+        const fd = new FormData(); fd.append("file", compressed)
         const res = await fetch("/api/upload", { method: "POST", body: fd })
         const data = await res.json()
         if (data.url) setImages(prev => [...prev, data.url])
