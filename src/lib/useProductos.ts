@@ -3,6 +3,22 @@ import { useEffect, useRef, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import type { Product } from "@/lib/types"
 
+const SUBCAT_ID_MAP: Record<string, string> = {
+  "sub-m-ro": "ropa",
+  "sub-m-ca": "calzado",
+  "sub-m-ac": "accesorios",
+  "sub-m-be": "belleza",
+  "sub-h-ro": "ropa",
+  "sub-h-ca": "calzado",
+  "sub-h-ac": "accesorios",
+  "sub-k-be": "bebes",
+  "sub-k-ni": "ninas",
+  "sub-k-no": "ninos",
+  "sub-t-re": "regaleria",
+  "sub-t-ba": "bazar",
+  "sub-t-de": "decoracion",
+}
+
 function mapProducto(row: Record<string, unknown>): Product {
   const rawSizes = (row.talles as string[]) || []
   const sizes = rawSizes.length > 0 ? rawSizes : ["Único"]
@@ -49,7 +65,7 @@ function mapProducto(row: Record<string, unknown>): Product {
     condition: ((row.estado as string) || "") as Product["condition"],
     store_type: (row.vendedor_tipo === "oficial" ? "oficial" : "feria") as Product["store_type"],
     category: (row.categoria_id as Product["category"]) || "mujer",
-    subcategory: (row.subcategoria_id as Product["subcategory"]),
+    subcategory: (SUBCAT_ID_MAP[row.subcategoria_id as string] || (row.subcategoria_id as string) || undefined) as Product["subcategory"] | undefined,
     seller: {
       id: (row.vendedor_nombre as string) || "Tienda Oficial",
       name: (row.vendedor_nombre as string) || "Tienda Oficial",

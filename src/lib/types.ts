@@ -2,7 +2,7 @@ export type Condition = 'new_tag' | 'new' | 'like_new' | 'used'
 export type StoreType = 'oficial' | 'feria'
 export type SortOption = 'newest' | 'price_asc' | 'price_desc'
 export type ProductType = 'ropa' | 'regaleria' | 'bazar' | 'decoracion'
-export type Category = 'mujer' | 'hombre' | 'kids' | 'regaleria' | 'bazar' | 'decoracion'
+export type Category = 'mujer' | 'hombre' | 'kids' | 'tienda' | 'regaleria' | 'bazar' | 'decoracion'
 export type Subcategory = 'ropa' | 'calzado' | 'accesorios' | 'belleza' | 'bebes' | 'ninas' | 'ninos'
 
 export interface Variante {
