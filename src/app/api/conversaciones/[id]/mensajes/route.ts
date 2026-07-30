@@ -116,6 +116,7 @@ export async function GET(
   const { data: mensajes, error } = await supabase
     .from("mensajes")
     .select("id, conversacion_id, sender_id, texto, created_at")
+    .eq("conversacion_id", conversacionId)
     .order("created_at", { ascending: true })
 
   if (error) {
