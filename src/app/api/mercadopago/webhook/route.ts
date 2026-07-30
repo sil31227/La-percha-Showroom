@@ -20,6 +20,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true })
     }
 
+    const xRequestId = req.headers.get("x-request-id")
+    if (xRequestId) {
+      const { data: existing } = await supabase
+        .from("webhook_idempotency")
+        .select("request_id")
+        .eq("request_id", xRequestId)
+        .maybeSingle()
+
+      if (existing) {
+        return NextResponse.json({ ok: true, idempotent: true })
+      }
+
+      await supabase.from("webhook_idempotency").insert({ request_id: xRequestId })
+    }
+
     const mpClient = new MercadoPagoConfig({ accessToken })
     const payment = new Payment(mpClient)
     const paymentData = await payment.get({ id: paymentId })
