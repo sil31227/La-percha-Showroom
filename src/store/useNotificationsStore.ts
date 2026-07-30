@@ -25,6 +25,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
     if (!error) set({ items: (data || []) as Notification[], loaded: true })
+    else set({ loaded: true })
   },
 
   markAllRead: async (userId) => {
@@ -36,7 +37,7 @@ export const useNotificationsStore = create<NotificationsState>((set, get) => ({
       .update({ read: true })
       .eq("user_id", userId)
       .eq("read", false)
-    if (!error) set(s => ({ items: s.items.map(n => ({ ...n, read: true })) }))
+    if (!error) await get().load(userId)
   },
 
   clear: () => set({ items: [], loaded: false }),
