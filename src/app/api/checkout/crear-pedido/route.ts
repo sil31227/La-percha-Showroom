@@ -48,24 +48,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "El carrito está vacío" }, { status: 400 })
     }
 
-    const ids = items.map(i => i.productId)
+    const rpcItems = items.map(item => ({
+      product_id: item.productId,
+      variant_label: item.variantLabel || null,
+      size: item.size || null,
+    }))
 
-    const { data: products, error: productError } = await supabase
-      .from("productos")
-      .select("id, titulo, precio, imagenes, vendedor_nombre, vendedor_id, vendedor_tipo, status, variantes, stock")
-      .in("id", ids)
+    const { data: reserved, error: rpcError } = await supabase.rpc("checkout_reservar_stock", {
+      p_items: rpcItems,
+    })
 
-    if (productError || !products) {
-      return NextResponse.json({ error: "Error al validar productos" }, { status: 500 })
+    if (rpcError || !reserved) {
+      const msg = (rpcError as { message?: string })?.message || ""
+      if (msg.includes("Sin stock")) {
+        return NextResponse.json({ error: msg }, { status: 409 })
+      }
+      if (msg.includes("Variante no encontrada") || msg.includes("Producto no encontrado")) {
+        return NextResponse.json({ error: msg }, { status: 400 })
+      }
+      console.error("[crear-pedido] Error en RPC checkout_reservar_stock:", rpcError)
+      return NextResponse.json({ error: "Error al reservar stock" }, { status: 500 })
     }
 
-    if (products.length !== ids.length) {
-      return NextResponse.json({ error: "Uno o más productos no existen" }, { status: 400 })
-    }
-
-    const productMap = new Map(products.map(p => [p.id, p]))
-
-    const vendedorIds = [...new Set(products.map(p => (p as Record<string, unknown>).vendedor_id as string).filter(Boolean))]
+    const vendedorIds = [...new Set(reserved.map((p: Record<string, unknown>) => p.vendedor_id as string).filter(Boolean))]
     const vendedorEmails = new Map<string, string>()
     if (vendedorIds.length > 0) {
       const { data: vendorData } = await supabase
@@ -79,83 +84,11 @@ export async function POST(req: Request) {
       }
     }
 
-    for (const item of items) {
-      const prod = productMap.get(item.productId)!
-      if (item.variantLabel) {
-        const variantes = (prod.variantes as Array<Record<string, unknown>>) || []
-        const variant = variantes.find(
-          (v: Record<string, unknown>) => v.nombre === item.variantLabel
-        )
-        if (!variant) {
-          return NextResponse.json(
-            { error: `Variante "${item.variantLabel}" no encontrada para "${prod.titulo}"` },
-            { status: 400 }
-          )
-        }
-        const variantStock = Number(variant.stock)
-        if (isNaN(variantStock) || variantStock < 1) {
-          return NextResponse.json(
-            { error: `Sin stock de "${item.variantLabel}" para "${prod.titulo}"` },
-            { status: 400 }
-          )
-        }
-      } else {
-        const generalStock = Number(prod.stock)
-        if (isNaN(generalStock) || generalStock < 1) {
-          return NextResponse.json(
-            { error: `Sin stock para "${prod.titulo}"` },
-            { status: 400 }
-          )
-        }
-      }
-    }
-
-    const soldProductIds = new Set<string>()
-
-    for (const item of items) {
-      const prod = productMap.get(item.productId)!
-      if (item.variantLabel) {
-        const variantes = (prod.variantes as Array<Record<string, unknown>>) || []
-        const variantIdx = variantes.findIndex(
-          (v: Record<string, unknown>) => v.nombre === item.variantLabel
-        )
-        if (variantIdx !== -1) {
-          const updatedVariants = [...variantes]
-          const oldStock = Number(updatedVariants[variantIdx].stock)
-          updatedVariants[variantIdx] = {
-            ...updatedVariants[variantIdx],
-            stock: Math.max(0, oldStock - 1),
-          }
-          const totalStock = updatedVariants.reduce((s, v: Record<string, unknown>) => s + Number(v.stock ?? 0), 0)
-          if (totalStock === 0) soldProductIds.add(item.productId)
-          await supabase
-            .from("productos")
-            .update({ variantes: updatedVariants })
-            .eq("id", item.productId)
-        }
-      } else {
-        const newStock = Math.max(0, Number(prod.stock) - 1)
-        if (newStock === 0) soldProductIds.add(item.productId)
-        await supabase
-          .from("productos")
-          .update({ stock: newStock })
-          .eq("id", item.productId)
-      }
-    }
-
-    const validItems = items.map(item => {
-      const prod = productMap.get(item.productId)!
-      return {
-        ...item,
-        title: prod.titulo,
-        price: Number(prod.precio),
-        image: (prod.imagenes as string[])?.[0] || item.image,
-        vendedor_nombre: prod.vendedor_nombre,
-        vendedor_tipo: prod.vendedor_tipo,
-      }
-    })
-
-    const subtotal = validItems.reduce((sum, i) => sum + i.price, 0)
+    const subtotal = reserved.reduce(
+      (sum: number, r: Record<string, unknown>) =>
+        sum + Number(r.variant_price ?? r.precio),
+      0
+    )
 
     const { data: cfgData } = await supabase.from("configuracion_envio").select("sucursal_price, domicilio_price, free_threshold, domicilio_surcharge").single()
     const metodo = metodo_envio || "arreglar_vendedor"
@@ -177,23 +110,30 @@ export async function POST(req: Request) {
     const compradorNombre = addr.nombre || email || "Comprador"
     const compradorEmail = addr.email || email || ""
 
-    for (const item of validItems) {
-      const prod = productMap.get(item.productId)
-      const vid = (prod as Record<string, unknown>)?.vendedor_id as string | null | undefined
-      const vtipo = (prod as Record<string, unknown>)?.vendedor_tipo as string | undefined
+    const itemByProductId = new Map(items.map(i => [i.productId, i]))
+
+    for (const r of reserved as Array<Record<string, unknown>>) {
+      const pid = r.product_id as string
+      const vid = r.vendedor_id as string | null | undefined
+      const vtipo = r.vendedor_tipo as string | undefined
+      const precio = Number(r.variant_price ?? r.precio)
+      const originalItem = itemByProductId.get(pid)
+
       const { error: insertError } = await supabase.from("pedidos").insert({
-        id: `${orderId}-${item.productId.slice(-4)}`,
-        producto_titulo: item.title,
-        producto_imagen: item.image,
-        producto_id: item.productId,
+        id: `${orderId}-${pid.slice(-4)}`,
+        producto_titulo: r.titulo as string,
+        producto_imagen: (r.imagenes as string[])?.[0] || (originalItem?.image || ""),
+        producto_id: pid,
         vendedor_id: vid as string | undefined,
         vendedor_tipo: vtipo as string | undefined,
-        precio: item.price,
+        precio,
         comprador_nombre: compradorNombre,
         comprador_email: compradorEmail,
-        vendedor_nombre: item.vendedor_nombre,
-        vendedor_email: vid ? vendedorEmails.get(vid) || "" : "",
-        talle: item.size,
+        vendedor_nombre: r.vendedor_nombre as string,
+        vendedor_email: vid ? vendedorEmails.get(vid as string) || "" : "",
+        talle: originalItem?.size || "",
+        variante_label: (r.variant_label as string) || null,
+        variante_atributos: r.variant_attributes as Record<string, string> | null,
         direccion: typeof direccion === "object" ? JSON.stringify(direccion) : String(direccion || ""),
         status: "pending_shipment",
         metodo_envio: metodo,
@@ -205,17 +145,17 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Error al crear el pedido" }, { status: 500 })
       }
       await registrarVentaFeria(supabase, {
-        pedidoId: `${orderId}-${item.productId.slice(-4)}`,
+        pedidoId: `${orderId}-${pid.slice(-4)}`,
         vendedorId: vid ?? null,
         vendedorTipo: vtipo ?? "oficial",
-        productoTitulo: item.title,
-        precio: item.price,
+        productoTitulo: r.titulo as string,
+        precio,
       })
-      if (soldProductIds.has(item.productId)) {
+      if (r.sold_out) {
         await supabase
           .from("productos")
           .update({ status: "sold", vendido: true })
-          .eq("id", item.productId)
+          .eq("id", pid)
       }
     }
 
@@ -228,29 +168,27 @@ export async function POST(req: Request) {
     }).catch(() => {})
 
     const vendedoresNotificados = new Set<string>()
-    for (const item of validItems) {
-      const prod = productMap.get(item.productId)
-      if (prod && (prod as Record<string, unknown>).vendedor_id) {
-        const vid = (prod as Record<string, unknown>).vendedor_id as string
-        if (!vendedoresNotificados.has(vid)) {
-          vendedoresNotificados.add(vid)
-          await supabase.from("notifications").insert({
-            id: `product-sold-${orderId}-${vid}-${Date.now()}`,
-            user_id: vid,
-            type: "product_sold",
-            title: "¡Vendiste un producto!",
-            body: `Alguien compró "${prod.titulo}". Revisá tus ventas.`,
-            link: "/perfil/ventas",
-          }).then(({ error }) => {
-            if (error) console.error("[crear-pedido] Error insertando notificación:", error)
-          })
-          sendSellerPush(vid, {
-            title: "¡Vendiste un producto!",
-            body: `Alguien compró "${prod.titulo}". Revisá tus ventas.`,
-            url: "/perfil/ventas",
-            tag: `venta-${orderId}-${vid}`,
-          }).catch(() => {})
-        }
+    for (const r of reserved as Array<Record<string, unknown>>) {
+      const vid = r.vendedor_id as string | undefined
+      const titulo = r.titulo as string
+      if (vid && !vendedoresNotificados.has(vid)) {
+        vendedoresNotificados.add(vid)
+        await supabase.from("notifications").insert({
+          id: `product-sold-${orderId}-${vid}-${Date.now()}`,
+          user_id: vid,
+          type: "product_sold",
+          title: "¡Vendiste un producto!",
+          body: `Alguien compró "${titulo}". Revisá tus ventas.`,
+          link: "/perfil/ventas",
+        }).then(({ error }) => {
+          if (error) console.error("[crear-pedido] Error insertando notificación:", error)
+        })
+        sendSellerPush(vid, {
+          title: "¡Vendiste un producto!",
+          body: `Alguien compró "${titulo}". Revisá tus ventas.`,
+          url: "/perfil/ventas",
+          tag: `venta-${orderId}-${vid}`,
+        }).catch(() => {})
       }
     }
 
