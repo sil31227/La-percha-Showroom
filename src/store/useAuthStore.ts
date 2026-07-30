@@ -95,6 +95,8 @@ async function ensureProfile(userId: string, email: string, name: string) {
   }
 }
 
+let unsubscribeAuth: (() => void) | null = null
+
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   user: null,
   session: null,
@@ -115,7 +117,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       set({ initialized: true })
     }
 
-    supabase.auth.onAuthStateChange(async (_event, session) => {
+    if (unsubscribeAuth) unsubscribeAuth()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         await ensureProfile(session.user.id, session.user.email ?? "", session.user.user_metadata?.full_name || "")
         const profile = await fetchProfile(session.user.id)
@@ -124,6 +127,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         set({ session: null, user: null })
       }
     })
+    unsubscribeAuth = subscription.unsubscribe
   },
 
   login: async (email, password) => {
@@ -236,12 +240,16 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     const user = get().user
     if (!user) { console.error("[requestSeller] No hay usuario autenticado"); return }
     try {
-      const [profileRes, vendorRes] = await Promise.all([
-        supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id),
-        supabase.from("vendedores").upsert({ id: user.id, nombre: user.name, email: user.email, avatar: user.avatar, status: "pending", productos_count: 0 }),
-      ])
-      if (profileRes.error) console.error("[requestSeller] Error profiles:", profileRes.error)
-      if (vendorRes.error) console.error("[requestSeller] Error vendedores:", vendorRes.error)
+      const vendorRes = await supabase.from("vendedores").upsert({ id: user.id, nombre: user.name, email: user.email, avatar: user.avatar, status: "pending", productos_count: 0 })
+      if (vendorRes.error) { console.error("[requestSeller] Error vendedores:", vendorRes.error); return }
+
+      const profileRes = await supabase.from("profiles").update({ seller_status: "pending" }).eq("id", user.id)
+      if (profileRes.error) {
+        console.error("[requestSeller] Error profiles:", profileRes.error)
+        await supabase.from("vendedores").delete().eq("id", user.id)
+        return
+      }
+
       set(s => s.user ? { user: { ...s.user, seller_status: "pending" } } : s)
     } catch (err) {
       console.error("[requestSeller] Exception:", err)
@@ -282,22 +290,25 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     if (!session?.access_token) {
       return { ok: false, error: "No autenticado" }
     }
-    const res = await fetch("/api/saldo/retirar", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ monto: amount }),
-    })
-    const data = await res.json().catch(() => ({ error: "Error de conexión" }))
-    if (!res.ok) {
-      return { ok: false, error: data.error || "Error al procesar el retiro" }
+    try {
+      const res = await fetch("/api/saldo/retirar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ monto: amount }),
+      })
+      const data = await res.json().catch(() => ({ error: "Error de conexión" }))
+      if (!res.ok) {
+        return { ok: false, error: data.error || "Error al procesar el retiro" }
+      }
+      await get().refreshProfile()
+      await get().fetchRetiros()
+      return { ok: true }
+    } catch {
+      return { ok: false, error: "Error de conexión" }
     }
-    await get().refreshProfile()
-    const retiros = await get().fetchRetiros()
-    set(s => s.user ? { user: { ...s.user, retiros } } : s)
-    return { ok: true }
   },
 
   fetchVentas: async () => {
@@ -309,7 +320,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       .eq("vendedor_id", user.id)
       .order("created_at", { ascending: false })
     if (!data) return []
-    return data.map((v: Record<string, unknown>) => ({
+    const ventas = data.map((v: Record<string, unknown>) => ({
       id: v.id as string,
       pedido_id: v.pedido_id as string,
       title: v.producto_titulo as string,
@@ -320,6 +331,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       date: (v.created_at as string)?.slice(0, 10) ?? "",
       status: v.status as VentaRecord["status"],
     }))
+    set(s => s.user ? { user: { ...s.user, ventas } } : s)
+    return ventas
   },
 
   fetchRetiros: async () => {
@@ -331,7 +344,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       .eq("vendedor_id", user.id)
       .order("created_at", { ascending: false })
     if (!data) return []
-    return data.map((r: Record<string, unknown>) => ({
+    const retiros = data.map((r: Record<string, unknown>) => ({
       id: r.id as string,
       monto: r.monto as number,
       cbu: (r.cbu as string) || "",
@@ -339,6 +352,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       created_at: r.created_at as string,
       pagado_at: r.pagado_at as string | null,
     }))
+    set(s => s.user ? { user: { ...s.user, retiros } } : s)
+    return retiros
   },
 
   logout: async () => {
