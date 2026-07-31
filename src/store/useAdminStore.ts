@@ -386,6 +386,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }))
   },
   reorderProducts: async (items) => {
+    const previous = get().products
     set(s => {
       const updated = [...s.products]
       for (const item of items) {
@@ -394,11 +395,16 @@ export const useAdminStore = create<AdminState>((set, get) => ({
       }
       return { products: updated.sort((a, b) => (a.orden || 0) - (b.orden || 0)) }
     })
-    await fetch("/api/productos/reordenar", {
+    const res = await fetch("/api/productos/reordenar", {
       method: "POST",
       headers: await authHeaders(),
       body: JSON.stringify({ items }),
     })
+    if (!res.ok) {
+      set({ products: previous })
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || "Error al reordenar productos")
+    }
   },
 
   markOrderShipped: async (id, seguimiento) => {
