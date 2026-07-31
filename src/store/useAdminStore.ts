@@ -139,6 +139,7 @@ const M = "id, producto_id, admin_id, tipo_accion, texto, created_at"
 
 async function authHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession()
+  console.log("[authHeaders] session:", session ? "exists" : "NULL", "token:", session?.access_token ? session.access_token.slice(0, 20) + "..." : "NONE")
   return session?.access_token
     ? { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }
     : { "Content-Type": "application/json" }
