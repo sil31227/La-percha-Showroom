@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./admin.css";
 import { AdminSidebar } from "./sidebar";
+import { AdminGuard } from "./AdminGuard";
+import { AuthInitializer } from "@/components/AuthInitializer";
 import { NotificationsInitializer } from "@/components/NotificationsInitializer";
 
 export const metadata: Metadata = {
@@ -15,10 +17,13 @@ export const viewport: Viewport = {
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-bg-page">
-      <AdminSidebar />
-      <main className="flex-1 lg:pl-56 pt-12 pb-16 lg:pt-0 lg:pb-0 overflow-x-hidden">{children}</main>
-      <NotificationsInitializer />
-    </div>
+    <AdminGuard>
+      <AuthInitializer />
+      <div className="flex min-h-screen bg-bg-page">
+        <AdminSidebar />
+        <main className="flex-1 lg:pl-56 pt-12 pb-16 lg:pt-0 lg:pb-0 overflow-x-hidden">{children}</main>
+        <NotificationsInitializer />
+      </div>
+    </AdminGuard>
   );
 }
