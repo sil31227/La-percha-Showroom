@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useAuthStore } from "@/store/useAuthStore"
 import { supabase } from "@/lib/supabase"
 import { compressImage } from "@/lib/image-utils"
+import { authBearerHeaders } from "@/lib/auth-client"
 import { ArrowLeft, User, Banknote, Mail, Phone, Camera, ShieldCheck, Loader2 } from "lucide-react"
 
 export default function EditarPerfilPage() {
@@ -55,7 +56,13 @@ export default function EditarPerfilPage() {
       formData.append("file", compressed, compressed.name)
       formData.append("folder", "avatars")
 
-      const res = await fetch("/api/upload", { method: "POST", body: formData })
+      const headers = await authBearerHeaders()
+      if (!headers.Authorization) {
+        alert("Tenés que iniciar sesión para subir la foto")
+        return
+      }
+
+      const res = await fetch("/api/upload", { method: "POST", headers, body: formData })
       const text = await res.text()
       let data: { url?: string; error?: string } = {}
       try {

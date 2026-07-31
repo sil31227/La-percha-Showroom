@@ -8,10 +8,6 @@ export async function POST(request: Request) {
     if (!user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 })
     }
-    const adminEmail = process.env.ADMIN_EMAIL
-    if (!adminEmail || user.email !== adminEmail) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 403 })
-    }
 
     const { paths } = await request.json()
     if (!paths?.length) return NextResponse.json({ error: "No se especificaron archivos" }, { status: 400 })
