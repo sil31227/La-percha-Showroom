@@ -1,9 +1,10 @@
 "use client"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { LayoutDashboard, ShieldCheck, Users, Store, Package, ShoppingBag, Tags, HelpCircle, UserPlus, Menu, X, LogOut, MoreHorizontal, Truck, MessageSquareText, ArrowDownCircle, DollarSign } from "lucide-react"
 import { useAdminStore } from "@/store/useAdminStore"
+import { useAuthStore } from "@/store/useAuthStore"
 import { EnableAdminPush } from "./EnableAdminPush"
 
 const NAV = [
@@ -33,13 +34,20 @@ const MOBILE_TABS = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const { loadFromSupabase, loadRetiros, products, vendors, retiros } = useAdminStore()
+  const logout = useAuthStore(s => s.logout)
   const pendingProducts = products.filter(p => p.status === "pending").length
   const pendingVendors = vendors.filter(v => v.status === "pending").length
   const pendingRetiros = retiros.filter(r => r.status === "solicitado").length
 
   useEffect(() => { loadFromSupabase(); loadRetiros() }, [])
+
+  async function handleLogout() {
+    await logout()
+    router.push("/ingresar")
+  }
 
   function badge(href: string) {
     if (href === "/admin/moderacion" && pendingProducts > 0) return pendingProducts
@@ -108,10 +116,10 @@ export function AdminSidebar() {
             <div className="mt-2 mb-1">
               <EnableAdminPush />
             </div>
-            <Link href="/" className="flex items-center gap-2 px-3 py-3 rounded-lg text-xs text-text-muted hover:bg-surface-sunken transition-colors">
+            <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-3 rounded-lg text-xs text-text-muted hover:bg-surface-sunken transition-colors w-full text-left">
               <LogOut className="w-3.5 h-3.5" />
               Salir del admin
-            </Link>
+            </button>
           </div>
         </div>
       )}
@@ -138,10 +146,10 @@ export function AdminSidebar() {
         <div className="mb-2">
           <EnableAdminPush />
         </div>
-        <Link href="/" className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs text-text-muted hover:bg-surface-sunken transition-colors">
+        <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs text-text-muted hover:bg-surface-sunken transition-colors w-full text-left">
           <LogOut className="w-3.5 h-3.5" />
           Salir del admin
-        </Link>
+        </button>
       </aside>
     </>
   )
