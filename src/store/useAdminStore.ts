@@ -137,6 +137,13 @@ const V = "id, nombre, email, avatar, cbu, banco, tipo_cuenta, alias, titular, p
 const VT = "id, pedido_id, vendedor_id, producto_titulo, monto_bruto, comision, monto_neto, status, created_at, liberado_at"
 const M = "id, producto_id, admin_id, tipo_accion, texto, created_at"
 
+async function authHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession()
+  return session?.access_token
+    ? { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` }
+    : { "Content-Type": "application/json" }
+}
+
 export const useAdminStore = create<AdminState>((set, get) => ({
   products: [], vendors: [], orders: [], ventas: [], retiros: [], retirosLoaded: false,
   ventasPendientes: [], ventasPendientesLoaded: false,
@@ -227,16 +234,18 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         null
       )
 
-      fetch("/api/push/notify-seller", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: product.vendedor_id,
-          title,
-          body,
-          url: "/perfil/publicaciones",
-        }),
-      }).catch(() => {})
+      authHeaders().then(headers =>
+        fetch("/api/push/notify-seller", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            userId: product.vendedor_id,
+            title,
+            body,
+            url: "/perfil/publicaciones",
+          }),
+        })
+      ).catch(() => {})
     }
 
     if (status === "approved" && product?.vendedor_id) {
@@ -247,16 +256,18 @@ export const useAdminStore = create<AdminState>((set, get) => ({
         `"${product.titulo}" ya está publicada y a la venta en La Percha.`,
         `/producto/${id}`
       )
-      fetch("/api/push/notify-seller", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: product.vendedor_id,
-          title: "¡Tu prenda fue publicada!",
-          body: `"${product.titulo}" ya está publicada y a la venta.`,
-          url: "/perfil/publicaciones",
-        }),
-      }).catch(() => {})
+      authHeaders().then(headers =>
+        fetch("/api/push/notify-seller", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            userId: product.vendedor_id,
+            title: "¡Tu prenda fue publicada!",
+            body: `"${product.titulo}" ya está publicada y a la venta.`,
+            url: "/perfil/publicaciones",
+          }),
+        })
+      ).catch(() => {})
     }
 
     if (note) {
@@ -276,7 +287,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   approveVendor: async (id) => {
     const res = await fetch("/api/admin/vendedores", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify({ id, status: "approved" }),
     })
     if (!res.ok) {
@@ -296,7 +307,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   rejectVendor: async (id) => {
     const res = await fetch("/api/admin/vendedores", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify({ id, status: "rejected" }),
     })
     if (!res.ok) {
@@ -348,7 +359,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     set(s => ({ products: s.products.map(p => p.id === id ? { ...p, ...form } : p) }))
   },
   removeStoreProduct: async (id) => {
-    const res = await fetch(`/api/productos/${id}`, { method: "DELETE" })
+    const res = await fetch(`/api/productos/${id}`, { method: "DELETE", headers: await authHeaders() })
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: "Error desconocido" }))
       throw new Error(body.error || "Error al eliminar producto")
@@ -382,7 +393,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     })
     await fetch("/api/productos/reordenar", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify({ items }),
     })
   },
@@ -390,7 +401,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   markOrderShipped: async (id, seguimiento) => {
     const res = await fetch("/api/admin/pedidos", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify({ id, status: "shipped", seguimiento }),
     })
     if (!res.ok) {
@@ -416,7 +427,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   markOrderDelivered: async (id) => {
     const res = await fetch("/api/admin/pedidos", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify({ id, status: "delivered" }),
     })
     if (!res.ok) {
@@ -428,7 +439,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   deleteOrder: async (id) => {
     const res = await fetch("/api/admin/pedidos", {
       method: "DELETE",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify({ id }),
     })
     if (!res.ok) {
@@ -502,7 +513,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }))
   },
   deleteFeriaProduct: async (id) => {
-    const res = await fetch(`/api/productos/${id}`, { method: "DELETE" })
+    const res = await fetch(`/api/productos/${id}`, { method: "DELETE", headers: await authHeaders() })
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: "Error desconocido" }))
       throw new Error(body.error || "Error al eliminar producto")
@@ -512,7 +523,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   loadRetiros: async () => {
     try {
-      const res = await fetch("/api/admin/retiros")
+      const res = await fetch("/api/admin/retiros", { headers: await authHeaders() })
       if (!res.ok) throw new Error("Error al cargar retiros")
       const data = await res.json()
       set({ retiros: data.retiros as AdminRetiro[], retirosLoaded: true })
@@ -524,7 +535,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   markRetiroPagado: async (id) => {
     const res = await fetch("/api/admin/retiros", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify({ action: "pagar", retiroId: id }),
     })
     if (!res.ok) {
@@ -539,7 +550,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   rejectRetiro: async (id) => {
     const res = await fetch("/api/admin/retiros", {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify({ action: "rechazar", retiroId: id }),
     })
     if (!res.ok) {
@@ -553,7 +564,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
 
   loadVentasPendientes: async () => {
     try {
-      const res = await fetch("/api/admin/ventas")
+      const res = await fetch("/api/admin/ventas", { headers: await authHeaders() })
       if (!res.ok) throw new Error("Error al cargar ventas pendientes")
       const data = await res.json()
       set({ ventasPendientes: data.ventas as PendienteLiberacion[], ventasPendientesLoaded: true })
@@ -565,7 +576,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   liberarFondos: async (ventaId) => {
     const res = await fetch("/api/admin/ventas", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders(),
       body: JSON.stringify({ ventaId }),
     })
     if (!res.ok) {
