@@ -4,7 +4,10 @@ import { bearerToken, getUserFromToken } from "@/lib/auth-server"
 
 export async function PATCH(request: Request) {
   try {
-    const user = await getUserFromToken(bearerToken(request))
+    const token = bearerToken(request)
+    console.log("[vendedores PATCH] token received:", token ? token.slice(0, 20) + "..." : "NONE")
+    const user = await getUserFromToken(token)
+    console.log("[vendedores PATCH] user:", user ? `${user.id.slice(0, 8)}... / ${user.email}` : "NULL")
     if (!user?.id) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 })
     }
