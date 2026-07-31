@@ -7,6 +7,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type D
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { compressImage } from "@/lib/image-utils"
+import { authBearerHeaders } from "@/lib/auth-client"
 
 const TIPOS: { v: ProductType; l: string; d: string; icon: React.ReactNode; colorClass: string }[] = [
   { v: "ropa", l: "Ropa", d: "Camisas, pantalones, vestidos, calzado, accesorios, kids", icon: <Shirt className="w-7 h-7 text-matcha-600" />, colorClass: "border-matcha-500 bg-matcha-100" },
@@ -226,13 +227,20 @@ export default function TiendaPage() {
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files; if (!files?.length) return
     setUploading(true)
+    const headers = await authBearerHeaders()
+    if (!headers.Authorization) {
+      setError("Tenés que iniciar sesión para subir imágenes")
+      setUploading(false)
+      return
+    }
     for (const file of Array.from(files)) {
       try {
         const compressed = await compressImage(file, 1600, 0.8)
         const fd = new FormData(); fd.append("file", compressed)
-        const res = await fetch("/api/upload", { method: "POST", body: fd })
+        const res = await fetch("/api/upload", { method: "POST", headers, body: fd })
         const data = await res.json()
         if (data.url) setForm(f => ({ ...f, imagenes: [...f.imagenes, data.url] }))
+        else setError(data.error || "Error al subir imagen")
       } catch { setError("Error al subir imagen") }
     }
     setUploading(false)
@@ -359,7 +367,12 @@ export default function TiendaPage() {
           return parts[1]?.split("?")[0]
         }).filter(Boolean) as string[]
         if (paths.length > 0) {
-          fetch("/api/imagenes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths }) }).catch(() => {})
+          const headers = await authBearerHeaders()
+          fetch("/api/imagenes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...headers },
+            body: JSON.stringify({ paths }),
+          }).catch(() => {})
         }
       }
       setDeletedImages([])

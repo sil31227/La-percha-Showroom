@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/useAuthStore"
 import { EnableSellerPush } from "./EnableSellerPush"
 import { supabase } from "@/lib/supabase"
 import { compressImage } from "@/lib/image-utils"
+import { authBearerHeaders } from "@/lib/auth-client"
 
 const CONDITIONS = [
   { value: 'new_tag', label: 'Nuevo con etiqueta' },
@@ -221,14 +222,23 @@ export default function VenderPage() {
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files; if (!files?.length) return
     setUploading(true)
+    const headers = await authBearerHeaders()
+    if (!headers.Authorization) {
+      alert("Tenés que iniciar sesión para subir fotos")
+      setUploading(false)
+      return
+    }
     for (const file of Array.from(files)) {
       try {
         const compressed = await compressImage(file, 1600, 0.8)
         const fd = new FormData(); fd.append("file", compressed)
-        const res = await fetch("/api/upload", { method: "POST", body: fd })
+        const res = await fetch("/api/upload", { method: "POST", headers, body: fd })
         const data = await res.json()
         if (data.url) setImages(prev => [...prev, data.url])
-      } catch { /* ignore */ }
+        else alert(data.error || "Error al subir la imagen")
+      } catch {
+        alert("Error al subir la imagen")
+      }
     }
     setUploading(false)
     if (fileInputRef.current) fileInputRef.current.value = ""
@@ -254,6 +264,10 @@ export default function VenderPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return
+    if (images.length === 0) {
+      alert("Agregá al menos una foto del producto")
+      return
+    }
     setSubmitting(true)
     const productId = `prod-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
     const { error } = await supabase.from("productos").insert({
@@ -289,7 +303,14 @@ export default function VenderPage() {
     }).catch(() => {})
     if (deletedImages.length > 0) {
       const paths = deletedImages.map(url => { const parts = url.split("/productos/"); return parts[1]?.split("?")[0] }).filter(Boolean) as string[]
-      if (paths.length > 0) fetch("/api/imagenes", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paths }) }).catch(() => {})
+      if (paths.length > 0) {
+        const headers = await authBearerHeaders()
+        fetch("/api/imagenes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...headers },
+          body: JSON.stringify({ paths }),
+        }).catch(() => {})
+      }
     }
     setDeletedImages([])
     setSent(true)
