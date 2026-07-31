@@ -77,6 +77,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   startPolling: (conversacionId, token) => {
     const existing = get().pollingIntervals[conversacionId]
     if (existing) return
+    get().fetchMensajes(conversacionId, token)
     const interval = setInterval(() => {
       get().fetchMensajes(conversacionId, token)
     }, 20000)
@@ -86,13 +87,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   stopPolling: (conversacionId) => {
-    const interval = get().pollingIntervals[conversacionId]
-    if (interval) {
+    set(s => {
+      const interval = s.pollingIntervals[conversacionId]
+      if (!interval) return s
       clearInterval(interval)
-      const next = { ...get().pollingIntervals }
+      const next = { ...s.pollingIntervals }
       delete next[conversacionId]
-      set({ pollingIntervals: next })
-    }
+      return { pollingIntervals: next }
+    })
   },
 
   clear: () => {
