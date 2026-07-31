@@ -124,11 +124,13 @@ interface AdminState {
 
 async function createNotification(userId: string | undefined, type: NotificationType, title: string, body: string, link: string | null) {
   if (!userId) return
-  const id = `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-  await supabase.from("notifications").insert({ id, user_id: userId, type, title, body, link, read: false }).then(
-    () => {},
-    () => {}
-  )
+  const id = crypto.randomUUID()
+  const { error } = await supabase.from("notifications").insert({
+    id, user_id: userId, type, title, body, link, read: false,
+  })
+  if (error) {
+    console.error("[createNotification]", error.message)
+  }
 }
 
 const P = "id, titulo, precio, precio_anterior, descripcion, marca, material, categoria_id, subcategoria_id, estado, talles, colores, imagenes, stock, variantes, envio_gratis, destacado, tipo, retiro_local, vendedor_nombre, vendedor_id, vendedor_tipo, status, vendido, orden, created_at"
@@ -327,7 +329,7 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   addStoreProduct: async (form) => {
-    const id = `store-${Date.now()}`
+    const id = crypto.randomUUID()
     const payload: Record<string, unknown> = {
       id, titulo: form.titulo, precio: form.precio, precio_anterior: form.precio_anterior,
       descripcion: form.descripcion, marca: form.marca, material: form.material,
@@ -451,12 +453,14 @@ export const useAdminStore = create<AdminState>((set, get) => ({
   },
 
   addSubcategory: async (catId, nombre) => {
-    const id = `sub-${Date.now()}`
-    await supabase.from("subcategorias").insert({ id, categoria_id: catId, nombre })
+    const id = crypto.randomUUID()
+    const { error } = await supabase.from("subcategorias").insert({ id, categoria_id: catId, nombre })
+    if (error) throw new Error(error.message)
     await get().loadFromSupabase()
   },
   renameSubcategory: async (catId, subId, nombre) => {
-    await supabase.from("subcategorias").update({ nombre }).eq("id", subId)
+    const { error } = await supabase.from("subcategorias").update({ nombre }).eq("id", subId)
+    if (error) throw new Error(error.message)
     set(s => ({
       categories: s.categories.map(c => c.id === catId ? {
         ...c, subcategorias: c.subcategorias.map(su => su.id === subId ? { ...su, nombre } : su)
@@ -464,34 +468,41 @@ export const useAdminStore = create<AdminState>((set, get) => ({
     }))
   },
   deleteSubcategory: async (catId, subId) => {
-    await supabase.from("subcategorias").delete().eq("id", subId)
+    const { error } = await supabase.from("subcategorias").delete().eq("id", subId)
+    if (error) throw new Error(error.message)
     set(s => ({ categories: s.categories.map(c => c.id === catId ? { ...c, subcategorias: c.subcategorias.filter(su => su.id !== subId) } : c) }))
   },
   renameCategory: async (catId, nombre) => {
-    await supabase.from("categorias").update({ nombre }).eq("id", catId)
+    const { error } = await supabase.from("categorias").update({ nombre }).eq("id", catId)
+    if (error) throw new Error(error.message)
     set(s => ({ categories: s.categories.map(c => c.id === catId ? { ...c, nombre } : c) }))
   },
   addCategory: async (nombre, tipo) => {
-    const id = `cat-${Date.now()}`
-    await supabase.from("categorias").insert({ id, nombre, orden: 0 })
+    const id = crypto.randomUUID()
+    const { error } = await supabase.from("categorias").insert({ id, nombre, orden: 0 })
+    if (error) throw new Error(error.message)
     set(s => ({ categories: [...s.categories, { id, nombre, tipo: tipo as ProductType, subcategorias: [] }] }))
   },
 
   addFAQ: async (pregunta, respuesta) => {
-    const id = `f-${Date.now()}`
-    await supabase.from("faq").insert({ id, pregunta, respuesta })
+    const id = crypto.randomUUID()
+    const { error } = await supabase.from("faq").insert({ id, pregunta, respuesta })
+    if (error) throw new Error(error.message)
     set(s => ({ faq: [...s.faq, { id, pregunta, respuesta }] }))
   },
   updateFAQ: async (id, pregunta, respuesta) => {
-    await supabase.from("faq").update({ pregunta, respuesta }).eq("id", id)
+    const { error } = await supabase.from("faq").update({ pregunta, respuesta }).eq("id", id)
+    if (error) throw new Error(error.message)
     set(s => ({ faq: s.faq.map(f => f.id === id ? { ...f, pregunta, respuesta } : f) }))
   },
   deleteFAQ: async (id) => {
-    await supabase.from("faq").delete().eq("id", id)
+    const { error } = await supabase.from("faq").delete().eq("id", id)
+    if (error) throw new Error(error.message)
     set(s => ({ faq: s.faq.filter(f => f.id !== id) }))
   },
   updateTerms: async (contenido) => {
-    await supabase.from("terminos").upsert({ id: 1, contenido })
+    const { error } = await supabase.from("terminos").upsert({ id: 1, contenido })
+    if (error) throw new Error(error.message)
     set({ terms: contenido })
   },
 
