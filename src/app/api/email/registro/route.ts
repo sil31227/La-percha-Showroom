@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
         "Prefer": "return=minimal",
       },
-      body: JSON.stringify({ email, token, name: name || "", verified: false }),
+      body: JSON.stringify({ email, token, name: name || "", verified: false, type: "email_verification" }),
     })
 
     const verifyUrl = `${SITE_URL}/verificar-email?token=${token}`
