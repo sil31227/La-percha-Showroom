@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { supabase } from "@/lib/supabase"
+import { useAuthStore } from "@/store/useAuthStore"
 
 export interface Comentario {
   id: string
@@ -14,23 +14,30 @@ export interface Comentario {
 
 interface CommentsState {
   items: Record<string, Comentario[]>
-  loading: boolean
+  loading: Record<string, boolean>
   fetchComentarios: (productoId: string) => Promise<void>
   addComentario: (productoId: string, texto: string, token: string) => Promise<boolean>
 }
 
 export const useCommentsStore = create<CommentsState>((set) => ({
   items: {},
-  loading: false,
+  loading: {},
 
   fetchComentarios: async (productoId) => {
-    set({ loading: true })
-    const res = await fetch(`/api/productos/${productoId}/comentarios`)
-    if (res.ok) {
-      const data = await res.json()
-      set(s => ({ items: { ...s.items, [productoId]: data.comentarios || [] }, loading: false }))
-    } else {
-      set({ loading: false })
+    set(s => ({ loading: { ...s.loading, [productoId]: true } }))
+    try {
+      const res = await fetch(`/api/productos/${productoId}/comentarios`)
+      if (res.ok) {
+        const data = await res.json()
+        set(s => ({
+          items: { ...s.items, [productoId]: data.comentarios || [] },
+          loading: { ...s.loading, [productoId]: false },
+        }))
+      } else {
+        set(s => ({ loading: { ...s.loading, [productoId]: false } }))
+      }
+    } catch {
+      set(s => ({ loading: { ...s.loading, [productoId]: false } }))
     }
   },
 
@@ -45,17 +52,26 @@ export const useCommentsStore = create<CommentsState>((set) => ({
     })
     if (!res.ok) return false
     const data = await res.json()
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name, avatar_url")
-      .eq("id", data.comentario.user_id)
-      .single()
+    const authUser = useAuthStore.getState().user
+    const fromApi = data.comentario as Partial<Comentario> & {
+      id: string
+      producto_id: string
+      user_id: string
+      texto: string
+      deleted: boolean
+      created_at: string
+    }
 
     const enriched: Comentario = {
-      ...data.comentario,
-      user_name: profile?.full_name || "Usuario",
-      user_avatar: profile?.avatar_url || null,
+      ...fromApi,
+      user_name:
+        fromApi.user_name ||
+        (authUser && authUser.id === fromApi.user_id ? authUser.name : undefined) ||
+        "Usuario",
+      user_avatar:
+        fromApi.user_avatar ??
+        (authUser && authUser.id === fromApi.user_id ? authUser.avatar : null) ??
+        null,
     }
 
     set(s => ({
