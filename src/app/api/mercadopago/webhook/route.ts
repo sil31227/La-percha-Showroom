@@ -65,6 +65,7 @@ export async function POST(req: Request) {
               .from("productos")
               .update({ status: "sold", vendido: true })
               .eq("id", p.producto_id)
+              .neq("status", "sold")
 
             await registrarVentaFeria(supabase, {
               pedidoId: p.id,
@@ -80,9 +81,10 @@ export async function POST(req: Request) {
         const costoEnvio = Number(pedidos[0].costo_envio) || 0
         const subtotal = pedidos.reduce((s, p) => s + Number(p.precio), 0)
 
+        let mailOk = !email
         if (email) {
           try {
-            await fetch(`${siteUrl}/api/email/pedido-confirmado`, {
+            const res = await fetch(`${siteUrl}/api/email/pedido-confirmado`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -96,15 +98,25 @@ export async function POST(req: Request) {
                 total: subtotal + costoEnvio,
               }),
             })
+            if (!res.ok) {
+              const bodyText = await res.text().catch(() => "")
+              console.error("[webhook] mail pedido-confirmado no OK:", res.status, bodyText)
+              mailOk = false
+            } else {
+              mailOk = true
+            }
           } catch (mailErr) {
             console.error("Error disparando mail pago confirmado:", mailErr)
+            mailOk = false
           }
         }
 
-        await supabase
-          .from("pedidos")
-          .update({ mail_pago_enviado: true })
-          .like("id", `${externalReference}%`)
+        if (mailOk) {
+          await supabase
+            .from("pedidos")
+            .update({ mail_pago_enviado: true })
+            .like("id", `${externalReference}%`)
+        }
 
         sendAdminPush({
           title: "✅ Pago confirmado",
@@ -117,22 +129,30 @@ export async function POST(req: Request) {
         for (const p of pedidos) {
           if (p.vendedor_id && !sellersNotified.has(p.vendedor_id)) {
             sellersNotified.add(p.vendedor_id)
-            await supabase.from("notifications").insert({
-              id: `product-sold-${externalReference}-${p.vendedor_id}-${Date.now()}`,
-              user_id: p.vendedor_id,
-              type: "product_sold",
-              title: "✅ Pago confirmado",
-              body: `Recibiste el pago por "${p.producto_titulo}".`,
-              link: "/perfil/ventas",
-            }).then(({ error }) => {
-              if (error) console.error("[webhook] Error insertando notificación:", error)
-            })
-            sendSellerPush(p.vendedor_id, {
-              title: "✅ Pago confirmado",
-              body: `Recibiste el pago por "${p.producto_titulo}".`,
-              url: "/perfil/ventas",
-              tag: `pago-${externalReference}-${p.vendedor_id}`,
-            }).catch(() => {})
+            const notifId = `product-sold-${externalReference}-${p.vendedor_id}`
+            const { data: existingNotif } = await supabase
+              .from("notifications")
+              .select("id")
+              .eq("id", notifId)
+              .maybeSingle()
+            if (!existingNotif) {
+              await supabase.from("notifications").insert({
+                id: notifId,
+                user_id: p.vendedor_id,
+                type: "product_sold",
+                title: "✅ Pago confirmado",
+                body: `Recibiste el pago por "${p.producto_titulo}".`,
+                link: "/perfil/ventas",
+              }).then(({ error }) => {
+                if (error) console.error("[webhook] Error insertando notificación:", error)
+              })
+              sendSellerPush(p.vendedor_id, {
+                title: "✅ Pago confirmado",
+                body: `Recibiste el pago por "${p.producto_titulo}".`,
+                url: "/perfil/ventas",
+                tag: `pago-${externalReference}-${p.vendedor_id}`,
+              }).catch(() => {})
+            }
           }
         }
       }

@@ -10,9 +10,18 @@ export async function registrarVentaFeria(
   params: { pedidoId: string; vendedorId: string | null; vendedorTipo: string; productoTitulo: string; precio: number }
 ): Promise<void> {
   if (params.vendedorTipo !== "feria" || !params.vendedorId) return
+
+  const ventaId = `V-${params.pedidoId}`
+  const { data: existing } = await supabase
+    .from("ventas")
+    .select("id")
+    .eq("id", ventaId)
+    .maybeSingle()
+  if (existing) return
+
   const { comision, monto_neto } = calcularComision(params.precio)
   await supabase.from("ventas").insert({
-    id: `V-${params.pedidoId}`,
+    id: ventaId,
     pedido_id: params.pedidoId,
     vendedor_id: params.vendedorId,
     producto_titulo: params.productoTitulo,
