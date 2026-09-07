@@ -24,9 +24,42 @@ export default function RegistrosPage() {
     })
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    let cancelled = false
+    supabase.from("verification_tokens").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+      if (cancelled) return
+      setRegistros((data || []) as Registro[])
+      setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [])
 
   async function verify(id: string) {
+    const row = registros.find(r => r.id === id)
+    if (!row?.email) return
+
+    // Confirmar en Supabase Auth (fuente de verdad del login). El token en DB solo es tracking.
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    if (!token) {
+      alert("Sesión admin expirada. Volvé a ingresar.")
+      return
+    }
+
+    const res = await fetch("/api/auth/confirm-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ email: row.email }),
+    })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error || "No se pudo confirmar el email en Auth")
+      return
+    }
+
     await supabase.from("verification_tokens").update({ verified: true }).eq("id", id)
     load()
   }
